@@ -1,0 +1,86 @@
+"""MoE training and result schema tests."""
+
+from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+import torch
+from jsonschema import Draft202012Validator, FormatChecker
+
+from tests.test_dense_training import DenseTrainingTests
+from architecture_lab.models.moe_transformer import MoETransformer, count_active_parameters, count_moe_parameters
+from architecture_lab.models.dense_transformer import TransformerConfig
+from architecture_lab.tokenization import BPETokenizer
+from architecture_lab.training.moe_results import build_moe_training_result, write_moe_training_result
+from architecture_lab.training.moe_training import train
+
+
+class MoETrainingTests(unittest.TestCase):
+    def _settings(self, root: Path) -> dict:
+        settings = DenseTrainingTests()._settings(root)
+        settings["model"].update({"name": "test-moe", "d_ff": 16, "architecture": "MoETransformer"})
+        settings["moe"] = {"num_experts": 4, "capacity_factor": 1.0, "aux_loss_weight": 0.01}
+        settings["training"].update({"max_steps": 2, "checkpoint": str(root / "moe-checkpoint.pt"), "validation_interval": 1})
+        return settings
+
+    def test_training_schema_and_generation_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = train(self._settings(root))
+            schema = json.loads((Path(__file__).parents[1] / "schemas/moe_training_result.schema.json").read_text(encoding="utf-8"))
+            errors = list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(result))
+            self.assertEqual(errors, [])
+            self.assertEqual(result["training"]["collect_stats"], False)
+            self.assertEqual(result["generation"]["prefill_capacity_factor"], 1.0)
+            self.assertEqual(result["generation"]["decode_capacity_factor"], 2.0)
+            output = root / "moe-result.json"
+            write_moe_training_result(result, output)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["result_type"], "moe_training")
+
+    def test_checkpoint_resume_and_config_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self._settings(root)
+            result = train(settings)
+            resumed = {
+                **settings,
+                "model": settings["model"].copy(),
+                "data": settings["data"].copy(),
+                "moe": settings["moe"].copy(),
+                "training": settings["training"].copy(),
+            }
+            resumed["training"]["max_steps"] = 3
+            resumed_result = train(resumed, resume=result["artifacts"]["checkpoint_path"])
+            self.assertEqual(resumed_result["training"]["optimizer_steps"], 3)
+            changed = {
+                **settings,
+                "model": settings["model"].copy(),
+                "data": settings["data"].copy(),
+                "moe": settings["moe"].copy(),
+                "training": settings["training"].copy(),
+            }
+            changed["moe"]["aux_loss_weight"] = 0.02
+            with self.assertRaises(ValueError):
+                train(changed, resume=result["artifacts"]["checkpoint_path"])
+
+    def test_active_parameter_count_is_less_than_total(self) -> None:
+        config = TransformerConfig(vocab_size=32, max_seq_len=8, d_model=16, n_heads=4, n_layers=2, d_ff=16)
+        from architecture_lab.models.moe_transformer import MoEConfig
+        model = MoETransformer(config, MoEConfig(num_experts=4))
+        self.assertLess(count_active_parameters(model), count_moe_parameters(model))
+
+    def test_invalid_result_is_rejected_before_write(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self._settings(root)
+            result = train(settings)
+            result["generation"]["decode_capacity_factor"] = 1.0
+            with self.assertRaises(ValueError):
+                write_moe_training_result(result, root / "invalid.json")
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -36,6 +36,7 @@ MODULES = {
     ),
     "training": (
         ("tests", "test_dense_training.py"),
+        ("tests", "test_moe_training.py"),
         ("tests", "test_dense_result_schema.py"),
     ),
     "architecture": (
@@ -90,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
             ("tests", "test_batching.py"),
             ("tests", "test_dense_result_schema.py"),
             ("tests", "test_dense_training.py"),
+            ("tests", "test_moe_training.py"),
             ("tests", "test_stage0_schemas.py"),
             ("tests", "test_token_cache.py"),
             ("tests", "test_token_cache_cli.py"),

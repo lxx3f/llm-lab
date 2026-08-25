@@ -60,11 +60,22 @@ class Top1MoE(nn.Module):
         self.experts = nn.ModuleList(
             SwiGLUExpert(d_model, d_ff) for _ in range(config.num_experts)
         )
-        self.last_stats: dict[str, object] = {}
+        self.last_stats: dict[str, object] | None = None
 
-    def forward(self, x: Tensor) -> tuple[Tensor, Tensor, dict[str, object]]:
+    def forward(
+        self,
+        x: Tensor,
+        *,
+        collect_stats: bool = False,
+        capacity_factor: float | None = None,
+    ) -> tuple[Tensor, Tensor, dict[str, object] | None]:
         if x.ndim != 3:
             raise ValueError("MoE input must have shape [batch, seq_len, d_model]")
+        effective_capacity_factor = (
+            self.capacity_factor if capacity_factor is None else capacity_factor
+        )
+        if effective_capacity_factor <= 0:
+            raise ValueError("capacity_factor must be positive")
 
         batch, seq_len, d_model = x.shape
         tokens = batch * seq_len
@@ -72,14 +83,20 @@ class Top1MoE(nn.Module):
         router_logits = self.router(flat_x)
         router_probs = F.softmax(router_logits, dim=-1)
         top1_weight, top1_index = router_probs.max(dim=-1)
-
-        capacity = max(1, math.ceil(self.capacity_factor * tokens / self.num_experts))
-        flat_output = torch.zeros_like(flat_x)
-        assigned_counts = torch.bincount(
-            top1_index, minlength=self.num_experts
+        capacity = max(
+            1,
+            math.ceil(effective_capacity_factor * tokens / self.num_experts),
         )
-        kept_counts = torch.zeros(
-            self.num_experts, device=x.device, dtype=torch.long
+        flat_output = torch.zeros_like(flat_x)
+        assigned_counts = (
+            torch.bincount(top1_index, minlength=self.num_experts)
+            if collect_stats
+            else None
+        )
+        kept_counts = (
+            torch.zeros(self.num_experts, device=x.device, dtype=torch.long)
+            if collect_stats
+            else None
         )
 
         for expert_index, expert in enumerate(self.experts):
@@ -92,7 +109,8 @@ class Top1MoE(nn.Module):
             expert_output = expert(flat_x.index_select(0, kept_indices))
             expert_output = expert_output * top1_weight.index_select(0, kept_indices).unsqueeze(-1)
             flat_output.index_copy_(0, kept_indices, expert_output)
-            kept_counts[expert_index] = kept_indices.numel()
+            if kept_counts is not None:
+                kept_counts[expert_index] = kept_indices.numel()
 
         # Switch-style load balancing loss: E * sum(mean(router_probs) *
         # mean(one-hot top-1 assignments)). It is differentiable through the
@@ -103,17 +121,21 @@ class Top1MoE(nn.Module):
         ).float().mean(dim=0)
         aux_loss = self.num_experts * torch.sum(mean_probs * assignment_fraction)
 
-        dropped_tokens = int((assigned_counts - kept_counts).sum().item())
-        stats: dict[str, object] = {
-            "num_experts": self.num_experts,
-            "capacity": capacity,
-            "tokens": tokens,
-            "assigned_tokens_per_expert": assigned_counts.detach().cpu().tolist(),
-            "kept_tokens_per_expert": kept_counts.detach().cpu().tolist(),
-            "dropped_tokens": dropped_tokens,
-            "dropped_token_rate": dropped_tokens / tokens,
-            "router_prob_mean": mean_probs.detach().cpu().tolist(),
-        }
+        stats = None
+        if collect_stats:
+            assert assigned_counts is not None and kept_counts is not None
+            dropped_tokens = int((assigned_counts - kept_counts).sum().item())
+            stats = {
+                "num_experts": self.num_experts,
+                "capacity_factor": effective_capacity_factor,
+                "capacity": capacity,
+                "tokens": tokens,
+                "assigned_tokens_per_expert": assigned_counts.detach().cpu().tolist(),
+                "kept_tokens_per_expert": kept_counts.detach().cpu().tolist(),
+                "dropped_tokens": dropped_tokens,
+                "dropped_token_rate": dropped_tokens / tokens,
+                "router_prob_mean": mean_probs.detach().cpu().tolist(),
+            }
         self.last_stats = stats
         return flat_output.view(batch, seq_len, d_model), aux_loss, stats
 
@@ -131,9 +153,16 @@ class MoETransformerBlock(nn.Module):
         x: Tensor,
         start_pos: int = 0,
         kv_cache: Optional[dict[str, Tensor]] = None,
-    ) -> tuple[Tensor, Tensor, dict[str, object]]:
+        *,
+        collect_stats: bool = False,
+        capacity_factor: float | None = None,
+    ) -> tuple[Tensor, Tensor, dict[str, object] | None]:
         x = x + self.attn(self.attn_norm(x), start_pos=start_pos, kv_cache=kv_cache)
-        moe_output, aux_loss, stats = self.moe(self.ffn_norm(x))
+        moe_output, aux_loss, stats = self.moe(
+            self.ffn_norm(x),
+            collect_stats=collect_stats,
+            capacity_factor=capacity_factor,
+        )
         return x + moe_output, aux_loss, stats
 
 
@@ -163,6 +192,9 @@ class MoETransformer(nn.Module):
         labels: Optional[Tensor] = None,
         start_pos: int = 0,
         kv_cache: Optional[list[dict[str, Tensor]]] = None,
+        *,
+        collect_stats: bool = False,
+        capacity_factor: float | None = None,
     ) -> tuple[Tensor, Optional[Tensor], Tensor]:
         if input_ids.ndim != 2:
             raise ValueError("input_ids must have shape [batch, seq_len]")
@@ -177,10 +209,15 @@ class MoETransformer(nn.Module):
         for index, block in enumerate(self.blocks):
             cache = kv_cache[index] if kv_cache is not None else None
             x, aux_loss, layer_stats = block(
-                x, start_pos=start_pos, kv_cache=cache
+                x,
+                start_pos=start_pos,
+                kv_cache=cache,
+                collect_stats=collect_stats,
+                capacity_factor=capacity_factor,
             )
             aux_losses.append(aux_loss)
-            stats.append(layer_stats)
+            if layer_stats is not None:
+                stats.append(layer_stats)
 
         logits = self.lm_head(self.final_norm(x))
         loss = None
@@ -197,11 +234,61 @@ class MoETransformer(nn.Module):
             )
 
         total_aux_loss = torch.stack(aux_losses).mean()
-        self.last_routing_stats = stats
+        self.last_routing_stats = stats if collect_stats else None
         return logits, loss, total_aux_loss
+
+    @torch.no_grad()
+    def generate(
+        self,
+        input_ids: Tensor,
+        max_new_tokens: int,
+        temperature: float = 0.0,
+        *,
+        prefill_capacity_factor: float = 1.0,
+        decode_capacity_factor: float = 2.0,
+        collect_stats: bool = False,
+    ) -> Tensor:
+        self.eval()
+        generated = input_ids
+        cache = [dict() for _ in range(self.config.n_layers)]
+        logits, _, _ = self(
+            generated,
+            start_pos=0,
+            kv_cache=cache,
+            collect_stats=collect_stats,
+            capacity_factor=prefill_capacity_factor,
+        )
+        for _ in range(max_new_tokens):
+            if generated.size(1) >= self.config.max_seq_len:
+                break
+            next_logits = logits[:, -1]
+            if temperature <= 0:
+                next_token = next_logits.argmax(dim=-1, keepdim=True)
+            else:
+                probs = F.softmax(next_logits / temperature, dim=-1)
+                next_token = torch.multinomial(probs, num_samples=1)
+            generated = torch.cat((generated, next_token), dim=1)
+            logits, _, _ = self(
+                next_token,
+                start_pos=generated.size(1) - 1,
+                kv_cache=cache,
+                collect_stats=collect_stats,
+                capacity_factor=decode_capacity_factor,
+            )
+        return generated
 
     def total_loss(self, lm_loss: Tensor, aux_loss: Tensor) -> Tensor:
         return lm_loss + self.moe_config.aux_loss_weight * aux_loss
+
+
+def count_active_parameters(model: MoETransformer) -> int:
+    """Count shared parameters plus one Top-1 expert per MoE layer."""
+    if len(model.blocks) == 0:
+        return count_parameters(model)
+    total = count_parameters(model)
+    expert_total = sum(count_parameters(expert) for expert in model.blocks[0].moe.experts)
+    per_layer_expert = expert_total // model.moe_config.num_experts
+    return total - (expert_total - per_layer_expert) * model.config.n_layers
 
 
 def count_moe_parameters(model: nn.Module) -> int:

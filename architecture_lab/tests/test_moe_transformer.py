@@ -46,7 +46,7 @@ class Top1MoETests(unittest.TestCase):
     def test_top1_moe_shape_and_stats(self) -> None:
         layer = Top1MoE(32, 64, self.moe_config)
         x = torch.randn(2, 8, 32)
-        output, aux_loss, stats = layer(x)
+        output, aux_loss, stats = layer(x, collect_stats=True)
         self.assertEqual(output.shape, x.shape)
         self.assertTrue(torch.isfinite(aux_loss).item())
         self.assertEqual(stats["tokens"], 16)
@@ -58,7 +58,7 @@ class Top1MoETests(unittest.TestCase):
         config = MoEConfig(num_experts=2, capacity_factor=0.5)
         layer = Top1MoE(8, 16, config)
         x = torch.randn(2, 4, 8)
-        _, _, stats = layer(x)
+        _, _, stats = layer(x, collect_stats=True)
         self.assertEqual(stats["capacity"], 2)
         self.assertTrue(
             all(count <= 2 for count in stats["kept_tokens_per_expert"])
@@ -67,7 +67,9 @@ class Top1MoETests(unittest.TestCase):
 
     def test_model_forward_and_total_loss(self) -> None:
         input_ids = torch.randint(0, self.transformer_config.vocab_size, (2, 8))
-        logits, lm_loss, aux_loss = self.model(input_ids, labels=input_ids)
+        logits, lm_loss, aux_loss = self.model(
+            input_ids, labels=input_ids, collect_stats=True
+        )
         self.assertEqual(logits.shape, (2, 8, self.transformer_config.vocab_size))
         assert lm_loss is not None
         self.assertTrue(torch.isfinite(lm_loss).item())
@@ -75,6 +77,15 @@ class Top1MoETests(unittest.TestCase):
         total = self.model.total_loss(lm_loss, aux_loss)
         self.assertTrue(torch.isfinite(total).item())
         self.assertEqual(len(self.model.last_routing_stats), 2)
+
+    def test_collect_stats_disabled_returns_none_without_stale_stats(self) -> None:
+        input_ids = torch.randint(0, self.transformer_config.vocab_size, (2, 8))
+        _, _, _ = self.model(input_ids, collect_stats=False)
+        self.assertIsNone(self.model.last_routing_stats)
+        _, _, _ = self.model(input_ids, collect_stats=True)
+        self.assertIsNotNone(self.model.last_routing_stats)
+        _, _, _ = self.model(input_ids, collect_stats=False)
+        self.assertIsNone(self.model.last_routing_stats)
 
     def test_backward_reaches_router_and_experts(self) -> None:
         input_ids = torch.randint(0, self.transformer_config.vocab_size, (2, 8))

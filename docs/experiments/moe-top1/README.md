@@ -18,6 +18,8 @@
 
 ## 固定配置
 
+### Forward MVP 配置
+
 配置文件：`configs/moe_top1.example.yaml`
 
 | 配置 | 值 |
@@ -33,6 +35,24 @@
 | auxiliary loss weight | 0.01 |
 | seed | 42 |
 | device | CUDA (`sm_120`) |
+
+### N1 训练 MVP 配置
+
+配置文件：`configs/moe_training.example.yaml` / `configs/moe_training.owt-formal.example.yaml`
+
+| 配置 | 值 |
+|---|---:|
+| vocab size | 8192 |
+| max sequence length | 64 |
+| d_model | 64 |
+| attention heads | 4 |
+| layers | 2 |
+| FFN hidden size per expert | 64 |
+| experts | 4 |
+| capacity factor | 1.0 |
+| auxiliary loss weight | 0.01 |
+| seed | 42 |
+| tokenizer | `owt-bpe/v0.2.0` |
 
 ## Loss 定义
 
@@ -69,51 +89,64 @@ num_experts × sum(mean_router_probability × mean_assignment_fraction)
 - LM loss、auxiliary loss 和 total loss；
 - router 与 expert 的 backward 梯度；
 - full forward 与 incremental decode 一致；
-- 参数量统计。
+- 参数量统计；
+
+N1 训练闭环测试：`tests/test_moe_training.py`
+
+覆盖：
+
+- 独立 MoE result schema 校验；
+- checkpoint/resume 与 MoE config binding；
+- total / Top-1 active parameter 统计；
+- 非法结果写入前拒绝。
 
 运行：
 
 ```bash
 .venv/Scripts/python.exe -m unittest architecture_lab.tests.test_moe_transformer -v
+.venv/Scripts/python.exe -m unittest tests.test_moe_training -v
 ```
 
-## Smoke benchmark
+## MoE 训练闭环 smoke
 
-运行：
+1MiB 配置：
 
 ```bash
-.venv/Scripts/python.exe scripts/run_moe_top1.py
+.venv/Scripts/python.exe scripts/train_moe.py \
+  --config configs/moe_training.example.yaml \
+  --output artifacts/moe-owt-mvp-result.json
 ```
 
-默认输出：
+正式 cache 配置：
+
+```bash
+.venv/Scripts/python.exe scripts/train_moe.py \
+  --config configs/moe_training.owt-formal.example.yaml \
+  --output artifacts/moe-owt-formal-cache-result.json
+```
+
+两次运行均为 100 optimizer-step smoke，使用 `collect_stats=false`，并将训练后的短 generation 记录为 prefill `capacity_factor=1.0`、decode `capacity_factor=2.0`。正式 cache smoke 只覆盖连续 token stream 前缀，不代表完整 OWT 训练质量。
+
+正式 cache smoke 结果：
 
 ```text
-docs/experiments/moe-top1/smoke-result.json
+step 50 validation lm_loss: 60.627878
+step 100 validation lm_loss: 58.920591
+step 100 validation aux_loss: 1.042519
+step 100 validation total_loss: 58.931017
 ```
 
-当前一次 CUDA 运行记录：
-
-- 参数量：1,738,368；
-- batch size：4；
-- sequence length：64；
-- forward latency：约 6.19 ms；
-- forward tokens per second：约 41,343；
-- LM loss：约 127.56；
-- auxiliary loss：约 1.006；
-- dropped token rate：各层约 6.64% 和 7.03%；
-- 峰值显存：约 16.29 MB。
-
-随机输入 loss 和该 smoke benchmark 只用于验证计算链路，不代表训练效果或架构性能结论。
+结果写入前通过 `schemas/moe_training_result.schema.json` 校验，checkpoint 与结果 JSON 位于被 Git 忽略的 `artifacts/`。
 
 ## 当前边界
 
 本 MVP 暂不包含：
 
+- Dense/MoE 公平 benchmark（roadmap N2）；
+- routing stats 分析脚本和 latency 统计（N2）；
+- aux loss / capacity sweep；
 - Top-2 routing；
 - expert parallel；
 - 分布式 dispatch/combine；
-- router z-loss；
-- 训练 loop 和 checkpoint；
-- 专门的 overflow token 策略比较。
-
-另外，capacity overflow 会影响 prefill 与 incremental decode 的严格等价性；当前测试使用充足 capacity 验证 decode 数值一致，capacity 行为由独立测试覆盖。
+- 严格 prefill/decode 等价性；
+- 多 seed 正式实验和统一 benchmark 元数据（N3）。
