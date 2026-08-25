@@ -185,6 +185,37 @@ README 状态是否拆成：
 [ ] Dense/MoE Top-1 对比实验
 ```
 
+**决策（2026-08-26）**
+
+```text
+状态：未解决（仅 forward MVP）
+决策：N1 范围锁定，详见 roadmap.md。
+N1 范围（MoE Top-1 训练闭环）：
+  - 复用 dense_training.py 的训练循环骨架
+  - 适配 MoE：aux_loss 叠加到 total loss
+  - MoE checkpoint/resume（保留 router/aux_loss 状态）
+  - active parameter 计数工具（count_active_parameters）
+  - MoE 1MiB smoke 与 formal cache 100-step smoke
+  - 新增独立 moe_training_result.schema.json：
+      result_type="moe_training"
+      architecture="MoETransformer"
+      新增字段：
+        aux_loss_weight
+        n_experts
+        active_parameters
+        expert_capacity_factor
+  - README 状态拆为：[x] forward MVP / [ ] 训练闭环 / [ ] 对比实验
+默认 aux_loss_weight：0.01
+默认 MoE smoke 配置：n_experts=4, d_ff=64, d_model=64, n_layers=2
+退出条件：
+  - MoE 1MiB smoke 写入 result JSON 并通过 schema 校验
+  - formal cache 100-step smoke 写入 result JSON 并通过 schema 校验
+遗留风险：
+  - MoE 增量 decode cache 与 capacity 语义未定义（见 P0-05）
+  - MoE routing statistics 可能污染 latency benchmark（见 P0-04）
+  - aux_loss_weight 未扫参
+```
+
 ---
 
 ### P0-03 Dense 与 MoE 的比较协议不公平
