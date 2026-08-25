@@ -132,6 +132,29 @@ BPE + tokenizer CLI tests: 7 passed
 
 当前记录的 loss 来自随机初始化模型和随机 token，只能证明计算链路可运行，不能作为模型效果基线。
 
+**状态更新（2026-08-26）**
+
+```text
+状态：部分解决
+决策：最小训练闭环已就绪（BPE artifact + token cache + batch sampler + training loop + scheduler/AMP/梯度累积 + checkpoint/resume + generation + formal cache + 结果 schema）；正式 OWT 基线推迟到 roadmap N4，不关闭 P0-01。
+改动：
+  - architecture_lab/training/dense_training.py
+  - architecture_lab/training/results.py
+  - scripts/train_dense.py
+  - schemas/dense_training_result.schema.json
+  - configs/dense_training.example.yaml
+  - configs/dense_training.owt-formal.example.yaml
+  - docs/protocols/dense-training.md
+  - docs/experiments/dense-training-mvp/README.md
+验证：
+  scripts/run_tests.py full → 50 tests + 5 schema examples passed
+  1MiB smoke 与 formal cache 100-step smoke 都已运行并写入 result JSON
+遗留风险：
+  - 小模型 100-step smoke 仍不是正式基线；
+  - checkpoint 使用 PyTorch pickle，后续需评估 weights_only/safetensors；
+  - OWT tokenizer 仍为 owt-bpe/v0.2.0（8192 vocab），与正式规模 tokenizer 还有差距。
+```
+
 ---
 
 ### P0-02 MoE Top-1 目前是 forward MVP，不是完整训练 MVP
