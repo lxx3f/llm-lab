@@ -46,7 +46,13 @@
 
 ## 检查与记录
 
-项目尚未固定训练框架、依赖清单或测试命令。新增代码后，应同步补充：
+项目测试使用三档命令，详见 `docs/protocols/testing.md`：
+
+- `scripts/run_tests.py fast`：日常快速 API/schema/forward 检查；
+- `scripts/run_tests.py module <data|training|architecture|tokenization>`：按模块回归；
+- `scripts/run_tests.py full`：阶段审查和 commit 前的全量 unittest + schema examples。
+
+新增代码后，应同步补充：
 
 - 运行方式和依赖版本；
 - 单元测试或正确性测试；
