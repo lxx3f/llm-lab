@@ -93,7 +93,7 @@ artifacts/tokenizers/owt-bpe/v0.2.0/
 
 其配置为 OWT train 的 newline-aligned 约 64 MiB 前缀和 8192 vocab；metadata 记录了实际训练字节数及完整 source hash。该 artifact 用于推进 token cache 和训练接口，不用于正式模型规模结论。
 
-后续仍需：
+OWT token cache 已实现，协议见 `docs/protocols/owt-token-cache.md`。编码脚本为 `scripts/encode_token_cache.py`，当前使用 newline-aligned UTF-8 行流式读取和 little-endian `uint16` 输出。真实 OWT train/validation 各 1 MiB cache 试跑和 hash 绑定校验已通过；正式 512 MiB/64 MiB cache 待 Dense 训练配置固定后生成。
 
 ```text
 BPE merge 性能优化

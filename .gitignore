@@ -72,3 +72,6 @@ data/raw/
 data/interim/
 data/processed/
 artifacts/tokenizers/
+
+# Local pi session/runtime state
+.pi-glla/

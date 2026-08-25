@@ -116,7 +116,10 @@ BPE + tokenizer CLI tests: 7 passed
 - 原始数据目录：`data/raw/owt-sample/`，由 `.gitignore` 排除；
 - toy 数据：不保留；
 - OWT tokenizer：已生成本地 `owt-bpe/v0.2.0`，使用 train 前缀约 64 MiB、vocab size 8192；正式大规模 tokenizer 仍需后续扩展；
-- 数据记录：`docs/data/owt-sample.md`。
+- 数据记录：`docs/data/owt-sample.md`；
+- OWT token cache：已实现流式 UTF-8 行读取、newline-aligned 截断、uint16 输出和 source/tokenizer hash 绑定；
+- 真实 OWT train/validation 各 1 MiB cache 试跑通过；
+- cache 协议见 `docs/protocols/owt-token-cache.md`；
 
 **原问题现状**
 

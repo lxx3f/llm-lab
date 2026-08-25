@@ -87,13 +87,14 @@ docs/plans/reviews/stage-<kebab-case-name>.md
 记录至少包含：
 
 - 审查模型：`minimax-cn/MiniMax-M3`（对应用户指定的 MiniMax M3）；
-- 审查 agent：实际使用的子 agent 名称；
+- 审查 agent：实际调用的 subagent dispatch 名称；
+- 如果 harness 提供 `PI_AGENT_NAME`，将其作为附加运行标识记录；
 - 审查范围和 commit 候选变更；
 - 发现的问题及严重级别；
 - 通过/不通过结论；
 - 主 agent 的修复或后续动作。
 
-如果当前 agent harness 无法选择或确认 `minimax-cn/MiniMax-M3`，不得声称审查已完成；应暂停自动 commit 并报告阻塞原因。审查记录还必须包含子 agent 返回的 `PI_PROVIDER`、`PI_MODEL` 和审查 agent 名称；主 agent 在 commit 前核对这些字段。
+如果当前 agent harness 无法选择或确认 `minimax-cn/MiniMax-M3`，不得声称审查已完成；应暂停自动 commit 并报告阻塞原因。审查记录必须包含子 agent 返回的 `PI_PROVIDER`、`PI_MODEL` 和主 agent 调用时指定的审查 agent 名称；主 agent 在 commit 前核对这些字段。`PI_AGENT_NAME` 不是所有 harness 都会注入，因此仅在可用时记录，不作为阻塞条件。
 
 ## 审查产物
 
@@ -107,8 +108,9 @@ docs/plans/reviews/stage-<kebab-case-name>.md
 
 ```text
 审查模型：minimax-cn/MiniMax-M3
-审查 agent：reviewer
+审查 agent：reviewer（subagent dispatch 名称）
 实际 provider/model：PI_PROVIDER=minimax-cn, PI_MODEL=MiniMax-M3
+可选运行标识：PI_AGENT_NAME（harness 提供时记录）
 审查文件路径：docs/plans/reviews/stage-<kebab-case-name>.md
 ```
 

@@ -54,8 +54,9 @@ PI_REASONING_LEVEL=high
 
 ```text
 审查模型：minimax-cn/MiniMax-M3
-审查 agent：reviewer
+审查 agent：reviewer（subagent dispatch 名称）
 实际 provider/model：PI_PROVIDER=minimax-cn, PI_MODEL=MiniMax-M3
+可选运行标识：PI_AGENT_NAME（本次 harness 未提供）
 ```
 
 ## 阶段审查结论
