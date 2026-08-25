@@ -17,6 +17,8 @@
 
 ## 总体设计
 
+项目总体路线图（已完成 / 进行中 / 下一阶段 / 暂缓阶段）见 [`docs/plans/roadmap.md`](docs/plans/roadmap.md)。问题和决策记录于 [`docs/plans/open-issues.md`](docs/plans/open-issues.md)；阶段审查记录于 [`docs/plans/reviews/`](docs/plans/reviews/)。
+
 自研架构实验和开源模型后训练不强行使用同一个模型：
 
 - **架构实验线**：使用自研小型模型，重点验证 Dense Transformer、MoE、MHA/GQA/MLA、KV Cache 和推理效率。
@@ -149,7 +151,7 @@ generation:
 .venv/Scripts/python.exe scripts/run_tests.py full
 ```
 
-详细范围和新增测试规则见 `docs/protocols/testing.md`。真实 OWT 训练和 benchmark 不属于默认测试档，必须显式运行并记录实验结果。
+详细范围和新增测试规则见 [`docs/protocols/testing.md`](../protocols/testing.md)。真实 OWT 训练和 benchmark 不属于默认测试档，必须显式运行并记录实验结果。项目路线图与阶段计划见 [`docs/plans/roadmap.md`](../plans/roadmap.md)。
 
 ## 模块 A：LLM Architecture Lab
 ### A1. 固定 Dense Transformer 基线

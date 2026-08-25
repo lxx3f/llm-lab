@@ -69,6 +69,8 @@
 minimax-cn/MiniMax-M3
 ```
 
+阶段审查只在“大阶段”完成时触发，详见 [`roadmap.md`](./roadmap.md) 中“Reviewer 触发条件”。不为局部函数修改、文档调整、测试分层、依赖锁定、配置微调、单次 smoke 重跑触发 reviewer。
+
 主 agent 的职责是：
 
 1. 完成阶段实现；

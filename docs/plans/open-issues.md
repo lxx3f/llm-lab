@@ -14,19 +14,7 @@
 
 建议每次只处理一个主题，避免在未确定协议前同时扩展多个模型模块。
 
-## 当前建议顺序
-
-```text
-Dense 训练闭环
-→ Dense/MoE Top-1 公平对比协议
-→ 统一实验元数据和 benchmark schema
-→ MoE capacity/decode 语义
-→ 工具执行器与语义校验器
-→ 最小评测器
-→ 数据版本和 SFT
-→ Top-2/GQA/简化 MLA
-→ GRPO/vLLM 扩展
-```
+项目总体路线图（已完成 / 进行中 / 下一阶段 / 暂缓阶段）见 [`roadmap.md`](./roadmap.md)；本文只跟踪问题与决策。
 
 ---
 
