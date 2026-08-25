@@ -5,7 +5,7 @@
 训练入口：
 
 ```bash
-.venv/Scripts/python.exe scripts/train_dense.py \
+.venv/python.exe scripts/train_dense.py \
   --config configs/dense_training.example.yaml \
   --output artifacts/dense-owt-mvp-result.json
 ```
@@ -73,7 +73,7 @@ resume 时会拒绝模型配置、tokenizer artifact 或任一 cache metadata �
 当前 checkpoint 使用 PyTorch pickle payload，仅允许加载受信任的本地产物，不应加载未知来源 checkpoint。后续稳定化阶段应评估 `weights_only=True` 或 safetensors。
 
 ```bash
-.venv/Scripts/python.exe scripts/train_dense.py \
+.venv/python.exe scripts/train_dense.py \
   --config configs/dense_training.example.yaml \
   --resume artifacts/checkpoints/dense-owt-mvp.pt
 ```

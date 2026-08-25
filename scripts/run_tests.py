@@ -9,6 +9,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import subprocess
 import sys
 import unittest
@@ -50,11 +51,27 @@ MODULES = {
 }
 
 
+def _load_test_target(directory: str, pattern: str) -> unittest.TestSuite:
+    target = ROOT / directory / pattern
+    if not target.is_file():
+        print(f"[test] test target does not exist: {target}", file=sys.stderr)
+        return unittest.TestSuite()
+    relative = target.relative_to(ROOT).with_suffix("")
+    module_name = ".".join(relative.parts)
+    spec = importlib.util.spec_from_file_location(module_name, target)
+    if spec is None or spec.loader is None:
+        print(f"[test] cannot load test target: {target}", file=sys.stderr)
+        return unittest.TestSuite()
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return unittest.defaultTestLoader.loadTestsFromModule(module)
+
+
 def run_modules(modules: tuple[tuple[str, str], ...]) -> bool:
-    loader = unittest.TestLoader()
     suite = unittest.TestSuite()
     for directory, pattern in modules:
-        loaded = loader.discover(str(ROOT / directory), pattern=pattern)
+        loaded = _load_test_target(directory, pattern)
         if loaded.countTestCases() == 0:
             print(f"[test] no discoverable tests: {directory}/{pattern}", file=sys.stderr)
             return False

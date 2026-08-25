@@ -141,14 +141,14 @@ generation:
 
 ```bash
 # 日常快速检查：API/schema/forward 正确性
-.venv/Scripts/python.exe scripts/run_tests.py fast
+.venv/python.exe scripts/run_tests.py fast
 
 # 按模块回归
-.venv/Scripts/python.exe scripts/run_tests.py module training
-.venv/Scripts/python.exe scripts/run_tests.py module data
+.venv/python.exe scripts/run_tests.py module training
+.venv/python.exe scripts/run_tests.py module data
 
 # 阶段审查/commit 前全量检查
-.venv/Scripts/python.exe scripts/run_tests.py full
+.venv/python.exe scripts/run_tests.py full
 ```
 
 详细范围和新增测试规则见 [`docs/protocols/testing.md`](../protocols/testing.md)。真实 OWT 训练和 benchmark 不属于默认测试档，必须显式运行并记录实验结果。项目路线图与阶段计划见 [`docs/plans/roadmap.md`](../plans/roadmap.md)。

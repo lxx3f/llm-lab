@@ -65,6 +65,23 @@ class TokenStreamBatcher:
             // (self.config.batch_size * self.config.sequence_length),
         )
 
+    def _batch_from_starts(self, starts: list[int], *, device: torch.device | str | None) -> tuple[Tensor, Tensor]:
+        input_ids = torch.stack(
+            [self.tokens[start : start + self.config.sequence_length] for start in starts]
+        )
+        target_ids = torch.stack(
+            [
+                self.tokens[start + 1 : start + self.config.sequence_length + 1]
+                for start in starts
+            ]
+        )
+        input_ids = input_ids.to(dtype=torch.long)
+        target_ids = target_ids.to(dtype=torch.long)
+        if device is not None:
+            input_ids = input_ids.to(device=device)
+            target_ids = target_ids.to(device=device)
+        return input_ids, target_ids
+
     def sample(self, *, device: torch.device | str | None = None) -> tuple[Tensor, Tensor]:
         """Return one deterministic-by-seed batch of input and next-token targets."""
         starts = torch.randint(
@@ -74,36 +91,18 @@ class TokenStreamBatcher:
             generator=self._generator,
             dtype=torch.int64,
         )
-        offsets = torch.arange(self.config.sequence_length, dtype=torch.int64)
-        indices = starts[:, None] + offsets[None, :]
-        input_ids = self.tokens[indices]
-        target_ids = self.tokens[indices + 1]
-        if device is not None:
-            input_ids = input_ids.to(device=device, dtype=torch.long)
-            target_ids = target_ids.to(device=device, dtype=torch.long)
-        else:
-            input_ids = input_ids.to(dtype=torch.long)
-            target_ids = target_ids.to(dtype=torch.long)
-        return input_ids, target_ids
+        return self._batch_from_starts([int(start) for start in starts], device=device)
 
     def iter_epoch(self, *, device: torch.device | str | None = None):
         """Yield deterministic, non-overlapping input windows for one split pass."""
         batch_span = self.config.batch_size * self.config.sequence_length
         batch_count = (self.token_count - 1) // batch_span
-        offsets = torch.arange(self.config.sequence_length, dtype=torch.int64)
-        batch_offsets = torch.arange(self.config.batch_size, dtype=torch.int64)
         for step in range(batch_count):
-            starts = step * batch_span + batch_offsets * self.config.sequence_length
-            indices = starts[:, None] + offsets[None, :]
-            input_ids = self.tokens[indices]
-            target_ids = self.tokens[indices + 1]
-            if device is not None:
-                input_ids = input_ids.to(device=device, dtype=torch.long)
-                target_ids = target_ids.to(device=device, dtype=torch.long)
-            else:
-                input_ids = input_ids.to(dtype=torch.long)
-                target_ids = target_ids.to(dtype=torch.long)
-            yield input_ids, target_ids
+            starts = [
+                step * batch_span + offset * self.config.sequence_length
+                for offset in range(self.config.batch_size)
+            ]
+            yield self._batch_from_starts(starts, device=device)
 
 
 def load_token_cache(

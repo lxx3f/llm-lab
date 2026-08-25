@@ -87,7 +87,7 @@ metadata 中的 `source.path` 应使用仓库内可复现的相对路径；可�
 当前 CLI 使用 newline-aligned 分块读取，不会将完整输入文件拼接到一个字符串中。对于 OWT，建议先使用固定前缀生成可复现的 tokenizer artifact：
 
 ```bash
-.venv/Scripts/python.exe scripts/train_bpe_tokenizer.py \
+.venv/python.exe scripts/train_bpe_tokenizer.py \
   --input data/raw/owt-sample/owt_train.txt \
   --artifact-root artifacts/tokenizers \
   --name owt-bpe \
@@ -107,7 +107,7 @@ metadata 中的 `source.path` 应使用仓库内可复现的相对路径；可�
 如果目标 artifact 目录非空，CLI 默认拒绝覆盖。确认重新生成时显式使用：
 
 ```bash
-.venv/Scripts/python.exe scripts/train_bpe_tokenizer.py ... --force
+.venv/python.exe scripts/train_bpe_tokenizer.py ... --force
 ```
 
 ## 当前边界

@@ -7,7 +7,7 @@
 统一入口：
 
 ```bash
-.venv/Scripts/python.exe scripts/run_tests.py <mode>
+.venv/python.exe scripts/run_tests.py <mode>
 ```
 
 脚本从仓库根目录运行，任意失败均返回非零退出码。
@@ -15,7 +15,7 @@
 ## fast：日常快速反馈
 
 ```bash
-.venv/Scripts/python.exe scripts/run_tests.py fast
+.venv/python.exe scripts/run_tests.py fast
 ```
 
 包含：
@@ -38,10 +38,10 @@
 ## module：按改动模块回归
 
 ```bash
-.venv/Scripts/python.exe scripts/run_tests.py module data
-.venv/Scripts/python.exe scripts/run_tests.py module training
-.venv/Scripts/python.exe scripts/run_tests.py module architecture
-.venv/Scripts/python.exe scripts/run_tests.py module tokenization
+.venv/python.exe scripts/run_tests.py module data
+.venv/python.exe scripts/run_tests.py module training
+.venv/python.exe scripts/run_tests.py module architecture
+.venv/python.exe scripts/run_tests.py module tokenization
 ```
 
 | 模块 | 覆盖内容 |
@@ -56,13 +56,13 @@
 ## full：阶段审查和 commit 门槛
 
 ```bash
-.venv/Scripts/python.exe scripts/run_tests.py full
+.venv/python.exe scripts/run_tests.py full
 ```
 
 包含所有当前 unittest 模块，外加：
 
 ```bash
-.venv/Scripts/python.exe scripts/validate_stage0.py --examples
+.venv/python.exe scripts/validate_stage0.py --examples
 ```
 
 适用：阶段审查前、阶段 commit 前、影响多个模块的重构后。
@@ -72,11 +72,11 @@
 不放入任一默认测试档。它们需要显式运行，并在实验记录中报告：
 
 ```bash
-.venv/Scripts/python.exe scripts/train_dense.py \
+.venv/python.exe scripts/train_dense.py \
   --config configs/dense_training.example.yaml \
   --output artifacts/dense-owt-mvp-scheduler-result.json
 
-.venv/Scripts/python.exe scripts/train_dense.py \
+.venv/python.exe scripts/train_dense.py \
   --config configs/dense_training.owt-formal.example.yaml \
   --output artifacts/dense-owt-formal-scheduler-amp-result.json
 ```

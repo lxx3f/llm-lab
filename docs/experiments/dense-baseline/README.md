@@ -50,8 +50,8 @@
 运行：
 
 ```bash
-.venv/Scripts/python.exe -m unittest discover -s architecture_lab/tests -p "test_*.py" -v
-.venv/Scripts/python.exe scripts/run_dense_baseline.py
+.venv/python.exe -m unittest discover -s architecture_lab/tests -p "test_*.py" -v
+.venv/python.exe scripts/run_dense_baseline.py
 ```
 
 ## Smoke benchmark
@@ -59,7 +59,7 @@
 运行：
 
 ```bash
-.venv/Scripts/python.exe scripts/run_dense_baseline.py
+.venv/python.exe scripts/run_dense_baseline.py
 ```
 
 默认输出：

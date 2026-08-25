@@ -25,12 +25,12 @@ scripts/train_dense.py
 ## 运行方式
 
 ```bash
-.venv/Scripts/python.exe scripts/train_dense.py \
+.venv/python.exe scripts/train_dense.py \
   --config configs/dense_training.example.yaml \
   --output artifacts/dense-owt-mvp-scheduler-result.json
 
 # formal 512 MiB / 64 MiB cache smoke
-.venv/Scripts/python.exe scripts/train_dense.py \
+.venv/python.exe scripts/train_dense.py \
   --config configs/dense_training.owt-formal.example.yaml \
   --output artifacts/dense-owt-formal-scheduler-amp-result.json
 ```
@@ -96,9 +96,9 @@ The meaning of life is is is is is is is is is is is is is is is is is is is is 
 ## 测试
 
 ```bash
-.venv/Scripts/python.exe -m unittest discover -s tests -p "test_*.py" -q
-.venv/Scripts/python.exe -m unittest discover -s architecture_lab/tests -p "test_*.py" -q
-.venv/Scripts/python.exe -m unittest discover -s architecture_lab/tokenization/tests -p "test_*.py" -q
+.venv/python.exe -m unittest discover -s tests -p "test_*.py" -q
+.venv/python.exe -m unittest discover -s architecture_lab/tests -p "test_*.py" -q
+.venv/python.exe -m unittest discover -s architecture_lab/tokenization/tests -p "test_*.py" -q
 ```
 
 训练 checkpoint 和结果文件位于被 `.gitignore` 排除的 `artifacts/` 下，不提交 Git。

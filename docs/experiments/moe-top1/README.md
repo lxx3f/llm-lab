@@ -103,8 +103,8 @@ N1 训练闭环测试：`tests/test_moe_training.py`
 运行：
 
 ```bash
-.venv/Scripts/python.exe -m unittest architecture_lab.tests.test_moe_transformer -v
-.venv/Scripts/python.exe -m unittest tests.test_moe_training -v
+.venv/python.exe -m unittest architecture_lab.tests.test_moe_transformer -v
+.venv/python.exe -m unittest tests.test_moe_training -v
 ```
 
 ## MoE 训练闭环 smoke
@@ -112,7 +112,7 @@ N1 训练闭环测试：`tests/test_moe_training.py`
 1MiB 配置：
 
 ```bash
-.venv/Scripts/python.exe scripts/train_moe.py \
+.venv/python.exe scripts/train_moe.py \
   --config configs/moe_training.example.yaml \
   --output artifacts/moe-owt-mvp-result.json
 ```
@@ -120,7 +120,7 @@ N1 训练闭环测试：`tests/test_moe_training.py`
 正式 cache 配置：
 
 ```bash
-.venv/Scripts/python.exe scripts/train_moe.py \
+.venv/python.exe scripts/train_moe.py \
   --config configs/moe_training.owt-formal.example.yaml \
   --output artifacts/moe-owt-formal-cache-result.json
 ```

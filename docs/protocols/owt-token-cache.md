@@ -53,14 +53,14 @@ data/processed/owt-sample/
 使用当前本地 OWT tokenizer：
 
 ```bash
-.venv/Scripts/python.exe scripts/encode_token_cache.py \
+.venv/python.exe scripts/encode_token_cache.py \
   --input data/raw/owt-sample/owt_train.txt \
   --tokenizer artifacts/tokenizers/owt-bpe/v0.2.0/tokenizer.json \
   --output-root data/processed/owt-sample \
   --split train \
   --max-bytes 536870912
 
-.venv/Scripts/python.exe scripts/encode_token_cache.py \
+.venv/python.exe scripts/encode_token_cache.py \
   --input data/raw/owt-sample/owt_valid.txt \
   --tokenizer artifacts/tokenizers/owt-bpe/v0.2.0/tokenizer.json \
   --output-root data/processed/owt-sample \

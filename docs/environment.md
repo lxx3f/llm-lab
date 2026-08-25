@@ -37,7 +37,7 @@ yaml: 6.0.3
 复现命令：
 
 ```bash
-.venv/Scripts/python.exe -c "import torch, jsonschema, yaml; \
+.venv/python.exe -c "import torch, jsonschema, yaml; \
   print('torch:', torch.__version__); \
   print('cuda runtime:', torch.version.cuda); \
   print('cudnn:', torch.backends.cudnn.version()); \
@@ -53,10 +53,10 @@ yaml: 6.0.3
 推荐直接使用环境中的解释器，避免依赖当前 shell 是否已激活环境：
 
 ```bash
-.venv/Scripts/python.exe scripts/validate_stage0.py --examples
-.venv/Scripts/python.exe -m unittest discover -s tests -p "test_*.py" -v
-.venv/Scripts/python.exe -m unittest discover -s architecture_lab/tests -p "test_*.py" -v
-.venv/Scripts/python.exe scripts/run_dense_baseline.py
+.venv/python.exe scripts/validate_stage0.py --examples
+.venv/python.exe -m unittest discover -s tests -p "test_*.py" -v
+.venv/python.exe -m unittest discover -s architecture_lab/tests -p "test_*.py" -v
+.venv/python.exe scripts/run_dense_baseline.py
 ```
 
 Windows PowerShell 激活：
@@ -74,7 +74,7 @@ source .venv/Scripts/activate
 ## GPU 验证
 
 ```bash
-.venv/Scripts/python.exe -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0)); print(torch.cuda.get_arch_list())"
+.venv/python.exe -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0)); print(torch.cuda.get_arch_list())"
 ```
 
 应看到：
