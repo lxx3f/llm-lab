@@ -113,9 +113,14 @@ BPE + tokenizer CLI tests: 7 passed
 - 第一版训练数据采用 TinyStories、已有本地语料，还是项目自建小语料；
 - 训练闭环是否优先复用原仓库的训练脚本结构，还是重新写一个更小的项目脚本。
 
-**风险**
+**已决策（2026-08-25）**
 
-如果直接复制原仓库训练脚本，可能会把原项目的配置、依赖、日志和模型接口一并带入，形成第二套训练体系。应优先复用 tokenizer、data sampling 和经过测试的基础逻辑，再按当前项目协议重构训练入口。
+- 训练数据：使用仓库内人工构造 toy corpus，数据版本 `D0`，许可证 `CC0-1.0`；
+- special token：只使用 `<|endoftext|>`，不增加 BOS/EOS/PAD；
+- train/validation：按文本行/文档块预先分离，不在 token stream 上随机切分；
+- tokenizer artifact：`artifacts/tokenizers/toy-bpe/v0.1.0/`；
+- tokenizer vocab size：512；special token ID：256；
+- 详细数据记录：`docs/data/toy-dataset.md`。
 
 **原问题现状**
 

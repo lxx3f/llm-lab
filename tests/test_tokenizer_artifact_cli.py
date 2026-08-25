@@ -42,6 +42,10 @@ class TokenizerArtifactCliTests(unittest.TestCase):
                     "<|endoftext|>",
                     "--source-path",
                     "data/toy/train.txt",
+                    "--data-version",
+                    "D0",
+                    "--license",
+                    "CC0-1.0",
                 ],
                 cwd=ROOT,
                 capture_output=True,
@@ -61,6 +65,8 @@ class TokenizerArtifactCliTests(unittest.TestCase):
             self.assertEqual(metadata["tokenizer"]["name"], "tiny-bpe")
             self.assertEqual(metadata["tokenizer"]["version"], "v0.1.0")
             self.assertEqual(metadata["source"]["path"], "data/toy/train.txt")
+            self.assertEqual(metadata["source"]["data_version"], "D0")
+            self.assertEqual(metadata["source"]["license"], "CC0-1.0")
             self.assertEqual(
                 metadata["source"]["sha256"],
                 hashlib.sha256(source.read_bytes()).hexdigest(),

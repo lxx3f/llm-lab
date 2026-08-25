@@ -1,0 +1,36 @@
+{
+  "metadata_type": "llm-lab-tokenizer-metadata",
+  "metadata_version": "1.0",
+  "tokenizer": {
+    "name": "toy-bpe",
+    "version": "v0.1.0",
+    "implementation": "llm-lab-bpe-v1",
+    "algorithm": "byte-level-bpe",
+    "pretokenization": "gpt2-regex-v1",
+    "vocab_size_requested": 512,
+    "vocab_size_actual": 512,
+    "merge_count": 255,
+    "special_tokens": [
+      "<|endoftext|>"
+    ]
+  },
+  "source": {
+    "path": "data/toy/train.txt",
+    "kind": "manually-authored",
+    "license": "CC0-1.0",
+    "data_version": "D0",
+    "sha256": "9b64d47b4f2f793c7fdeb36c43996355f88a765a572ec15ef89431a039f3f33b",
+    "size_bytes": 4161,
+    "encoding": "utf-8"
+  },
+  "training": {
+    "input_path_is_used_only_for_metadata": true,
+    "special_tokens_excluded_from_bpe_merges": true
+  },
+  "artifacts": {
+    "tokenizer_file": "tokenizer.json",
+    "tokenizer_sha256": "82e74d59674c5835332b3453cd4cd334740a215a8b90a4eba2a3d4287e2b5e84"
+  },
+  "created_at": "2026-08-25T05:26:59.786934Z",
+  "config_sha256": "50857118ee4a136fc4a50e728e34125b1504069941b98e3687eba3d76796f273"
+}

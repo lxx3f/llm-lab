@@ -57,6 +57,8 @@ def build_metadata(
     tokenizer: BPETokenizer,
     tokenizer_path: Path,
     source_path_for_metadata: str,
+    data_version: str,
+    license_name: str,
 ) -> dict[str, Any]:
     source_size = input_path.stat().st_size
     metadata: dict[str, Any] = {
@@ -75,6 +77,9 @@ def build_metadata(
         },
         "source": {
             "path": source_path_for_metadata,
+            "kind": "manually-authored",
+            "license": license_name,
+            "data_version": data_version,
             "sha256": sha256_file(input_path),
             "size_bytes": source_size,
             "encoding": "utf-8",
@@ -110,6 +115,8 @@ def train_and_save(
     vocab_size: int,
     special_tokens: list[str],
     source_path_for_metadata: str | None = None,
+    data_version: str = "D0",
+    license_name: str = "CC0-1.0",
     force: bool = False,
 ) -> tuple[Path, Path]:
     if not input_path.is_file():
@@ -137,6 +144,8 @@ def train_and_save(
         tokenizer=tokenizer,
         tokenizer_path=tokenizer_path,
         source_path_for_metadata=source_path_for_metadata or str(input_path),
+        data_version=data_version,
+        license_name=license_name,
     )
     metadata_path.write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
@@ -168,6 +177,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--source-path",
         help="Portable source path to record in metadata; defaults to --input",
     )
+    parser.add_argument(
+        "--data-version",
+        default="D0",
+        help="Version of the source data recorded in metadata",
+    )
+    parser.add_argument(
+        "--license",
+        dest="license_name",
+        default="CC0-1.0",
+        help="License identifier for the source data",
+    )
     parser.add_argument("--force", action="store_true", help="Overwrite existing artifact files")
     return parser
 
@@ -183,6 +203,8 @@ def main(argv: list[str] | None = None) -> int:
             vocab_size=args.vocab_size,
             special_tokens=args.special_tokens,
             source_path_for_metadata=args.source_path,
+            data_version=args.data_version,
+            license_name=args.license_name,
             force=args.force,
         )
     except (FileExistsError, FileNotFoundError, ValueError) as error:

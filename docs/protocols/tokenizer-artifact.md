@@ -57,6 +57,9 @@ artifacts/tokenizers/tinystories-bpe/v0.1.0/
   },
   "source": {
     "path": "data/tinystories/train.txt",
+    "kind": "manually-authored",
+    "license": "CC0-1.0",
+    "data_version": "D0",
     "sha256": "...",
     "size_bytes": 123,
     "encoding": "utf-8"
@@ -84,7 +87,9 @@ metadata 中的 `source.path` 应使用仓库内可复现的相对路径；可�
   --version v0.1.0 \
   --vocab-size 10000 \
   --special-token '<|endoftext|>' \
-  --source-path data/toy/train.txt
+  --source-path data/toy/train.txt \
+  --data-version D0 \
+  --license CC0-1.0
 ```
 
 如果目标 artifact 目录非空，CLI 默认拒绝覆盖。确认重新生成时显式使用：
@@ -97,5 +102,5 @@ metadata 中的 `source.path` 应使用仓库内可复现的相对路径；可�
 
 - CLI 当前读取完整 UTF-8 文本到内存，适用于小型实验；
 - BPE 训练暂未实现多进程或增量语料统计；
-- metadata 当前记录源文件 hash，但尚未自动关联数据集版本 registry；
+- metadata 当前记录源文件 hash、数据版本和许可证，但尚未自动关联数据集版本 registry；
 - tokenizer artifact 还未接入 Dense Transformer 训练脚本。

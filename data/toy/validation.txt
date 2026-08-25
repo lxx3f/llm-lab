@@ -1,0 +1,14 @@
+<|endoftext|>
+A tokenizer and a model are separate components, but their vocabulary contract must agree.
+The validation loss is meaningful only when the validation documents are kept separate.
+A checkpoint can be loaded on a different device when tensors are first mapped to the CPU.
+Attention uses queries, keys, and values to mix information across a sequence.
+A causal language model cannot use a future token when predicting the current target.
+MoE routing statistics are useful for analysis but should not add synchronization to latency tests.
+An expert may receive too many tokens when the router is imbalanced.
+The capacity factor controls the maximum number of tokens assigned to each expert.
+A benchmark result must state whether routing statistics and compilation were enabled.
+A tool call is valid only when its arguments satisfy the selected tool schema.
+The final answer should be grounded in the result returned by the tool executor.
+A project plan should be reviewed after every completed development stage.
+<|endoftext|>
