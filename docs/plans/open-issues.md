@@ -118,8 +118,12 @@ BPE + tokenizer CLI tests: 7 passed
 - OWT tokenizer：已生成本地 `owt-bpe/v0.2.0`，使用 train 前缀约 64 MiB、vocab size 8192；正式大规模 tokenizer 仍需后续扩展；
 - 数据记录：`docs/data/owt-sample.md`；
 - OWT token cache：已实现流式 UTF-8 行读取、newline-aligned 截断、uint16 输出和 source/tokenizer hash 绑定；
+- Dense batch sampler：已实现连续 token stream 的随机窗口、确定性 epoch 遍历和显式 next-token targets；
+- Dense training MVP：已接入动态 tokenizer vocab、validation、checkpoint/resume 和 generation；
 - 真实 OWT train/validation 各 1 MiB cache 试跑通过；
 - cache 协议见 `docs/protocols/owt-token-cache.md`；
+- batch 协议见 `docs/protocols/dense-batching.md`；
+- training 协议见 `docs/protocols/dense-training.md`；
 
 **原问题现状**
 
