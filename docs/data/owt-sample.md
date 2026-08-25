@@ -93,7 +93,14 @@ artifacts/tokenizers/owt-bpe/v0.2.0/
 
 其配置为 OWT train 的 newline-aligned 约 64 MiB 前缀和 8192 vocab；metadata 记录了实际训练字节数及完整 source hash。该 artifact 用于推进 token cache 和训练接口，不用于正式模型规模结论。
 
-OWT token cache 已实现，协议见 `docs/protocols/owt-token-cache.md`。编码脚本为 `scripts/encode_token_cache.py`，当前使用 newline-aligned UTF-8 行流式读取和 little-endian `uint16` 输出。真实 OWT train/validation 各 1 MiB cache 试跑和 hash 绑定校验已通过；正式 512 MiB/64 MiB cache 待训练规模配置固定后生成。
+OWT token cache 已实现，协议见 `docs/protocols/owt-token-cache.md`。编码脚本为 `scripts/encode_token_cache.py`，当前使用 newline-aligned UTF-8 行流式读取和 little-endian `uint16` 输出。正式范围 cache 已使用当前 artifact 生成并通过 hash 绑定校验：
+
+```text
+train: 512 MiB byte limit → 536,870,901 actual encoded bytes → 143,918,122 uint16 tokens
+validation: 64 MiB byte limit → 67,105,041 actual encoded bytes → 17,999,093 uint16 tokens
+```
+
+实际字节数略低于上限，因为 cache 在完整行边界截断；产物保持在 `data/processed/owt-sample/`，不提交 Git。
 
 Dense training MVP 已接入当前 OWT tokenizer/cache，协议见 `docs/protocols/dense-training.md`，实验记录见 `docs/experiments/dense-training-mvp/README.md`。本地 100-step、1 MiB train/validation cache 短跑已完成 validation、checkpoint 和 generation 闭环；这不是完整 OWT 训练、模型质量或性能结论。
 

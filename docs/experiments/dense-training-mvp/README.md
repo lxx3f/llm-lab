@@ -28,6 +28,11 @@ scripts/train_dense.py
 .venv/Scripts/python.exe scripts/train_dense.py \
   --config configs/dense_training.example.yaml \
   --output artifacts/dense-owt-mvp-result.json
+
+# formal 512 MiB / 64 MiB cache smoke
+.venv/Scripts/python.exe scripts/train_dense.py \
+  --config configs/dense_training.owt-formal.example.yaml \
+  --output artifacts/dense-owt-formal-cache-smoke-result.json
 ```
 
 配置使用本地、已忽略的产物：
@@ -47,11 +52,15 @@ data/processed/owt-sample/validation.*
 - validation loss；
 - 原子 checkpoint；
 - checkpoint resume；
-- tokenizer prompt generation。
+- tokenizer prompt generation；
+- 正式 512 MiB/64 MiB cache 已生成并通过 source/tokenizer/cache hash 校验；
+- 正式范围 cache 已接入 `configs/dense_training.owt-formal.example.yaml` 并完成 100-step smoke。
 
 ## 本地 smoke 结果
 
-配置：`configs/dense_training.example.yaml`。
+配置：`configs/dense_training.example.yaml` 使用 1 MiB cache；另有 `configs/dense_training.owt-formal.example.yaml` 使用正式范围 cache。
+
+1 MiB 配置的结果：
 
 ```text
 train steps: 100
@@ -65,7 +74,17 @@ step 100 validation_loss: 22.880113
 step 100 last_train_loss: 20.823641
 ```
 
-生成结果为一次短跑产物，不能作为语言质量结论：
+正式范围 cache 已生成并完成同配置 100-step smoke：
+
+```text
+train cache: 143,918,122 tokens / 536,870,901 encoded bytes
+validation cache: 17,999,093 tokens / 67,105,041 encoded bytes
+step 100 epoch: 0
+step 100 validation_loss: 22.880113
+step 100 last_train_loss: 20.823641
+```
+
+以上是固定 seed、短步数和小模型的 smoke 记录，不是完整 OWT 训练质量结论。
 
 ```text
 The meaning of life is Gaza Gaza Gaza ...
@@ -85,7 +104,6 @@ The meaning of life is Gaza Gaza Gaza ...
 
 ## 未完成范围
 
-- 正式 512 MiB/64 MiB cache 尚未生成；
 - 尚未实现学习率 scheduler、AMP、梯度累积和分布式采样；
 - 尚未形成完整 OWT 训练质量结论；
 - 尚未进入 Dense/MoE 公平训练对比。

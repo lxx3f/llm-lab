@@ -312,6 +312,7 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
     checkpoint_path = Path(training["checkpoint"])
     validation_batches = int(training.get("validation_batches", 1))
     losses: list[float] = []
+    validation_losses: dict[str, float] = {}
     epoch = state.epoch
     while state.step < max_steps:
         completed_epoch = True
@@ -335,6 +336,7 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
                 validation_loss = evaluate(
                     model, validation_batcher, batches=validation_batches, device=device
                 )
+                validation_losses[str(state.step)] = validation_loss
                 print(f"step={state.step} validation_loss={validation_loss:.6f}")
                 save_checkpoint(
                     checkpoint_path,
@@ -363,7 +365,11 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
         "step": state.step,
         "epoch": state.epoch,
         "last_train_loss": losses[-1] if losses else None,
+        "validation_losses": validation_losses,
+        "train_metadata_sha256": _metadata_hash(train_metadata_path),
+        "validation_metadata_sha256": _metadata_hash(validation_metadata_path),
         "checkpoint": str(checkpoint_path),
+        "config": settings,
         "generated_text": generated,
         "tokenizer_sha256": sha256_file(tokenizer_path),
     }

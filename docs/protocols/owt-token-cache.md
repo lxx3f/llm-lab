@@ -88,5 +88,5 @@ data/processed/owt-sample/
 
 - cache 当前使用 `uint16`，词表 ID 不能超过 65535；
 - metadata 的 `data_version` 由 CLI 参数提供，默认 `OWT-SAMPLE-v1`；
-- 当前尚未实现随机 batch sampler、训练 loop、checkpoint 和 resume；
+- 当前已经实现随机/确定性 batch sampler、训练 loop、validation、checkpoint 和 resume；训练侧协议见 `docs/protocols/dense-batching.md` 与 `docs/protocols/dense-training.md`；
 - cache 产物不进入 Git，复现依赖源文件 hash、tokenizer artifact hash 和命令参数。

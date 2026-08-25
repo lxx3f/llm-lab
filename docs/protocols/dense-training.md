@@ -86,11 +86,11 @@ resume 时会拒绝模型配置、tokenizer artifact 或任一 cache metadata �
 
 ## 当前实验边界
 
-当前配置使用：
+当前配置同时提供两种可复现范围：
 
-- OWT train/validation 各 1 MiB newline-aligned cache；
-- tokenizer `owt-bpe/v0.2.0`，vocab size 8192；
-- `d_model=64`、2 layers、64 sequence length；
-- 100 training steps。
+- `configs/dense_training.example.yaml`：train/validation 各 1 MiB，用于极快接口 smoke；
+- `configs/dense_training.owt-formal.example.yaml`：train 512 MiB、validation 64 MiB，用于当前正式 cache 范围 smoke。
 
-该设置用于验证训练、验证、checkpoint、resume 和 generation 闭环，不代表完整 OWT 训练结果、模型质量或正式性能结论。
+两者都使用 tokenizer `owt-bpe/v0.2.0`，vocab size 8192。
+
+该设置用于验证训练、验证、checkpoint、resume 和 generation 闭环，不代表完整 OWT 训练结果、模型质量或正式性能结论。正式范围 cache 的 byte/token 统计见 `docs/data/owt-sample.md`。
