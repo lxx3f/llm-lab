@@ -650,6 +650,18 @@ README 中的模型输出和评测结果示例缺少真实 Schema 要求的部�
 
 特别是 RTX 5070 Ti `sm_120` 依赖特定 PyTorch/CUDA wheel，应记录安装来源和版本。
 
+**决策（2026-08-26）**
+
+```text
+状态：部分解决
+决策：
+  - 现在不在仓库新增 pyproject.toml / requirements.txt / environment.yml。
+  - 现在在 docs/environment.md 中记录 PyTorch / CUDA / cuDNN / jsonschema / PyYAML
+    版本以及 RTX 5070 Ti sm_120 架构信息。仓库优先 trust docs/environment.md。
+  - pyproject.toml / requirements.txt / environment.yml 推迟到 roadmap
+    N3 之前的工程改进阶段同步考虑。
+```
+
 ---
 
 ### P2-04 文档产物目录已经统一，但链接需要持续维护

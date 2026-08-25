@@ -16,8 +16,37 @@
 - PyYAML 6.0.3
 - jsonschema 4.26.0
 - CUDA runtime 12.8
+- cuDNN 9.10.2
 - GPU：NVIDIA GeForce RTX 5070 Ti Laptop GPU
-- Compute capability：`sm_120`
+- Compute capability：`sm_120`（`(12, 0)`）
+- 设备支持架构：`sm_70 / sm_75 / sm_80 / sm_86 / sm_90 / sm_100 / sm_120`
+
+## 运行时快照
+
+```text
+torch: 2.10.0+cu128
+cuda runtime: 12.8
+cudnn: 91002
+arch list: ['sm_70', 'sm_75', 'sm_80', 'sm_86', 'sm_90', 'sm_100', 'sm_120']
+device: NVIDIA GeForce RTX 5070 Ti Laptop GPU
+compute cap: (12, 0)
+jsonschema: 4.26.0
+yaml: 6.0.3
+```
+
+复现命令：
+
+```bash
+.venv/Scripts/python.exe -c "import torch, jsonschema, yaml; \
+  print('torch:', torch.__version__); \
+  print('cuda runtime:', torch.version.cuda); \
+  print('cudnn:', torch.backends.cudnn.version()); \
+  print('arch list:', torch.cuda.get_arch_list()); \
+  print('device:', torch.cuda.get_device_name(0)); \
+  print('compute cap:', torch.cuda.get_device_capability(0)); \
+  print('jsonschema:', jsonschema.__version__); \
+  print('yaml:', yaml.__version__)"
+```
 
 ## 使用方式
 
