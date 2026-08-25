@@ -363,6 +363,27 @@ result JSON 与 benchmark JSON 都必须记录 collect_stats 开关状态。
 - 接受并明确 prefill/decode 不严格等价；
 - 为 decode 单独设计 routing/capacity 逻辑。
 
+**决策（2026-08-26）**
+
+```text
+状态：未解决（N1 实现接口与默认 capacity_factor，N2 提供 benchmark 输出）
+决策：接受 prefill/decode 不严格等价，并在报告中显式记录。
+
+capacity 策略：
+  prefill：capacity_factor=1.0
+  decode：capacity_factor=2.0
+
+报告位置：MoE benchmark result JSON 的 routing_stats 下。
+  routing_stats.prefill：{capacity_factor, dropped_token_ratio, expert_load, load_imbalance}
+  routing_stats.decode：{capacity_factor, dropped_token_ratio, expert_load, load_imbalance}
+
+调用路径：inference 接口提供 prefill/decode 两个调用点，分别传入不同
+capacity_factor；不允许隐式使用一个 capacity_factor。
+
+归属：N1 实现接口与默认 capacity_factor；N2 提供 prefill/decode
+各自 benchmark 输出与报告。
+```
+
 ---
 
 ## P1：实验和评测协议问题
