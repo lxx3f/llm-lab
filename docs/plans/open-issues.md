@@ -251,6 +251,45 @@ N1 范围（MoE Top-1 训练闭环）：
 - batch 和 sequence length；
 - optimizer 和训练步数。
 
+**决策（2026-08-26）**
+
+```text
+状态：未解决（N2 未开始）
+决策：两套对比协议固定，执行顺序为 A → B。
+
+协议 A：相同 total params
+  对齐方式：MoE 通过调整 d_ff 使总参数量接近 Dense。
+    Dense d_ff = D
+    MoE n_experts=4，每个 expert d_ff = D/4
+  对比指标：
+    - loss 曲线
+    - prefill latency
+    - decode latency
+    - throughput
+    - peak memory
+    - active_parameters
+    - total_parameters
+  额外记录：
+    - aux_loss_weight
+    - expert_capacity_factor
+    - routing stats：expert load、dropped token ratio、load imbalance
+    - stats 开闭状态：benchmark 阶段 collect_stats=False；routing stats
+      由专门分析脚本在 collect_stats=True 时输出
+
+协议 B：相同 active params
+  对齐方式：Dense d_ff 与 MoE active d_ff 对齐。
+    Dense d_ff = D_act
+    MoE n_experts=4，每个 expert d_ff = D_act
+  对比指标：与 A 一致，加 active FLOPs 近似。
+  额外记录：与 A 一致。
+
+隐含要求：
+  - 两套协议下 Dense/MoE 使用同一 tokenizer 与同一 cache
+  - 同一 optimizer、scheduler、AMP、accumulation、seed
+  - 报告需同时给出 total/active 参数与 routing stats（避免重复 P0-04）
+  - MoE prefill/decode 行为需在 P0-05 解决后再跑正式 benchmark
+```
+
 ---
 
 ### P0-04 MoE routing statistics 污染 latency benchmark
