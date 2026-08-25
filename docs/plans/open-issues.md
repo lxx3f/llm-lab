@@ -115,13 +115,14 @@ BPE + tokenizer CLI tests: 7 passed
 - train/validation：使用官方 `owt_train.txt` 和 `owt_valid.txt`；
 - 原始数据目录：`data/raw/owt-sample/`，由 `.gitignore` 排除；
 - toy 数据：不保留；
-- OWT tokenizer：已支持分块读取，16 MiB 前缀试跑通过；正式 tokenizer artifact 待 BPE merge 性能优化后生成；
+- OWT tokenizer：已生成本地 `owt-bpe/v0.2.0`，使用 train 前缀约 64 MiB、vocab size 8192；正式大规模 tokenizer 仍需后续扩展；
 - 数据记录：`docs/data/owt-sample.md`。
 
 **原问题现状**
 
 当前 Dense Transformer 已完成 forward、loss、KV Cache、增量解码和 smoke benchmark，但还没有完成原计划中的完整基线：
 
+- OWT tokenizer artifact 已生成 `owt-bpe/v0.2.0`，但尚未接入 Dense 训练；
 - BPE tokenizer 集成；
 - 固定训练数据；
 - train/validation split；

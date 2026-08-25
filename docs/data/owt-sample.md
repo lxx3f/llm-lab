@@ -85,7 +85,13 @@ gzip -t owt_valid.txt.gz
 
 Tokenizer CLI 已支持 newline-aligned 分块读取及 `--max-training-bytes` 固定前缀。它不会将 OWT train 全文拼接到内存；16 MiB OWT 前缀试跑已成功，metadata 也能记录实际纳入训练的字节范围。
 
-当前尚未生成正式的 1 GiB、32k vocab OWT artifact。原因是现有 BPE merge 实现仍需要优化 pair frequency 更新和重复扫描；在性能优化完成前，不把小前缀 artifact 作为正式 tokenizer 版本提交。
+当前尚未生成 32k vocab、完整 OWT train 或 1 GiB 前缀的正式 artifact。当前可供 Dense 数据管线使用的本地 artifact 是：
+
+```text
+artifacts/tokenizers/owt-bpe/v0.2.0/
+```
+
+其配置为 OWT train 的 newline-aligned 约 64 MiB 前缀和 8192 vocab；metadata 记录了实际训练字节数及完整 source hash。该 artifact 用于推进 token cache 和训练接口，不用于正式模型规模结论。
 
 后续仍需：
 

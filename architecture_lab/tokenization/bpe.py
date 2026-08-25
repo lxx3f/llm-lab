@@ -10,6 +10,7 @@ it is not a runtime dependency on the source repository.
 from __future__ import annotations
 
 import hashlib
+import heapq
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -94,6 +95,91 @@ def _merge_word(word: Sequence[bytes], pair: Merge, merged: bytes) -> tuple[byte
     return tuple(result)
 
 
+def _train_bpe_from_frequencies(
+    token_frequencies: dict[tuple[bytes, ...], int],
+    vocab_size: int,
+    special_tokens: Sequence[str],
+) -> tuple[dict[int, bytes], list[Merge]]:
+    """Run BPE merges with incrementally maintained pair counts.
+
+    The frequency convention intentionally matches the original implementation:
+    each pair contributes once per distinct pre-tokenized word, weighted by that
+    word's frequency. A lazy heap avoids rescanning all pairs to find the next
+    merge, while ``pair_to_words`` limits updates to words containing the merge.
+    """
+    vocab = {index: bytes([index]) for index in range(256)}
+    merges: list[Merge] = []
+    for special_token in special_tokens:
+        vocab[len(vocab)] = special_token.encode("utf-8")
+
+    pair_counts: dict[Merge, int] = {}
+    pair_to_words: dict[Merge, set[tuple[bytes, ...]]] = {}
+    heap: list[tuple[int, Merge]] = []
+
+    def add_word(word: tuple[bytes, ...], frequency: int) -> None:
+        token_frequencies[word] = token_frequencies.get(word, 0) + frequency
+        for pair in _get_pairs(word):
+            pair_counts[pair] = pair_counts.get(pair, 0) + frequency
+            pair_to_words.setdefault(pair, set()).add(word)
+            heapq.heappush(heap, (-pair_counts[pair], pair))
+
+    def remove_word(word: tuple[bytes, ...], frequency: int) -> None:
+        for pair in _get_pairs(word):
+            pair_counts[pair] -= frequency
+            words = pair_to_words[pair]
+            words.remove(word)
+            if not words:
+                del pair_to_words[pair]
+                del pair_counts[pair]
+
+    for word, frequency in list(token_frequencies.items()):
+        for pair in _get_pairs(word):
+            pair_counts[pair] = pair_counts.get(pair, 0) + frequency
+            pair_to_words.setdefault(pair, set()).add(word)
+            heapq.heappush(heap, (-pair_counts[pair], pair))
+
+    def pop_best_pair() -> Merge | None:
+        candidates: list[Merge] = []
+        best_count: int | None = None
+        while heap:
+            neg_count, pair = heapq.heappop(heap)
+            count = -neg_count
+            if pair_counts.get(pair) != count:
+                continue
+            best_count = count
+            candidates.append(pair)
+            while heap and -heap[0][0] == best_count:
+                next_neg_count, next_pair = heapq.heappop(heap)
+                if pair_counts.get(next_pair) == best_count:
+                    candidates.append(next_pair)
+            chosen = max(candidates)
+            for candidate in candidates:
+                if candidate != chosen and pair_counts.get(candidate) == best_count:
+                    heapq.heappush(heap, (-best_count, candidate))
+            return chosen
+        return None
+
+    while len(vocab) < vocab_size:
+        best_pair = pop_best_pair()
+        if best_pair is None:
+            break
+        merged = best_pair[0] + best_pair[1]
+        merges.append(best_pair)
+        vocab[len(vocab)] = merged
+
+        affected_words = list(pair_to_words.get(best_pair, ()))
+        replacement_frequencies: dict[tuple[bytes, ...], int] = {}
+        for old_word in affected_words:
+            frequency = token_frequencies.pop(old_word)
+            remove_word(old_word, frequency)
+            new_word = _merge_word(old_word, best_pair, merged)
+            replacement_frequencies[new_word] = replacement_frequencies.get(new_word, 0) + frequency
+        for new_word, frequency in replacement_frequencies.items():
+            add_word(new_word, frequency)
+
+    return vocab, merges
+
+
 def train_bpe(
     text: str,
     vocab_size: int,
@@ -117,29 +203,7 @@ def train_bpe_iterable(
             token = _word_to_bytes(word)
             token_frequencies[token] = token_frequencies.get(token, 0) + 1
 
-    vocab = {index: bytes([index]) for index in range(256)}
-    merges: list[Merge] = []
-    for special_token in special_tokens:
-        vocab[len(vocab)] = special_token.encode("utf-8")
-
-    while len(vocab) < vocab_size:
-        pair_counts: dict[Merge, int] = {}
-        for token, frequency in token_frequencies.items():
-            for pair in _get_pairs(token):
-                pair_counts[pair] = pair_counts.get(pair, 0) + frequency
-        if not pair_counts:
-            break
-        best_pair = max(pair_counts, key=lambda pair: (pair_counts[pair], pair))
-        merged = best_pair[0] + best_pair[1]
-        merges.append(best_pair)
-        vocab[len(vocab)] = merged
-        updated_frequencies: dict[tuple[bytes, ...], int] = {}
-        for token, frequency in token_frequencies.items():
-            updated = _merge_word(token, best_pair, merged)
-            updated_frequencies[updated] = updated_frequencies.get(updated, 0) + frequency
-        token_frequencies = updated_frequencies
-
-    return vocab, merges
+    return _train_bpe_from_frequencies(token_frequencies, vocab_size, special_tokens)
 
 
 @dataclass
