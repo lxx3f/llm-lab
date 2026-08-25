@@ -606,6 +606,13 @@ README 中已有 `data-pipeline/`、`evaluation-lab/`、`serving/` 等规划目�
 - 在 README 中标注 planned；或
 - 随模块启动时再创建目录。
 
+**决策（2026-08-26）**
+
+```text
+状态：部分解决
+决策：保持现状，不修改 README。roadmap.md 已经独立列出计划范围。
+```
+
 ---
 
 ### P2-02 README 协议示例与真实 Schema 不一致
