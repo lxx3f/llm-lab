@@ -576,7 +576,7 @@ class InferenceBackend:
 - [ ] 实现最小评测器；
 - [ ] 完成第一组端到端实验。
 
-阶段 2 已完成 MoE Top-1 MVP，详见 `docs/experiments/moe-top1/README.md` 与 `docs/experiments/moe-top1/smoke-result.json`。代码位于 `architecture_lab/models/moe_transformer.py`，可运行 `.venv/Scripts/python.exe -m unittest architecture_lab.tests.test_moe_transformer -v` 和 `.venv/Scripts/python.exe scripts/run_moe_top1.py`。当前实现支持 Top-1 routing、capacity、dropped token 统计、load balancing auxiliary loss 和 KV Cache。
+第一版 Dense 训练数据：使用 Stanford CS336 OWT sample，详见 `docs/data/owt-sample.md`。仓库内 `data/toy/` 和 `artifacts/tokenizers/toy-bpe/v0.1.0/` 仅作为快速 smoke 数据和 artifact 保留，不作为正式语言模型效果结论。OWT 原始文件位于 `data/raw/owt-sample/`，不会提交到 Git。
 
 ## 运行环境
 

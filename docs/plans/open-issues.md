@@ -82,9 +82,9 @@ Assignment 1 BPE 实现
 6. 原仓库的实现需要补充项目级 checkpoint metadata、实验日志和统一结果 schema；
 7. 需要重新审查原仓库中的 `data.py` 边界条件、BPE 复杂度和训练脚本的可复现性，不能因为已有实现就跳过验证。
 
-**当前状态**
+**历史 smoke 方案**
 
-部分解决：BPE tokenizer、训练 CLI、版本化 artifact 布局和 metadata 协议已经完成。BPE 实现位于 `architecture_lab/tokenization/bpe.py`，来源与许可证记录见 `docs/third-party-assignment1-bpe.md`。尚未接入 Dense 训练闭环，也尚未固定训练数据。
+人工构造 toy corpus、`D0`、`CC0-1.0`、仅 `<|endoftext|>` 和 `toy-bpe/v0.1.0` 仍保留，用于快速测试和验证 artifact 协议；不再作为第一版真实语言模型训练数据。
 
 **本轮改动**
 
@@ -115,12 +115,13 @@ BPE + tokenizer CLI tests: 7 passed
 
 **已决策（2026-08-25）**
 
-- 训练数据：使用仓库内人工构造 toy corpus，数据版本 `D0`，许可证 `CC0-1.0`；
-- special token：只使用 `<|endoftext|>`，不增加 BOS/EOS/PAD；
-- train/validation：按文本行/文档块预先分离，不在 token stream 上随机切分；
-- tokenizer artifact：`artifacts/tokenizers/toy-bpe/v0.1.0/`；
-- tokenizer vocab size：512；special token ID：256；
-- 详细数据记录：`docs/data/toy-dataset.md`。
+- 训练数据：第一版真实语言模型训练改用 Stanford CS336 OWT sample；
+- 数据版本：`OWT-SAMPLE-v1`；
+- train/validation：使用官方 `owt_train.txt` 和 `owt_valid.txt`；
+- 原始数据目录：`data/raw/owt-sample/`，由 `.gitignore` 排除；
+- toy corpus：保留为快速 smoke 数据，不作为正式效果结论；
+- OWT tokenizer：尚未生成，当前 BPE CLI 读取完整文本，面对约 12GB train 文件需要先实现大语料分块/流式处理；
+- 数据记录：`docs/data/owt-sample.md`。
 
 **原问题现状**
 

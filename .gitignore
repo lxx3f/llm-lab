@@ -70,3 +70,5 @@ checkpoints/
 # Local/raw data; keep schemas and committed examples under version control
 data/raw/
 data/interim/
+data/processed/
+artifacts/tokenizers/
