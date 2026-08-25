@@ -625,6 +625,19 @@ README 中的模型输出和评测结果示例缺少真实 Schema 要求的部�
 
 后续应让 README 直接引用真实示例，或同步更新示例，避免维护两套协议。
 
+**决策（2026-08-26）**
+
+```text
+状态：部分解决
+决策：
+  - dense_training_result.schema.json 已对齐并接入 CLI 校验。
+  - README 中 model output、evaluation result、tool calling 示例
+    改为指向 examples/*.json 与 schemas/*.json 链接。
+  - README 示例同步 schema_version、experiment_id、timestamp 等必填字段，
+    避免两套协议并存。
+执行时机：roadmap 当前阶段完成后随 README 一起更新；本轮不修改实现。
+```
+
 ---
 
 ### P2-03 缺少依赖锁定文件
