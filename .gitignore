@@ -1,0 +1,72 @@
+# Local environments
+.venv/
+venv/
+env/
+.conda/
+
+# Python caches and test/type-check artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.pyre/
+.ruff_cache/
+.pyright/
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDE and editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local.yaml
+*.local.yml
+*.local.json
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+.tmp/
+tmp/
+
+# Experiment outputs and tracking directories
+outputs/
+runs/
+wandb/
+mlruns/
+checkpoints/
+
+# Model weights and large binary artifacts
+*.ckpt
+*.safetensors
+*.pth
+*.pt
+*.bin
+*.onnx
+
+# Local/raw data; keep schemas and committed examples under version control
+data/raw/
+data/interim/

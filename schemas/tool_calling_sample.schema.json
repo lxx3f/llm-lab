@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llm-lab.local/schemas/tool_calling_sample.schema.json",
+  "title": "LLM Lab Tool Calling Sample",
+  "description": "工具调用与结构化指令数据的统一样本格式。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "messages",
+    "tools",
+    "expected_tool_calls",
+    "expected_answer",
+    "metadata"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/message"
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/tool"
+      }
+    },
+    "expected_tool_calls": {
+      "description": "按预期执行顺序排列；不需要工具时为空数组。",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/expectedToolCall"
+      }
+    },
+    "expected_answer": {
+      "description": "可为空；当任务存在唯一或可校验答案时填写。",
+      "type": ["string", "null"]
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    }
+  },
+  "$defs": {
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "content"],
+      "properties": {
+        "role": {
+          "enum": ["system", "user", "assistant", "tool"]
+        },
+        "content": {
+          "type": ["string", "null"]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_call_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_calls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modelToolCall"
+          }
+        }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "function"],
+      "properties": {
+        "type": {
+          "const": "function"
+        },
+        "function": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "description", "parameters"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parameters": {
+              "description": "工具参数的 JSON Schema。",
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "modelToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "function"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "const": "function"
+        },
+        "function": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "arguments"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "arguments": {
+              "description": "兼容推理接口返回的 JSON 字符串或已解析对象。",
+              "type": ["string", "object"]
+            }
+          }
+        }
+      }
+    },
+    "expectedToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["call_id", "name", "arguments"],
+      "properties": {
+        "call_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arguments": {
+          "type": "object"
+        },
+        "depends_on": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        },
+        "expected_result": {}
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "source",
+        "license",
+        "task_type",
+        "data_version",
+        "pipeline_version",
+        "created_at"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original_sample_id": {
+          "type": ["string", "null"]
+        },
+        "task_type": {
+          "enum": [
+            "no_tool",
+            "single_tool",
+            "multi_tool",
+            "tool_error",
+            "insufficient_result",
+            "requirement_change"
+          ]
+        },
+        "data_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pipeline_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "schema_valid": {"type": "boolean"},
+            "tool_execution_valid": {"type": ["boolean", "null"]},
+            "answer_valid": {"type": ["boolean", "null"]},
+            "quality_passed": {"type": ["boolean", "null"]}
+          }
+        }
+      }
+    }
+  }
+}

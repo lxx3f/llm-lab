@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "id": "sample-002-no-tool",
+  "messages": [
+    {
+      "role": "user",
+      "content": "请把“模型结论需要可复现实验支撑”改写得更通顺。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "查询指定城市指定日期的天气。",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["city", "date"],
+          "properties": {
+            "city": {"type": "string"},
+            "date": {"type": "string", "format": "date"}
+          }
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "模型结论应有可复现的实验作为支撑。",
+  "metadata": {
+    "source": "llm-lab-manual-example",
+    "license": "CC0-1.0",
+    "original_sample_id": null,
+    "task_type": "no_tool",
+    "data_version": "D0",
+    "pipeline_version": "stage0",
+    "created_at": "2025-08-25T00:03:00Z",
+    "validation": {
+      "schema_valid": true,
+      "tool_execution_valid": null,
+      "answer_valid": true,
+      "quality_passed": true
+    }
+  }
+}

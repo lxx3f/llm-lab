@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llm-lab.local/schemas/evaluation_result.schema.json",
+  "title": "LLM Lab Evaluation Result",
+  "description": "统一记录一次模型评测的配置、指标和失败样本。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "model",
+    "task",
+    "metrics",
+    "failures",
+    "experiment_id",
+    "timestamp"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_version": {
+      "type": ["string", "null"]
+    },
+    "backend": {
+      "type": ["string", "null"],
+      "enum": ["transformers", "vllm", "other", null]
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/failure"
+      }
+    },
+    "experiment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "config": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "summary": {
+      "type": ["string", "null"]
+    }
+  },
+  "$defs": {
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "input",
+        "expected",
+        "prediction",
+        "failure_type",
+        "raw_output",
+        "analysis"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input": {},
+        "expected": {},
+        "prediction": {},
+        "failure_type": {
+          "enum": [
+            "wrong_tool",
+            "wrong_arguments",
+            "invalid_json",
+            "unnecessary_tool_call",
+            "tool_result_unused",
+            "fabricated_tool_result",
+            "wrong_final_answer",
+            "lost_constraint",
+            "duplicate_call",
+            "timeout",
+            "context_length",
+            "other"
+          ]
+        },
+        "raw_output": {},
+        "analysis": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

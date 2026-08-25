@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "id": "sample-001",
+  "messages": [
+    {
+      "role": "user",
+      "content": "北京明天的天气怎么样？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "查询指定城市指定日期的天气。",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["city", "date"],
+          "properties": {
+            "city": {"type": "string"},
+            "date": {"type": "string", "format": "date"}
+          }
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "expected-call-001",
+      "name": "get_weather",
+      "arguments": {
+        "city": "北京",
+        "date": "2025-08-26"
+      },
+      "expected_result": {
+        "city": "北京",
+        "date": "2025-08-26",
+        "condition": "晴",
+        "temperature_c": 28
+      }
+    }
+  ],
+  "expected_answer": "北京明天晴，气温约 28°C。",
+  "metadata": {
+    "source": "llm-lab-manual-example",
+    "license": "CC0-1.0",
+    "original_sample_id": null,
+    "task_type": "single_tool",
+    "data_version": "D0",
+    "pipeline_version": "stage0",
+    "created_at": "2025-08-25T00:00:00Z",
+    "validation": {
+      "schema_valid": true,
+      "tool_execution_valid": true,
+      "answer_valid": true,
+      "quality_passed": true
+    }
+  }
+}

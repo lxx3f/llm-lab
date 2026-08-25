@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "model": "example-model",
+  "task": "tool_calling",
+  "dataset_version": "D0",
+  "backend": "transformers",
+  "metrics": {
+    "tool_selection_accuracy": 1.0,
+    "argument_accuracy": 1.0,
+    "schema_pass_rate": 1.0,
+    "tool_execution_success_rate": 1.0,
+    "task_success_rate": 1.0,
+    "invalid_call_rate": 0.0
+  },
+  "failures": [],
+  "experiment_id": "stage0-example",
+  "timestamp": "2025-08-25T00:02:00Z",
+  "config": {
+    "config_path": "configs/stage0.example.yaml",
+    "seed": 42
+  },
+  "summary": "协议验证示例，不代表真实模型评测结果。"
+}

@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "model": "example-model",
+  "prompt": [
+    {
+      "role": "user",
+      "content": "北京明天的天气怎么样？"
+    }
+  ],
+  "response": {
+    "role": "assistant",
+    "content": null,
+    "tool_calls": [
+      {
+        "id": "call-001",
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "arguments": "{\"city\":\"北京\",\"date\":\"2025-08-26\"}"
+        }
+      }
+    ]
+  },
+  "generation_config": {
+    "temperature": 0.0,
+    "max_new_tokens": 256,
+    "do_sample": false
+  },
+  "timestamp": "2025-08-25T00:01:00Z",
+  "experiment_id": "stage0-example",
+  "backend": "transformers",
+  "request_id": "request-001",
+  "latency_ms": 125.4,
+  "usage": {
+    "prompt_tokens": 96,
+    "completion_tokens": 28,
+    "total_tokens": 124
+  },
+  "error": null
+}

@@ -1,0 +1,38 @@
+model:
+  name: example-model
+  revision: main
+  backend: transformers
+  dtype: float32
+
+data:
+  version: D0
+  path: examples/tool_calling/sample-001.json
+  schema: schemas/tool_calling_sample.schema.json
+
+evaluation:
+  experiment_id: stage0-example
+  tasks:
+    - tool_selection
+    - argument_accuracy
+    - schema_validity
+    - task_completion
+  metrics:
+    - tool_selection_accuracy
+    - argument_accuracy
+    - schema_pass_rate
+    - task_success_rate
+    - invalid_call_rate
+
+  output_path: examples/evaluation_results/sample-001.json
+
+inference:
+  backend: transformers
+  generation:
+    temperature: 0.0
+    top_p: 1.0
+    max_new_tokens: 256
+    do_sample: false
+
+experiment:
+  seed: 42
+  description: Stage 0 protocol validation example

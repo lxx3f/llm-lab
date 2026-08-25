@@ -1,0 +1,87 @@
+{
+  "experiment_id": "moe-top1-smoke",
+  "model": "moe-top1-small",
+  "architecture": "MoETransformer",
+  "seed": 42,
+  "device": "cuda",
+  "dtype": "float32",
+  "config": {
+    "name": "moe-top1-small",
+    "architecture": "MoETransformer",
+    "vocab_size": 256,
+    "max_seq_len": 128,
+    "d_model": 128,
+    "n_heads": 4,
+    "n_layers": 2,
+    "d_ff": 512,
+    "dropout": 0.0,
+    "rope_base": 10000.0
+  },
+  "moe_config": {
+    "num_experts": 4,
+    "capacity_factor": 1.0,
+    "aux_loss_weight": 0.01
+  },
+  "parameter_count": 1738368,
+  "batch_size": 4,
+  "sequence_length": 64,
+  "forward_latency_ms": 6.192169999849284,
+  "forward_tokens_per_second": 41342.53420145619,
+  "lm_loss": 127.55615997314453,
+  "aux_loss": 1.006155014038086,
+  "total_loss": 127.56622314453125,
+  "routing_stats": [
+    {
+      "num_experts": 4,
+      "capacity": 64,
+      "tokens": 256,
+      "assigned_tokens_per_expert": [
+        59,
+        52,
+        66,
+        79
+      ],
+      "kept_tokens_per_expert": [
+        59,
+        52,
+        64,
+        64
+      ],
+      "dropped_tokens": 17,
+      "dropped_token_rate": 0.06640625,
+      "router_prob_mean": [
+        0.23294100165367126,
+        0.23793834447860718,
+        0.26138266921043396,
+        0.26773801445961
+      ]
+    },
+    {
+      "num_experts": 4,
+      "capacity": 64,
+      "tokens": 256,
+      "assigned_tokens_per_expert": [
+        48,
+        62,
+        71,
+        75
+      ],
+      "kept_tokens_per_expert": [
+        48,
+        62,
+        64,
+        64
+      ],
+      "dropped_tokens": 18,
+      "dropped_token_rate": 0.0703125,
+      "router_prob_mean": [
+        0.23821397125720978,
+        0.25365719199180603,
+        0.2504274249076843,
+        0.25770139694213867
+      ]
+    }
+  ],
+  "notes": "Smoke benchmark for Top-1 MoE validation; not a training result.",
+  "peak_memory_mb": 16.291015625
+}

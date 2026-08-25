@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "id": "sample-003-multi-tool",
+  "messages": [
+    {
+      "role": "system",
+      "content": "当前日期是 2025-08-25。"
+    },
+    {
+      "role": "user",
+      "content": "先算出三天后的日期，再查询北京当天的天气。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "add_days",
+        "description": "在给定日期上增加指定天数。",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["date", "days"],
+          "properties": {
+            "date": {"type": "string", "format": "date"},
+            "days": {"type": "integer"}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "查询指定城市指定日期的天气。",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["city", "date"],
+          "properties": {
+            "city": {"type": "string"},
+            "date": {"type": "string", "format": "date"}
+          }
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "expected-call-001",
+      "name": "add_days",
+      "arguments": {
+        "date": "2025-08-25",
+        "days": 3
+      },
+      "depends_on": [],
+      "expected_result": {
+        "date": "2025-08-28"
+      }
+    },
+    {
+      "call_id": "expected-call-002",
+      "name": "get_weather",
+      "arguments": {
+        "city": "北京",
+        "date": "2025-08-28"
+      },
+      "depends_on": ["expected-call-001"],
+      "expected_result": {
+        "city": "北京",
+        "date": "2025-08-28",
+        "condition": "多云",
+        "temperature_c": 27
+      }
+    }
+  ],
+  "expected_answer": "三天后是 2025 年 8 月 28 日，北京当天多云，气温约 27°C。",
+  "metadata": {
+    "source": "llm-lab-manual-example",
+    "license": "CC0-1.0",
+    "original_sample_id": null,
+    "task_type": "multi_tool",
+    "data_version": "D0",
+    "pipeline_version": "stage0",
+    "created_at": "2025-08-25T00:04:00Z",
+    "validation": {
+      "schema_valid": true,
+      "tool_execution_valid": true,
+      "answer_valid": true,
+      "quality_passed": true
+    }
+  }
+}

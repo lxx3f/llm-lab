@@ -1,0 +1,30 @@
+{
+  "experiment_id": "dense-baseline-smoke",
+  "model": "dense-baseline-small",
+  "architecture": "DenseTransformer",
+  "seed": 42,
+  "device": "cuda",
+  "dtype": "float32",
+  "config": {
+    "name": "dense-baseline-small",
+    "architecture": "DenseTransformer",
+    "vocab_size": 256,
+    "max_seq_len": 128,
+    "d_model": 128,
+    "n_heads": 4,
+    "n_layers": 2,
+    "d_ff": 512,
+    "dropout": 0.0,
+    "rope_base": 10000.0
+  },
+  "parameter_count": 557696,
+  "batch_size": 4,
+  "sequence_length": 64,
+  "forward_latency_ms": 3.798259999985021,
+  "decode_one_token_latency_ms": 10.537399999975605,
+  "forward_tokens_per_second": 67399.28282977194,
+  "decode_tokens_per_second": 379.60028090508666,
+  "loss": 126.57038116455078,
+  "notes": "Smoke benchmark for baseline validation; not a training result.",
+  "peak_memory_mb": 13.4111328125
+}
