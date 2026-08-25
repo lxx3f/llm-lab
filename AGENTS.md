@@ -32,7 +32,8 @@
 - 重要结论应有可复现实验、基线对比和失败案例支撑。
 - 不把“使用开源框架”或“使用 vLLM 部署”本身当作项目成果，重点记录实际修改、验证过程和实验结果。
 - 未经确认的模型指标、数据规模和性能结论不得写入正式报告或简历。
-- 每完成一个阶段或 MVP，必须先进行一次计划、正确性、实验有效性和文档审查，再进入下一阶段；审查通过后自动创建一个阶段 Git commit。审查流程见 `docs/plans/review-process.md`，问题统一记录在 `docs/plans/open-issues.md`。
+- 每完成一个阶段或 MVP，必须先进行一次计划、正确性、实验有效性和文档审查，再进入下一阶段；阶段审查必须由子 agent 执行，审查模型固定使用 `minimax-cn/MiniMax-M3`（MiniMax M3）；审查通过后自动创建一个阶段 Git commit。审查流程见 `docs/plans/review-process.md`，问题统一记录在 `docs/plans/open-issues.md`。
+- 如果 harness 无法确认审查模型身份，必须停止自动 commit 并报告阻塞；
 - 不提交模型权重、API 密钥、内部数据或其他敏感信息。
 
 ## 当前阶段

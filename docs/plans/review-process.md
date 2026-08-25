@@ -61,6 +61,40 @@
 - 调整开发顺序；
 - 明确下一步只处理哪些问题，避免范围蔓延。
 
+## 审查执行方式
+
+阶段审查由独立子 agent 执行，不由主 agent 自我审查。审查子 agent 的模型固定为：
+
+```text
+minimax-cn/MiniMax-M3
+```
+
+主 agent 的职责是：
+
+1. 完成阶段实现；
+2. 运行测试、校验和 benchmark；
+3. 更新代码、配置、README、`docs/` 和 `open-issues.md`；
+4. 将阶段目标、变更摘要、测试结果、风险和待审查文件提交给子 agent；
+5. 根据子 agent 审查意见修复问题；
+6. 只有在子 agent 明确判定“通过”或“有条件通过且无阻塞问题”后，才创建阶段 commit。
+
+子 agent 审查结果必须记录在：
+
+```text
+docs/plans/reviews/stage-<kebab-case-name>.md
+```
+
+记录至少包含：
+
+- 审查模型：`minimax-cn/MiniMax-M3`（对应用户指定的 MiniMax M3）；
+- 审查 agent：实际使用的子 agent 名称；
+- 审查范围和 commit 候选变更；
+- 发现的问题及严重级别；
+- 通过/不通过结论；
+- 主 agent 的修复或后续动作。
+
+如果当前 agent harness 无法选择或确认 `minimax-cn/MiniMax-M3`，不得声称审查已完成；应暂停自动 commit 并报告阻塞原因。审查记录还必须包含子 agent 返回的 `PI_PROVIDER`、`PI_MODEL` 和审查 agent 名称；主 agent 在 commit 前核对这些字段。
+
 ## 审查产物
 
 每次审查至少更新：
@@ -69,16 +103,19 @@
 - 对应阶段文档：记录实现范围、验证结果和局限性；
 - `README.md`：同步阶段状态和下一步计划。
 
-如问题较多，可新增阶段审查记录：
+每份审查记录必须包含：
 
 ```text
-docs/plans/reviews/stage-<name>.md
+审查模型：minimax-cn/MiniMax-M3
+审查 agent：reviewer
+实际 provider/model：PI_PROVIDER=minimax-cn, PI_MODEL=MiniMax-M3
+审查文件路径：docs/plans/reviews/stage-<kebab-case-name>.md
 ```
 
 ## 审查条目格式
 
 ```markdown
-## 阶段 <name> 审查
+## 阶段 <kebab-case-name> 审查
 
 - 完成范围：
 - 未完成范围：
@@ -111,10 +148,18 @@ docs/plans/reviews/stage-<name>.md
 - 一个阶段对应一个主要 commit，避免把多个阶段混在同一个提交中；
 - commit 只包含当前阶段相关的代码、配置、测试和 `docs/` 文档；
 - `.venv/`、缓存、模型权重、密钥和本地 IDE 文件不得提交；
-- commit message 使用清晰的英文 Conventional Commits 风格，例如：
-  - `feat(architecture): add dense training loop`
-  - `feat(moe): complete top1 training validation`
-  - `docs(plan): review stage and adjust roadmap`
+- commit message 的 Conventional Commit 标题使用清晰的英文格式；
+- commit message 的详细说明部分统一使用中文，记录主要改动、设计决策、测试结果和已知限制；
+- 示例：
+
+```text
+perf(tokenization): optimize incremental BPE merges
+
+详细说明：
+- 将 BPE merge 改为增量 pair count；
+- 通过 tokenizer、CLI 和 Dense/MoE 测试；
+- 记录性能边界和后续计划。
+```
 - 提交前必须检查 `git status`、测试结果和待提交文件；
 - 如果 Git 用户信息、测试或审查不满足要求，应停止自动提交并报告原因；
 - 不执行 `git push`，除非用户明确要求。
