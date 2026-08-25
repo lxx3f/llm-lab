@@ -121,7 +121,8 @@ BPE + tokenizer CLI tests: 7 passed
 - 正式范围 OWT token cache：train 512 MiB 上限、validation 64 MiB 上限已生成；
 - 正式 cache 实际范围：train 143,918,122 tokens / 536,870,901 bytes，validation 17,999,093 tokens / 67,105,041 bytes；
 - Dense batch sampler：已实现连续 token stream 的随机窗口、确定性 epoch 遍历和显式 next-token targets；
-- Dense training MVP：已接入动态 tokenizer vocab、validation、checkpoint/resume 和 generation；
+- Dense training MVP：已接入动态 tokenizer vocab、validation、checkpoint/resume、generation、scheduler、AMP 和梯度累积；
+- 正式结果 schema：已新增并接入 CLI 校验；
 - 真实 OWT train/validation 各 1 MiB cache 试跑通过；
 - cache 协议见 `docs/protocols/owt-token-cache.md`；
 - batch 协议见 `docs/protocols/dense-batching.md`；

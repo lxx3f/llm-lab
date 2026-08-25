@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from architecture_lab.training.dense_training import load_settings, train  # noqa: E402
+from architecture_lab.training.dense_training import load_settings, train
+from architecture_lab.training.results import write_training_result
 
 
 def main() -> int:
@@ -24,8 +25,7 @@ def main() -> int:
     rendered = json.dumps(result, ensure_ascii=False, indent=2)
     print(rendered)
     if args.output is not None:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(rendered + "\n", encoding="utf-8")
+        write_training_result(result, args.output)
     return 0
 
 

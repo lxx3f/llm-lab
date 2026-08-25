@@ -18,8 +18,8 @@
 - 新增 `scripts/train_dense.py` 和训练配置；
 - 新增 batch/training 协议文档和 Dense MVP 实验记录；
 - 增加 batch sampler、causal loss、动态 vocab mismatch、checkpoint resume 和绑定拒绝测试；
-- `test_checkpoint_rejects_cache_metadata_change` 与 `test_model_vocab_size_mismatch_is_rejected` 为独立测试；
-- validation 使用 `try/finally` 恢复训练模式，即使 validation 失败也不会遗留 eval 状态；
+- `test_checkpoint_rejects_cache_metadata_change` 与 `test_model_vocab_size_mismatch_is_rejected` 为 MVP 阶段独立测试；
+- validation 使用 `try/finally` 恢复训练模式；
 - epoch 计数只在完整 epoch 后递增；
 - checkpoint pickle 仅限受信本地产物，并记录后续 `weights_only`/safetensors 计划；
 

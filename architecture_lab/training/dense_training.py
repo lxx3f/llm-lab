@@ -19,6 +19,7 @@ from torch import Tensor
 from architecture_lab.data import TokenStreamBatcher, load_token_cache
 from architecture_lab.models.dense_transformer import DenseTransformer, TransformerConfig
 from architecture_lab.tokenization import BPETokenizer
+from architecture_lab.training.results import build_training_result
 
 
 def sha256_file(path: str | Path) -> str:
@@ -99,10 +100,54 @@ class TrainingState:
     epoch: int = 0
 
 
+def build_scheduler(
+    optimizer: torch.optim.Optimizer,
+    *,
+    warmup_steps: int,
+    total_steps: int,
+    min_lr_ratio: float,
+) -> torch.optim.lr_scheduler.LambdaLR:
+    if warmup_steps < 0 or total_steps <= 0:
+        raise ValueError("warmup_steps must be non-negative and total_steps positive")
+    if warmup_steps > total_steps:
+        raise ValueError("warmup_steps cannot exceed total_steps")
+    if not 0.0 <= min_lr_ratio <= 1.0:
+        raise ValueError("min_lr_ratio must be between 0 and 1")
+
+    def multiplier(step: int) -> float:
+        if step < warmup_steps:
+            return float(step + 1) / max(1, warmup_steps)
+        if step >= total_steps:
+            return min_lr_ratio
+        progress = (step - warmup_steps) / max(1, total_steps - warmup_steps)
+        cosine = 0.5 * (1.0 + torch.cos(torch.tensor(progress * torch.pi)).item())
+        return min_lr_ratio + (1.0 - min_lr_ratio) * cosine
+
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, multiplier)
+
+
+def resolve_amp(training: dict[str, Any], device: torch.device) -> tuple[bool, torch.dtype, bool]:
+    config = training.get("amp", {}) or {}
+    enabled = bool(config.get("enabled", False))
+    if enabled and device.type not in {"cuda", "cpu"}:
+        raise ValueError("AMP is only supported on CUDA or CPU devices")
+    name = str(config.get("dtype", "float16")).replace("torch.", "")
+    try:
+        amp_dtype = getattr(torch, name)
+    except AttributeError as error:
+        raise ValueError(f"unknown AMP dtype: {name}") from error
+    if amp_dtype not in {torch.float16, torch.bfloat16}:
+        raise ValueError("AMP dtype must be float16 or bfloat16")
+    scaler_enabled = enabled and device.type == "cuda" and amp_dtype == torch.float16
+    return enabled, amp_dtype, scaler_enabled
+
+
 def _checkpoint_payload(
     *,
     model: DenseTransformer,
     optimizer: torch.optim.Optimizer,
+    scheduler: torch.optim.lr_scheduler.LambdaLR,
+    scaler: torch.amp.GradScaler,
     state: TrainingState,
     settings: dict[str, Any],
     tokenizer_path: Path,
@@ -126,6 +171,8 @@ def _checkpoint_payload(
         },
         "model_state": model.state_dict(),
         "optimizer_state": optimizer.state_dict(),
+        "scheduler_state": scheduler.state_dict(),
+        "scaler_state": scaler.state_dict(),
         "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
 
@@ -135,6 +182,8 @@ def save_checkpoint(
     *,
     model: DenseTransformer,
     optimizer: torch.optim.Optimizer,
+    scheduler: torch.optim.lr_scheduler.LambdaLR,
+    scaler: torch.amp.GradScaler,
     state: TrainingState,
     settings: dict[str, Any],
     tokenizer_path: Path,
@@ -147,6 +196,8 @@ def save_checkpoint(
     payload = _checkpoint_payload(
         model=model,
         optimizer=optimizer,
+        scheduler=scheduler,
+        scaler=scaler,
         state=state,
         settings=settings,
         tokenizer_path=tokenizer_path,
@@ -170,6 +221,8 @@ def load_checkpoint(
     *,
     model: DenseTransformer,
     optimizer: torch.optim.Optimizer,
+    scheduler: torch.optim.lr_scheduler.LambdaLR,
+    scaler: torch.amp.GradScaler,
     tokenizer_path: Path,
     train_metadata_path: Path,
     validation_metadata_path: Path,
@@ -192,6 +245,10 @@ def load_checkpoint(
         raise ValueError("checkpoint validation cache metadata hash mismatch")
     model.load_state_dict(payload["model_state"])
     optimizer.load_state_dict(payload["optimizer_state"])
+    scheduler.load_state_dict(payload.get("scheduler_state", scheduler.state_dict()))
+    scaler_state = payload.get("scaler_state")
+    if scaler_state:
+        scaler.load_state_dict(scaler_state)
     raw_state = payload.get("training_state", {})
     return TrainingState(step=int(raw_state.get("step", 0)), epoch=int(raw_state.get("epoch", 0)))
 
@@ -294,19 +351,38 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
         lr=float(training["learning_rate"]),
         weight_decay=float(training.get("weight_decay", 0.0)),
     )
+    gradient_accumulation_steps = int(training.get("gradient_accumulation_steps", 1))
+    if gradient_accumulation_steps <= 0:
+        raise ValueError("gradient_accumulation_steps must be positive")
+    max_steps = int(training["max_steps"])
+    scheduler_config = training.get("scheduler", {}) or {}
+    scheduler = build_scheduler(
+        optimizer,
+        warmup_steps=int(scheduler_config.get("warmup_steps", 0)),
+        total_steps=max_steps,
+        min_lr_ratio=float(scheduler_config.get("min_lr_ratio", 0.0)),
+    )
+    amp_enabled, amp_dtype, scaler_enabled = resolve_amp(training, device)
+    scaler = torch.amp.GradScaler(device=device.type, enabled=scaler_enabled)
+    amp_config = {
+        "enabled": amp_enabled,
+        "dtype": str(amp_dtype).replace("torch.", ""),
+        "scaler_enabled": scaler_enabled,
+    }
     state = TrainingState()
     if resume is not None:
         state = load_checkpoint(
             resume,
             model=model,
             optimizer=optimizer,
+            scheduler=scheduler,
+            scaler=scaler,
             tokenizer_path=tokenizer_path,
             train_metadata_path=train_metadata_path,
             validation_metadata_path=validation_metadata_path,
             map_location=device,
         )
     model.train()
-    max_steps = int(training["max_steps"])
     log_interval = int(training.get("log_interval", 1))
     validation_interval = int(training.get("validation_interval", max_steps))
     checkpoint_path = Path(training["checkpoint"])
@@ -314,43 +390,57 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
     losses: list[float] = []
     validation_losses: dict[str, float] = {}
     epoch = state.epoch
+    batch_iterator = iter(train_batcher.iter_epoch(device=device))
     while state.step < max_steps:
-        completed_epoch = True
-        for inputs, targets in train_batcher.iter_epoch(device=device):
-            if state.step >= max_steps:
-                completed_epoch = False
-                break
-            optimizer.zero_grad(set_to_none=True)
-            logits, _ = model(inputs)
-            loss = causal_loss(logits, targets)
-            loss.backward()
-            clip_value = training.get("gradient_clip_norm")
-            if clip_value is not None:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), float(clip_value))
-            optimizer.step()
-            state = TrainingState(step=state.step + 1, epoch=epoch)
-            losses.append(float(loss.detach()))
-            if state.step % log_interval == 0:
-                print(f"step={state.step} train_loss={losses[-1]:.6f}")
-            if state.step % validation_interval == 0 or state.step == max_steps:
-                validation_loss = evaluate(
-                    model, validation_batcher, batches=validation_batches, device=device
-                )
-                validation_losses[str(state.step)] = validation_loss
-                print(f"step={state.step} validation_loss={validation_loss:.6f}")
-                save_checkpoint(
-                    checkpoint_path,
-                    model=model,
-                    optimizer=optimizer,
-                    state=state,
-                    settings=settings,
-                    tokenizer_path=tokenizer_path,
-                    train_metadata_path=train_metadata_path,
-                    validation_metadata_path=validation_metadata_path,
-                )
-        if completed_epoch:
-            epoch += 1
-            state = TrainingState(step=state.step, epoch=epoch)
+        optimizer.zero_grad(set_to_none=True)
+        accumulated_loss = 0.0
+        for _ in range(gradient_accumulation_steps):
+            try:
+                inputs, targets = next(batch_iterator)
+            except StopIteration:
+                epoch += 1
+                state = TrainingState(step=state.step, epoch=epoch)
+                batch_iterator = iter(train_batcher.iter_epoch(device=device))
+                inputs, targets = next(batch_iterator)
+            with torch.autocast(
+                device_type=device.type,
+                dtype=amp_dtype,
+                enabled=amp_enabled,
+            ):
+                logits, _ = model(inputs)
+                micro_loss = causal_loss(logits, targets)
+            accumulated_loss += float(micro_loss.detach())
+            scaler.scale(micro_loss / gradient_accumulation_steps).backward()
+        if scaler_enabled:
+            scaler.unscale_(optimizer)
+        clip_value = training.get("gradient_clip_norm")
+        if clip_value is not None:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), float(clip_value))
+        scaler.step(optimizer)
+        scaler.update()
+        scheduler.step()
+        state = TrainingState(step=state.step + 1, epoch=epoch)
+        losses.append(accumulated_loss / gradient_accumulation_steps)
+        if state.step % log_interval == 0:
+            print(f"step={state.step} train_loss={losses[-1]:.6f} lr={optimizer.param_groups[0]['lr']:.8f}")
+        if state.step % validation_interval == 0 or state.step == max_steps:
+            validation_loss = evaluate(
+                model, validation_batcher, batches=validation_batches, device=device
+            )
+            validation_losses[str(state.step)] = validation_loss
+            print(f"step={state.step} validation_loss={validation_loss:.6f}")
+            save_checkpoint(
+                checkpoint_path,
+                model=model,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                scaler=scaler,
+                state=state,
+                settings=settings,
+                tokenizer_path=tokenizer_path,
+                train_metadata_path=train_metadata_path,
+                validation_metadata_path=validation_metadata_path,
+            )
 
     max_new_tokens = int(training.get("max_new_tokens", 0))
     prompt = str(training.get("prompt", ""))
@@ -361,15 +451,31 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
         max_new_tokens=max_new_tokens,
         device=device,
     ) if prompt and max_new_tokens > 0 else None
-    return {
-        "step": state.step,
-        "epoch": state.epoch,
-        "last_train_loss": losses[-1] if losses else None,
-        "validation_losses": validation_losses,
-        "train_metadata_sha256": _metadata_hash(train_metadata_path),
-        "validation_metadata_sha256": _metadata_hash(validation_metadata_path),
-        "checkpoint": str(checkpoint_path),
-        "config": settings,
-        "generated_text": generated,
-        "tokenizer_sha256": sha256_file(tokenizer_path),
-    }
+    return build_training_result(
+        settings=settings,
+        model=model,
+        tokenizer_path=tokenizer_path,
+        train_token_path=train_token_path,
+        train_metadata_path=train_metadata_path,
+        validation_token_path=validation_token_path,
+        validation_metadata_path=validation_metadata_path,
+        device=device,
+        model_dtype=dtype,
+        optimizer_steps=state.step,
+        epoch=state.epoch,
+        last_train_loss=losses[-1] if losses else None,
+        validation_losses=validation_losses,
+        checkpoint_path=checkpoint_path,
+        prompt=prompt,
+        max_new_tokens=max_new_tokens,
+        generated_text=generated,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        scheduler_config={
+            "name": "warmup_cosine",
+            "warmup_steps": int(scheduler_config.get("warmup_steps", 0)),
+            "total_steps": max_steps,
+            "min_lr_ratio": float(scheduler_config.get("min_lr_ratio", 0.0)),
+            "final_learning_rate": optimizer.param_groups[0]["lr"],
+        },
+        amp_config=amp_config,
+    )

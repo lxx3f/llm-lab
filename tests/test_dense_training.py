@@ -12,6 +12,7 @@ from architecture_lab.data.token_cache import encode_token_cache
 from architecture_lab.models.dense_transformer import DenseTransformer
 from architecture_lab.tokenization import BPETokenizer, train_bpe
 from architecture_lab.training.dense_training import (
+    build_scheduler,
     causal_loss,
     load_settings,
     train,
@@ -94,15 +95,15 @@ class DenseTrainingTests(unittest.TestCase):
             root = Path(directory)
             settings = self._settings(root)
             result = train(settings)
-            self.assertEqual(result["step"], 2)
-            self.assertTrue(Path(result["checkpoint"]).is_file())
-            self.assertIsInstance(result["generated_text"], str)
+            self.assertEqual(result["training"]["optimizer_steps"], 2)
+            self.assertTrue(Path(result["artifacts"]["checkpoint_path"]).is_file())
+            self.assertIsInstance(result["generation"]["text"], str)
 
             resumed_settings = settings.copy()
             resumed_settings["training"] = settings["training"].copy()
             resumed_settings["training"]["max_steps"] = 3
-            resumed = train(resumed_settings, resume=result["checkpoint"])
-            self.assertEqual(resumed["step"], 3)
+            resumed = train(resumed_settings, resume=result["artifacts"]["checkpoint_path"])
+            self.assertEqual(resumed["training"]["optimizer_steps"], 3)
 
     def test_checkpoint_rejects_cache_metadata_change(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -112,7 +113,39 @@ class DenseTrainingTests(unittest.TestCase):
             metadata = Path(settings["data"]["train_metadata"])
             metadata.write_text(metadata.read_text(encoding="utf-8") + "\n", encoding="utf-8")
             with self.assertRaises(ValueError):
-                train(settings, resume=result["checkpoint"])
+                train(settings, resume=result["artifacts"]["checkpoint_path"])
+
+    def test_scheduler_warmup_and_cosine_decay(self) -> None:
+        parameter = torch.nn.Parameter(torch.ones(()))
+        optimizer = torch.optim.AdamW([parameter], lr=1.0)
+        scheduler = build_scheduler(
+            optimizer, warmup_steps=2, total_steps=6, min_lr_ratio=0.1
+        )
+        values = []
+        for _ in range(6):
+            optimizer.step()
+            scheduler.step()
+            values.append(optimizer.param_groups[0]["lr"])
+        self.assertGreater(values[0], 0.0)
+        self.assertGreaterEqual(values[1], values[0])
+        self.assertGreater(values[1], values[2])
+        self.assertAlmostEqual(values[-1], 0.1, places=6)
+
+    def test_gradient_accumulation_and_amp_result_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            settings = self._settings(root)
+            settings["training"]["gradient_accumulation_steps"] = 2
+            settings["training"]["amp"] = {"enabled": True, "dtype": "bfloat16"}
+            settings["training"]["scheduler"] = {
+                "warmup_steps": 1,
+                "min_lr_ratio": 0.2,
+            }
+            result = train(settings)
+            self.assertEqual(result["training"]["gradient_accumulation_steps"], 2)
+            self.assertEqual(result["training"]["amp"]["dtype"], "bfloat16")
+            self.assertEqual(result["training"]["scheduler"]["warmup_steps"], 1)
+
     def test_model_vocab_size_mismatch_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

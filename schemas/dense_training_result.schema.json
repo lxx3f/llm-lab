@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llm-lab.local/schemas/dense_training_result.schema.json",
+  "title": "LLM Lab Dense Training Result",
+  "description": "记录一次可复现 Dense Transformer 训练运行的配置、数据绑定、优化过程与产物。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_type",
+    "experiment_id",
+    "timestamp",
+    "status",
+    "model",
+    "data",
+    "training",
+    "metrics",
+    "artifacts",
+    "generation"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "result_type": {"const": "dense_training"},
+    "experiment_id": {"type": "string", "minLength": 1},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["completed"]},
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "architecture", "config", "parameter_count"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "architecture": {"const": "DenseTransformer"},
+        "config": {"type": "object", "additionalProperties": true},
+        "parameter_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data_version", "tokenizer", "train_cache", "validation_cache"],
+      "properties": {
+        "data_version": {"type": ["string", "null"]},
+        "tokenizer": {"$ref": "#/$defs/tokenizer"},
+        "train_cache": {"$ref": "#/$defs/cache"},
+        "validation_cache": {"$ref": "#/$defs/cache"}
+      }
+    },
+    "training": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seed", "device", "model_dtype", "optimizer_steps", "epoch",
+        "micro_batch_size", "gradient_accumulation_steps", "effective_batch_size",
+        "sequence_length", "optimizer", "scheduler", "amp"
+      ],
+      "properties": {
+        "seed": {"type": "integer"},
+        "device": {"type": "string", "minLength": 1},
+        "model_dtype": {"type": "string", "minLength": 1},
+        "optimizer_steps": {"type": "integer", "minimum": 0},
+        "epoch": {"type": "integer", "minimum": 0},
+        "micro_batch_size": {"type": "integer", "minimum": 1},
+        "gradient_accumulation_steps": {"type": "integer", "minimum": 1},
+        "effective_batch_size": {"type": "integer", "minimum": 1},
+        "sequence_length": {"type": "integer", "minimum": 2},
+        "optimizer": {"type": "object", "additionalProperties": true},
+        "scheduler": {"type": "object", "additionalProperties": true},
+        "amp": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["last_train_loss", "validation_losses"],
+      "properties": {
+        "last_train_loss": {"type": ["number", "null"]},
+        "validation_losses": {
+          "type": "object",
+          "propertyNames": {"pattern": "^[0-9]+$"},
+          "additionalProperties": {"type": "number"}
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkpoint_path", "checkpoint_sha256"],
+      "properties": {
+        "checkpoint_path": {"type": "string", "minLength": 1},
+        "checkpoint_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prompt", "max_new_tokens", "text"],
+      "properties": {
+        "prompt": {"type": "string"},
+        "max_new_tokens": {"type": "integer", "minimum": 0},
+        "text": {"type": ["string", "null"]}
+      }
+    }
+  },
+  "$defs": {
+    "tokenizer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "artifact_sha256", "vocab_size"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "artifact_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "vocab_size": {"type": "integer", "minimum": 1}
+      }
+    },
+    "cache": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["split", "token_count", "encoded_bytes", "metadata_sha256", "token_file_sha256"],
+      "properties": {
+        "split": {"type": "string", "minLength": 1},
+        "token_count": {"type": "integer", "minimum": 1},
+        "encoded_bytes": {"type": "integer", "minimum": 1},
+        "metadata_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "token_file_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  }
+}

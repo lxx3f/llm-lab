@@ -41,16 +41,19 @@ loss = causal_loss(logits, targets)
 
 ## 优化和验证
 
-当前 MVP 使用：
+当前训练配置支持：
 
 - AdamW；
 - 可选 gradient clipping；
+- warmup + cosine learning-rate scheduler：按 optimizer update 推进，`max_steps` 指 optimizer updates；
+- 梯度累积：`gradient_accumulation_steps` 个 micro-batches 构成一次 optimizer update，effective batch size = `batch_size * gradient_accumulation_steps`；
+- AMP：`amp.enabled` 控制 autocast；CUDA fp16 使用 `torch.amp.GradScaler`，bf16 或 CPU 不使用 scaler；
 - 固定随机种子；
 - 按 `validation_interval` 计算 validation loss；
 - validation 使用独立 validation cache 和 batcher；
 - validation 默认不产生梯度。
 
-当前尚未实现学习率 scheduler、AMP、分布式 rank-aware sampler 或梯度累积。
+当前尚未实现分布式 rank-aware sampler。
 
 ## checkpoint
 
@@ -59,7 +62,7 @@ checkpoint 是原子写入的 PyTorch payload，包含：
 - checkpoint type/version；
 - Dense `TransformerConfig`；
 - model state；
-- optimizer state；
+- optimizer state、scheduler state 和 AMP scaler state；
 - step/epoch；
 - tokenizer artifact SHA-256 和 vocab size；
 - train/validation metadata SHA-256；
@@ -74,6 +77,20 @@ resume 时会拒绝模型配置、tokenizer artifact 或任一 cache metadata �
   --config configs/dense_training.example.yaml \
   --resume artifacts/checkpoints/dense-owt-mvp.pt
 ```
+
+## 正式实验结果 schema
+
+当传入 `--output` 时，CLI 会在写入前用 `schemas/dense_training_result.schema.json` 校验结果。schema 记录：
+
+- schema version、experiment ID、时间戳与完成状态；
+- 模型配置和参数量；
+- tokenizer/cache 的 hash、token count 和 data version；
+- optimizer steps、micro batch、gradient accumulation、effective batch、scheduler 和 AMP 配置；
+- train/validation loss；
+- checkpoint path/hash；
+- generation prompt 和文本。
+
+结果 JSON 不包含模型权重；checkpoint 和 JSON 都保留在被 Git 忽略的 `artifacts/` 目录。
 
 ## generation
 
