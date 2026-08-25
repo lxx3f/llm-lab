@@ -34,8 +34,12 @@ class MoETrainingTests(unittest.TestCase):
             errors = list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(result))
             self.assertEqual(errors, [])
             self.assertEqual(result["training"]["collect_stats"], False)
+            self.assertEqual(result["training"]["expert_capacity"], 4)
+            self.assertIn("expert_capacity_definition", result["training"])
             self.assertEqual(result["generation"]["prefill_capacity_factor"], 1.0)
+            self.assertEqual(result["generation"]["prefill_expert_capacity"], 1)
             self.assertEqual(result["generation"]["decode_capacity_factor"], 2.0)
+            self.assertEqual(result["generation"]["decode_expert_capacity"], 1)
             output = root / "moe-result.json"
             write_moe_training_result(result, output)
             self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["result_type"], "moe_training")

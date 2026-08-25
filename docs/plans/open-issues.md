@@ -175,25 +175,17 @@ BPE + tokenizer CLI tests: 7 passed
 
 当前 `MoE Top-1 MVP` 的命名可能让文档读者误以为已经完成可用于架构结论的 MoE 实验。
 
-**待讨论决策**
-
-README 状态是否拆成：
-
-```text
-[x] MoE Top-1 forward MVP
-[ ] MoE Top-1 训练闭环
-[ ] Dense/MoE Top-1 对比实验
-```
+**状态更新（2026-08-26）**
 
 N1 训练闭环已完成大阶段审查，审查结论为通过；正式阶段 commit 已创建。
 
 ```text
-状态：部分解决
-决策：N1 代码和 smoke 已完成，等待本大阶段 reviewer 审查后再视为阶段完成。
+状态：已解决
+决策：N1 训练闭环已完成，后续 N2/N3 边界保留在 roadmap 中。
 改动：
   - architecture_lab/models/moe_transformer.py：collect_stats、capacity override、MoE generation、active parameter count
   - architecture_lab/training/moe_training.py：MoE train/evaluate/checkpoint/resume/generation
-  - architecture_lab/training/moe_results.py：独立结果 builder/writer
+  - architecture_lab/training/moe_results.py：独立结果 builder/writer 与显式 expert capacity
   - scripts/train_moe.py
   - schemas/moe_training_result.schema.json
   - configs/moe_training.example.yaml
@@ -202,6 +194,7 @@ N1 训练闭环已完成大阶段审查，审查结论为通过；正式阶段 c
 结果：
   - 1MiB 与 formal cache 均完成 100 optimizer-step smoke
   - 两个结果 JSON 均通过独立 MoE schema 校验
+  - training.expert_capacity 与 generation prefill/decode expert capacity 均已记录
   - generation 记录 prefill capacity_factor=1.0、decode capacity_factor=2.0、collect_stats=false
   - total parameters=656,192；Top-1 active parameters=582,464
 遗留风险：
