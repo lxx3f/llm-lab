@@ -84,7 +84,7 @@ Assignment 1 BPE 实现
 
 **当前状态**
 
-部分解决：tokenizer 技术路线已确定为 BPE，已将 Assignment 1 BPE 逻辑复制改写到 `architecture_lab/tokenization/bpe.py`，并增加 JSON artifact 和 SHA-256 完整性校验。来源与许可证记录见 `docs/third-party-assignment1-bpe.md`。尚未集成 Dense 训练闭环，也尚未固定训练数据。
+部分解决：BPE tokenizer、训练 CLI、版本化 artifact 布局和 metadata 协议已经完成。BPE 实现位于 `architecture_lab/tokenization/bpe.py`，来源与许可证记录见 `docs/third-party-assignment1-bpe.md`。尚未接入 Dense 训练闭环，也尚未固定训练数据。
 
 **本轮改动**
 
@@ -94,18 +94,21 @@ Assignment 1 BPE 实现
 - 支持 special tokens；
 - 支持 tokenizer JSON 保存/加载；
 - artifact 加入 SHA-256 校验；
-- 新增 5 个 BPE 测试。
+- 新增 `scripts/train_bpe_tokenizer.py` CLI；
+- 固定 artifact 目录为 `artifacts/tokenizers/<name>/<version>/`；
+- 固定 `tokenizer.json` 与 `metadata.json` 双文件布局；
+- metadata 记录 tokenizer 参数、source hash、artifact hash、config hash 和创建时间；
+- artifact 协议见 `docs/protocols/tokenizer-artifact.md`；
+- 新增 7 个 BPE/CLI 测试。
 
 **验证**
 
 ```text
-BPE tests: 5 passed
+BPE + tokenizer CLI tests: 7 passed
 ```
 
 **剩余待讨论决策**
 
-- 直接移植 BPE 代码，还是作为独立 package/module 引入；
-- tokenizer artifact 存储为 pickle、JSON，还是增加版本化二进制格式；
 - 是否沿用 `<|endoftext|>`，以及是否增加 BOS/EOS/PAD；
 - 第一版训练数据采用 TinyStories、已有本地语料，还是项目自建小语料；
 - 训练闭环是否优先复用原仓库的训练脚本结构，还是重新写一个更小的项目脚本。
