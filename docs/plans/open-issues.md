@@ -34,11 +34,91 @@ Dense 训练闭环
 
 ### P0-01 Dense 基线尚未完成真实训练闭环
 
-**现状**
+**讨论结论（2026-08-25）**
+
+不采用 byte-level tokenizer 作为最终方案。用户已有 CS336 Assignment 1 BPE 实现，已从指定仓库完成审查：
+
+```text
+https://github.com/lxx3f/assignment1-basics
+```
+
+临时审查目录不放入当前项目：
+
+```text
+/tmp/assignment1-basics-review
+```
+
+仓库中确认存在以下可复用模块：
+
+- `cs336_basics/tokenizer.py`：BPE tokenizer、特殊 token、encode/decode、文件加载；
+- `cs336_basics/train_bpe.py`：GPT-2 风格 regex pre-tokenization 和 BPE 训练；
+- `cs336_basics/data.py`：随机 batch 采样、checkpoint 保存/加载；
+- `cs336_basics/train_lm.py`：训练 loop、验证、tokenizer 准备、数据缓存、续训；
+- `cs336_basics/optimizer.py`：AdamW、梯度裁剪、warmup + cosine schedule；
+- `tests/`：tokenizer、data、model、optimizer、checkpoint 等参考测试。
+
+该仓库的 `LICENSE` 为 MIT，后续若复制或改写其代码，需要保留许可证和版权声明，并在项目文档中记录来源。当前只复用设计和经过审查的实现思路，不直接整仓库复制。
+
+**新的实施方向**
+
+```text
+Assignment 1 BPE 实现
+→ 适配到 llm-lab 的 tokenizer 接口
+→ 固定 tokenizer artifact 和 vocab_size
+→ 文本数据编码缓存
+→ Dense 训练 loop
+→ validation loss
+→ checkpoint save/load
+→ generation
+```
+
+**需要重点适配的地方**
+
+1. 当前 Dense 模型默认 `vocab_size=256`，接入 BPE 后必须从 tokenizer artifact 动态读取实际词表大小，不能继续硬编码 256；
+2. tokenizer 的 vocab、merges、special tokens 和训练语料版本需要一起记录；
+3. tokenizer 输出的 special token ID 需要进入模型和 checkpoint 元数据；
+4. 训练数据缓存需要绑定 tokenizer hash 和原始数据 hash，避免 tokenizer 变化后错误复用 `.npy`；
+5. `train_lm.py` 中的训练逻辑需要适配当前 `DenseTransformer` 的 forward 返回值和配置格式；
+6. 原仓库的实现需要补充项目级 checkpoint metadata、实验日志和统一结果 schema；
+7. 需要重新审查原仓库中的 `data.py` 边界条件、BPE 复杂度和训练脚本的可复现性，不能因为已有实现就跳过验证。
+
+**当前状态**
+
+部分解决：tokenizer 技术路线已确定为 BPE，已将 Assignment 1 BPE 逻辑复制改写到 `architecture_lab/tokenization/bpe.py`，并增加 JSON artifact 和 SHA-256 完整性校验。来源与许可证记录见 `docs/third-party-assignment1-bpe.md`。尚未集成 Dense 训练闭环，也尚未固定训练数据。
+
+**本轮改动**
+
+- 新增 `BPETokenizer`；
+- 新增 `train_bpe` 和 `train_bpe_from_file`；
+- 使用 GPT-2 风格 regex pre-tokenization；
+- 支持 special tokens；
+- 支持 tokenizer JSON 保存/加载；
+- artifact 加入 SHA-256 校验；
+- 新增 5 个 BPE 测试。
+
+**验证**
+
+```text
+BPE tests: 5 passed
+```
+
+**剩余待讨论决策**
+
+- 直接移植 BPE 代码，还是作为独立 package/module 引入；
+- tokenizer artifact 存储为 pickle、JSON，还是增加版本化二进制格式；
+- 是否沿用 `<|endoftext|>`，以及是否增加 BOS/EOS/PAD；
+- 第一版训练数据采用 TinyStories、已有本地语料，还是项目自建小语料；
+- 训练闭环是否优先复用原仓库的训练脚本结构，还是重新写一个更小的项目脚本。
+
+**风险**
+
+如果直接复制原仓库训练脚本，可能会把原项目的配置、依赖、日志和模型接口一并带入，形成第二套训练体系。应优先复用 tokenizer、data sampling 和经过测试的基础逻辑，再按当前项目协议重构训练入口。
+
+**原问题现状**
 
 当前 Dense Transformer 已完成 forward、loss、KV Cache、增量解码和 smoke benchmark，但还没有完成原计划中的完整基线：
 
-- BPE 或其他固定 tokenizer；
+- BPE tokenizer 集成；
 - 固定训练数据；
 - train/validation split；
 - 训练 loop；
@@ -47,29 +127,6 @@ Dense 训练闭环
 - 基于训练模型的 generation 结果。
 
 当前记录的 loss 来自随机初始化模型和随机 token，只能证明计算链路可运行，不能作为模型效果基线。
-
-**风险**
-
-如果直接在此基础上比较 Dense/MoE、GQA/MLA，最终无法区分架构差异、数据差异和训练差异。
-
-**待讨论决策**
-
-- tokenizer 采用 byte-level、BPE，还是沿用 CS336 tokenizer；
-- toy corpus 的来源、许可证和规模；
-- 训练 token budget、batch、学习率、optimizer 和 scheduler；
-- 何时可以把 Dense 标记为“已固定”。
-
-**建议解决顺序**
-
-```text
-toy corpus
-→ tokenizer
-→ train/validation split
-→ Dense train loop
-→ checkpoint
-→ validation loss
-→ generation
-```
 
 ---
 
