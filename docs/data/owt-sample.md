@@ -77,8 +77,6 @@ gzip -t owt_valid.txt.gz
 ## 当前策略
 
 - OWT 是第一版真实训练和验证数据；
-- `data/toy/` 保留为快速单元测试和训练链路 smoke 数据；
-- toy 数据不用于正式模型效果结论；
 - OWT 原始文件不提交 Git；
 - tokenizer artifact 和编码缓存需要记录 OWT 文件 hash；
 - train tokenizer 时只使用 `owt_train.txt`，不能使用 validation 文件，避免验证信息泄漏。
@@ -94,4 +92,4 @@ gzip -t owt_valid.txt.gz
 → OWT tokenizer artifact
 ```
 
-在 OWT tokenizer 完成前，`artifacts/tokenizers/toy-bpe/v0.1.0/` 仅作为 smoke artifact 保留。
+在 OWT tokenizer 完成前，不生成或提交本地 tokenizer artifact。

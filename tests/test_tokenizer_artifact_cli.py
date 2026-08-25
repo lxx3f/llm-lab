@@ -41,7 +41,7 @@ class TokenizerArtifactCliTests(unittest.TestCase):
                     "--special-token",
                     "<|endoftext|>",
                     "--source-path",
-                    "data/toy/train.txt",
+                    "data/owt-sample/train.txt",
                     "--data-version",
                     "D0",
                     "--license",
@@ -64,7 +64,7 @@ class TokenizerArtifactCliTests(unittest.TestCase):
             self.assertEqual(metadata["metadata_version"], "1.0")
             self.assertEqual(metadata["tokenizer"]["name"], "tiny-bpe")
             self.assertEqual(metadata["tokenizer"]["version"], "v0.1.0")
-            self.assertEqual(metadata["source"]["path"], "data/toy/train.txt")
+            self.assertEqual(metadata["source"]["path"], "data/owt-sample/train.txt")
             self.assertEqual(metadata["source"]["data_version"], "D0")
             self.assertEqual(metadata["source"]["license"], "CC0-1.0")
             self.assertEqual(

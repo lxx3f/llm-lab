@@ -81,15 +81,15 @@ metadata 中的 `source.path` 应使用仓库内可复现的相对路径；可�
 
 ```bash
 .venv/Scripts/python.exe scripts/train_bpe_tokenizer.py \
-  --input data/toy/train.txt \
+  --input data/raw/owt-sample/owt_train.txt \
   --artifact-root artifacts/tokenizers \
-  --name tinystories-bpe \
+  --name owt-bpe \
   --version v0.1.0 \
-  --vocab-size 10000 \
+  --vocab-size 32000 \
   --special-token '<|endoftext|>' \
-  --source-path data/toy/train.txt \
-  --data-version D0 \
-  --license CC0-1.0
+  --source-path data/raw/owt-sample/owt_train.txt \
+  --data-version OWT-SAMPLE-v1 \
+  --license 'upstream-terms'
 ```
 
 如果目标 artifact 目录非空，CLI 默认拒绝覆盖。确认重新生成时显式使用：

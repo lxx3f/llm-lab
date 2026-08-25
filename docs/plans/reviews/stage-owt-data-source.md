@@ -9,7 +9,7 @@
 - 将原始数据放在 `data/raw/owt-sample/`；
 - 更新 `.gitignore`，排除原始、处理后数据和 tokenizer artifact 本地产物；
 - 增加 `docs/data/owt-sample.md`；
-- 保留 toy corpus 作为 smoke 数据，不再作为正式语言模型训练数据。
+- toy corpus 和 toy tokenizer artifact 不保留。
 
 ## 未完成范围
 
@@ -62,6 +62,12 @@ OWT 数据登记
 → OWT token cache
 → Dense training loop
 ```
+
+## 当前状态
+
+- OWT 原始数据已下载并校验；
+- OWT tokenizer 尚未生成；
+- toy corpus 和 toy tokenizer artifact 已删除，不保留。
 
 ## 是否允许进入下一阶段
 

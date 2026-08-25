@@ -576,7 +576,7 @@ class InferenceBackend:
 - [ ] 实现最小评测器；
 - [ ] 完成第一组端到端实验。
 
-第一版 Dense 训练数据：使用 Stanford CS336 OWT sample，详见 `docs/data/owt-sample.md`。仓库内 `data/toy/` 和 `artifacts/tokenizers/toy-bpe/v0.1.0/` 仅作为快速 smoke 数据和 artifact 保留，不作为正式语言模型效果结论。OWT 原始文件位于 `data/raw/owt-sample/`，不会提交到 Git。
+第一版 Dense 训练数据：使用 Stanford CS336 OWT sample，详见 `docs/data/owt-sample.md`。OWT 原始文件位于 `data/raw/owt-sample/`，不会提交到 Git。
 
 ## 运行环境
 
