@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from architecture_lab.tokenization import BPETokenizer, train_bpe  # noqa: E402
+from architecture_lab.tokenization import BPETokenizer, train_bpe, train_bpe_from_file  # noqa: E402
 
 
 class BPETokenizerTests(unittest.TestCase):
@@ -64,6 +64,56 @@ class BPETokenizerTests(unittest.TestCase):
             path.write_text(json.dumps(payload), encoding="utf-8")
             with self.assertRaises(ValueError):
                 BPETokenizer.load(path)
+
+    def test_train_bpe_iterable_is_deterministic(self) -> None:
+        from architecture_lab.tokenization import train_bpe_iterable
+
+        chunks = ["Once upon a time, ", "a small model learned."]
+        first = train_bpe_iterable(
+            chunks,
+            vocab_size=280,
+            special_tokens=("<|endoftext|>",),
+        )
+        second = train_bpe_iterable(
+            chunks,
+            vocab_size=280,
+            special_tokens=("<|endoftext|>",),
+        )
+        self.assertEqual(first, second)
+
+    def test_train_bpe_from_file_supports_newline_aligned_prefix(self) -> None:
+        from architecture_lab.tokenization import train_bpe_from_file
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "train.txt"
+            path.write_text("alpha alpha\nbeta beta\ngamma gamma\n", encoding="utf-8")
+            tokenizer = train_bpe_from_file(
+                path,
+                vocab_size=270,
+                special_tokens=("<|endoftext|>",),
+                chunk_size_bytes=5,
+                max_training_bytes=13,
+            )
+            self.assertEqual(tokenizer.decode(tokenizer.encode("alpha alpha")), "alpha alpha")
+
+    def test_train_bpe_from_file_preserves_special_token_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "train.txt"
+            text = "alpha alpha<|endoftext|>beta beta<|endoftext|>"
+            path.write_text(text, encoding="utf-8")
+            streamed = train_bpe_from_file(
+                path,
+                vocab_size=275,
+                special_tokens=("<|endoftext|>",),
+                chunk_size_bytes=1,
+            )
+            direct_vocab, direct_merges = train_bpe(
+                text,
+                vocab_size=275,
+                special_tokens=("<|endoftext|>",),
+            )
+            self.assertEqual(streamed.vocab, direct_vocab)
+            self.assertEqual(streamed.merges, direct_merges)
 
     def test_invalid_vocab_size_is_rejected(self) -> None:
         with self.assertRaises(ValueError):

@@ -81,15 +81,17 @@ gzip -t owt_valid.txt.gz
 - tokenizer artifact 和编码缓存需要记录 OWT 文件 hash；
 - train tokenizer 时只使用 `owt_train.txt`，不能使用 validation 文件，避免验证信息泄漏。
 
-## 当前阻塞点
+## 当前状态
 
-当前 BPE CLI 会将完整输入文本读入内存。OWT train 解压后约 12GB，不能直接使用当前 CLI 训练 tokenizer。下一步需要：
+Tokenizer CLI 已支持 newline-aligned 分块读取及 `--max-training-bytes` 固定前缀。它不会将 OWT train 全文拼接到内存；16 MiB OWT 前缀试跑已成功，metadata 也能记录实际纳入训练的字节范围。
+
+当前尚未生成正式的 1 GiB、32k vocab OWT artifact。原因是现有 BPE merge 实现仍需要优化 pair frequency 更新和重复扫描；在性能优化完成前，不把小前缀 artifact 作为正式 tokenizer 版本提交。
+
+后续仍需：
 
 ```text
-大语料分块/流式预分词
-→ 可复用的 token frequency 统计
-→ 高效 BPE merge 训练
-→ OWT tokenizer artifact
+BPE merge 性能优化
+→ 固定范围 OWT tokenizer artifact
+→ OWT token cache
+→ Dense training loop
 ```
-
-在 OWT tokenizer 完成前，不生成或提交本地 tokenizer artifact。

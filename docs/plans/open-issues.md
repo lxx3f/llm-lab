@@ -88,18 +88,13 @@ Assignment 1 BPE 实现
 
 **本轮改动**
 
-- 新增 `BPETokenizer`；
-- 新增 `train_bpe` 和 `train_bpe_from_file`；
-- 使用 GPT-2 风格 regex pre-tokenization；
-- 支持 special tokens；
-- 支持 tokenizer JSON 保存/加载；
-- artifact 加入 SHA-256 校验；
-- 新增 `scripts/train_bpe_tokenizer.py` CLI；
-- 固定 artifact 目录为 `artifacts/tokenizers/<name>/<version>/`；
-- 固定 `tokenizer.json` 与 `metadata.json` 双文件布局；
-- metadata 记录 tokenizer 参数、source hash、artifact hash、config hash 和创建时间；
+- 新增 `train_bpe_iterable`；
+- `train_bpe_from_file` 改为 newline-aligned 分块读取；
+- CLI 支持 `--chunk-size-bytes`、`--max-training-bytes` 和 `--source-kind`；
+- metadata 记录实际训练范围；
+- 增加 special token 边界和分块训练测试；
 - artifact 协议见 `docs/protocols/tokenizer-artifact.md`；
-- 新增 7 个 BPE/CLI 测试。
+- BPE + CLI 测试共 16 个通过。
 
 **验证**
 
@@ -120,7 +115,7 @@ BPE + tokenizer CLI tests: 7 passed
 - train/validation：使用官方 `owt_train.txt` 和 `owt_valid.txt`；
 - 原始数据目录：`data/raw/owt-sample/`，由 `.gitignore` 排除；
 - toy 数据：不保留；
-- OWT tokenizer：尚未生成，当前 BPE CLI 读取完整文本，面对约 12GB train 文件需要先实现大语料分块/流式处理；
+- OWT tokenizer：已支持分块读取，16 MiB 前缀试跑通过；正式 tokenizer artifact 待 BPE merge 性能优化后生成；
 - 数据记录：`docs/data/owt-sample.md`。
 
 **原问题现状**

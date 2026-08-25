@@ -43,9 +43,13 @@ class TokenizerArtifactCliTests(unittest.TestCase):
                     "--source-path",
                     "data/owt-sample/train.txt",
                     "--data-version",
-                    "D0",
+                    "OWT-SAMPLE-v1",
                     "--license",
-                    "CC0-1.0",
+                    "upstream-terms",
+                    "--source-kind",
+                    "external-dataset",
+                    "--max-training-bytes",
+                    "16",
                 ],
                 cwd=ROOT,
                 capture_output=True,
@@ -65,8 +69,11 @@ class TokenizerArtifactCliTests(unittest.TestCase):
             self.assertEqual(metadata["tokenizer"]["name"], "tiny-bpe")
             self.assertEqual(metadata["tokenizer"]["version"], "v0.1.0")
             self.assertEqual(metadata["source"]["path"], "data/owt-sample/train.txt")
-            self.assertEqual(metadata["source"]["data_version"], "D0")
-            self.assertEqual(metadata["source"]["license"], "CC0-1.0")
+            self.assertEqual(metadata["source"]["data_version"], "OWT-SAMPLE-v1")
+            self.assertEqual(metadata["source"]["license"], "upstream-terms")
+            self.assertEqual(metadata["source"]["kind"], "external-dataset")
+            self.assertEqual(metadata["training"]["max_training_bytes"], 16)
+            self.assertTrue(metadata["training"]["newline_aligned_prefix"])
             self.assertEqual(
                 metadata["source"]["sha256"],
                 hashlib.sha256(source.read_bytes()).hexdigest(),

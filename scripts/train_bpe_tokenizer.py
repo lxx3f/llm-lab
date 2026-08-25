@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from architecture_lab.tokenization import BPETokenizer, train_bpe_from_file  # noqa: E402
+from architecture_lab.tokenization import BPETokenizer, train_bpe_from_file, training_prefix_bytes  # noqa: E402
 
 
 ARTIFACT_METADATA_VERSION = "1.0"
@@ -59,6 +59,8 @@ def build_metadata(
     source_path_for_metadata: str,
     data_version: str,
     license_name: str,
+    source_kind: str,
+    training_scope: dict[str, Any],
 ) -> dict[str, Any]:
     source_size = input_path.stat().st_size
     metadata: dict[str, Any] = {
@@ -77,7 +79,7 @@ def build_metadata(
         },
         "source": {
             "path": source_path_for_metadata,
-            "kind": "manually-authored",
+            "kind": source_kind,
             "license": license_name,
             "data_version": data_version,
             "sha256": sha256_file(input_path),
@@ -85,8 +87,9 @@ def build_metadata(
             "encoding": "utf-8",
         },
         "training": {
-            "input_path_is_used_only_for_metadata": True,
+            "input_path_is_used_only_for_metadata": False,
             "special_tokens_excluded_from_bpe_merges": True,
+            **training_scope,
         },
         "artifacts": {
             "tokenizer_file": tokenizer_path.name,
@@ -115,8 +118,11 @@ def train_and_save(
     vocab_size: int,
     special_tokens: list[str],
     source_path_for_metadata: str | None = None,
-    data_version: str = "D0",
-    license_name: str = "CC0-1.0",
+    data_version: str = "unversioned",
+    license_name: str = "unspecified",
+    source_kind: str = "external-dataset",
+    chunk_size_bytes: int = 8 * 1024 * 1024,
+    max_training_bytes: int | None = None,
     force: bool = False,
 ) -> tuple[Path, Path]:
     if not input_path.is_file():
@@ -133,8 +139,15 @@ def train_and_save(
         )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    tokenizer = train_bpe_from_file(input_path, vocab_size, tuple(special_tokens))
+    tokenizer = train_bpe_from_file(
+        input_path,
+        vocab_size,
+        tuple(special_tokens),
+        chunk_size_bytes=chunk_size_bytes,
+        max_training_bytes=max_training_bytes,
+    )
     tokenizer.save(tokenizer_path)
+    prefix_bytes = training_prefix_bytes(input_path, max_training_bytes)
     metadata = build_metadata(
         name=name,
         version=version,
@@ -146,6 +159,14 @@ def train_and_save(
         source_path_for_metadata=source_path_for_metadata or str(input_path),
         data_version=data_version,
         license_name=license_name,
+        source_kind=source_kind,
+        training_scope={
+            "chunk_size_bytes": chunk_size_bytes,
+            "max_training_bytes": max_training_bytes,
+            "training_byte_limit": max_training_bytes,
+            "training_bytes": prefix_bytes,
+            "newline_aligned_prefix": True,
+        },
     )
     metadata_path.write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
@@ -179,14 +200,30 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--data-version",
-        default="D0",
+        default="unversioned",
         help="Version of the source data recorded in metadata",
     )
     parser.add_argument(
         "--license",
         dest="license_name",
-        default="CC0-1.0",
+        default="unspecified",
         help="License identifier for the source data",
+    )
+    parser.add_argument(
+        "--source-kind",
+        default="external-dataset",
+        help="Source kind recorded in metadata",
+    )
+    parser.add_argument(
+        "--chunk-size-bytes",
+        type=int,
+        default=8 * 1024 * 1024,
+        help="Approximate newline-aligned input chunk size",
+    )
+    parser.add_argument(
+        "--max-training-bytes",
+        type=int,
+        help="Train on a deterministic newline-aligned prefix only",
     )
     parser.add_argument("--force", action="store_true", help="Overwrite existing artifact files")
     return parser
@@ -205,6 +242,9 @@ def main(argv: list[str] | None = None) -> int:
             source_path_for_metadata=args.source_path,
             data_version=args.data_version,
             license_name=args.license_name,
+            source_kind=args.source_kind,
+            chunk_size_bytes=args.chunk_size_bytes,
+            max_training_bytes=args.max_training_bytes,
             force=args.force,
         )
     except (FileExistsError, FileNotFoundError, ValueError) as error:
