@@ -314,6 +314,28 @@ output, aux_loss, stats = moe(x, collect_stats=False)
 - 专门 routing 分析：打开统计；
 - 报告中记录统计开关状态。
 
+**决策（2026-08-26）**
+
+```text
+状态：未解决（N1 阶段实现接口，N2 提供分析与报告）
+决策：MoE routing statistics 采集开关机制固定。
+
+接口：
+  output, aux_loss, stats = moe(x, collect_stats=False)
+  - collect_stats=True：保留原有行为，stats 含 expert load、
+    dropped token ratio、load imbalance
+  - collect_stats=False：跳过 .item()、.cpu()、同步；stats=None
+
+默认：collect_stats=False，避免默认路径触发 GPU 同步。
+
+训练 loop 调用处必须 collect_stats=False；只允许专门 routing
+分析脚本调用 True。
+
+result JSON 与 benchmark JSON 都必须记录 collect_stats 开关状态。
+
+归属：N1 实现接口；N2 提供 routing stats 分析脚本与报告输出。
+```
+
 ---
 
 ### P0-05 MoE capacity 与 prefill/decode cache 语义未定义
