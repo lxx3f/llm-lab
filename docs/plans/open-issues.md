@@ -428,6 +428,13 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 - routing statistics；
 - benchmark 是否开启统计、compile 或 CUDA graph。
 
+**决策（2026-08-26）**
+
+```text
+状态：未解决
+决策：归 roadmap N3，本轮不修改实现。N3 交付时补齐以上字段。
+```
+
 ---
 
 ### P1-02 实验元数据和版本信息不完整
@@ -446,6 +453,13 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 
 缺少这些字段时，后续无法判断两次运行是否真正可比。
 
+**决策（2026-08-26）**
+
+```text
+状态：未解决
+决策：归 roadmap N3，本轮不修改实现。N3 交付时补齐以上字段。
+```
+
 ---
 
 ### P1-03 缺少多 seed 和统计区间
@@ -461,6 +475,21 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 - 是否启用 `torch.compile`、AMP 或 CUDA Graph。
 
 在这些规则固定前，不应把 smoke 数字写成正式性能结论。
+
+**决策（2026-08-26）**
+
+```text
+状态：未解决
+决策：归 roadmap N3，本轮不修改实现。
+N3 交付时：
+  - seed 数 ≥ 3；
+  - latency 报告 p50 / p95 或均值 / 标准差；
+  - 训练结果报告均值 / 标准差；
+  - 明确 CUDA 同步与 warmup 规则；
+  - 明确 torch.compile / AMP / CUDA Graph 默认状态。
+
+之前阶段使用单 seed smoke 是合法的，不溯及既往。
+```
 
 ---
 
