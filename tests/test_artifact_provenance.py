@@ -77,7 +77,7 @@ class ArtifactProvenanceTests(unittest.TestCase):
         self.assertTrue(overview.is_file())
         data = json.loads(overview.read_text(encoding="utf-8"))
         self.assertIn("config_summary", data)
-        self.assertGreaterEqual(len(data["config_summary"]), 6)
+        self.assertGreaterEqual(len(data["config_summary"]), 13)
 
 
 if __name__ == "__main__":

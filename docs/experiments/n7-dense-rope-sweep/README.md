@@ -53,8 +53,9 @@
 
 ### RoPE base sensitivity 观察
 
-1. **val_min 随 rope_base 单调下降**（7.06 → 7.03 → 7.02）：
+1. **单 seed（42）val_min 随 rope_base 单调下降**（7.06 → 7.03 → 7.02）：
    - 10× 增大 rope_base 带来 0.04 nats val_loss 改善（约 0.6%）；
+   - ⚠️ **多 seed 复核（P1-03，3 seeds）不稳健**：3-seed mean = 10k/50k/100k = 7.078/7.088/7.078，无单调趋势，差异 < 0.01 nats（噪声级）。单 seed 观察不构成结论。
    - 在 max_seq_len=64 下 RoPE 优势有限（高频位置编码需要更长序列才显著）；
    - 在短序列上 RoPE base 影响是亚主导级（远小于 N5 规模 sweep 0.30 nats）。
 3. **train_loss 末值也单调下降**（6.56 → 6.49 → 6.46）：
@@ -107,7 +108,7 @@ N7 观察严格限定于：
 - ❌ 不外推到长序列（≥1024 token，RoPE 优势在长序列才显著）；
 - ❌ 不外推到多 seed；
 - ❌ 不外推到其它位置编码（如 ALiBi）；
-- ❌ 不声明"最佳 rope_base"（仅观察值；正式推荐需 P1-03 多 seed sweep 后再做）。
+- ❌ 不声明"最佳 rope_base"（单 seed 观察；P1-03 3-seed 复核显示无显著影响）。
 
 ## 退出条件
 

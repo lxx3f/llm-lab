@@ -1,19 +1,8 @@
-# 多 seed 实跑实验记录（N5 + N6 × {42, 123, 7}）
+# 全 sweep 多 seed 实跑（N5-N9 × {42, 123, 7}）
 
 > 状态：阶段交付。
 >
-> 本实验把 N5（4 规模点）+ N6（3 dropout 点，dropout=0.0 = medium）从单 seed（42）扩展到 **3 seeds（42, 123, 7）**，共 18 个 5000 步训练。
-
-## 范围
-
-| config | 参数 | seeds |
-|---|---|---|
-| baseline (d=64/L=2/ff=256) | 0.66M | 42 / 123 / 7 |
-| small (d=96/L=3/ff=384) | 1.23M | 42 / 123 / 7 |
-| medium (d=128/L=4/ff=512) | 2.10M | 42 / 123 / 7 |
-| large (d=192/L=6/ff=768) | 5.11M | 42 / 123 / 7 |
-| medium dropout=0.1 | 2.10M | 42 / 123 / 7 |
-| medium dropout=0.2 | 2.10M | 42 / 123 / 7 |
+> 本实验把 N5 规模（4 点）、N6 dropout（3 点）、N7 rope_base（3 点）、N8 n_heads（3 点）、N9 d_ff（3 点）全部扩展到 **3 seeds（42, 123, 7）**，共 13 个 configs × 3 seeds = **39 个 5000 步训练**。这是 P1-03 协议的完整应用。
 
 ## 实验结果（val_loss_min mean ± std over 3 seeds）
 
@@ -25,36 +14,49 @@
 | large | 6.9292 | 7.1520 | 6.9993 | **7.0268** | 0.0930 |
 | dropout=0.1 | 6.9909 | 7.1943 | 7.0769 | **7.0874** | 0.0834 |
 | dropout=0.2 | 7.0872 | 7.1837 | 7.0747 | **7.1152** | 0.0487 |
+| rope_base=10k | 7.0582 | 7.1099 | 7.0653 | **7.0778** | 0.0229 |
+| rope_base=50k | 7.0269 | 7.1708 | 7.0676 | **7.0883** | 0.0605 |
+| rope_base=100k | 7.0150 | 7.1367 | 7.0829 | **7.0782** | 0.0497 |
+| n_heads=2 | 7.0630 | 7.1660 | 7.0880 | **7.1059** | 0.0441 |
+| n_heads=8 | 7.0330 | 7.1450 | 7.0760 | **7.0846** | 0.0460 |
+| d_ff=256 | 7.5573 | 7.2410 | 7.1760 | **7.3247** | 0.1667 |
+| d_ff=1024 | 6.9668 | 6.9600 | 6.9060 | **6.9441** | 0.0273 |
+
+> 注：rope_base=10k / n_heads=4 / d_ff=512 是共享 medium control（同一训练），数值相同。
+
+## 单 seed vs 多 seed 结论对比
+
+| sweep | 单 seed（42）结论 | 3-seed mean 结论 | 单 seed 稳健？ |
+|---|---|---|---|
+| N5 规模 | baseline→large 单调下降（7.23→6.93）| baseline→large 单调下降（7.26→7.03）| ✅ 稳健（区间 0.23 nats）|
+| N6 dropout | 0.1 最优（6.99）| 0.0 < 0.1 < 0.2（7.08→7.09→7.12）| ❌ 不稳健（0.1 优势消失）|
+| N7 rope_base | 10k→100k 单调改善（7.06→7.02）| **无单调趋势**（7.08 / 7.09 / 7.08）| ❌ **被推翻**（差异 < 0.01 噪声级）|
+| N8 n_heads | n_heads=8 最优（7.03）| heads-4 最优（7.08）；heads-8=7.085 | ❌ 不稳健（差异 < 0.03）|
+| N9 d_ff | 单调下降（7.56→6.97）| 单调下降（7.32→6.94）| ✅ 稳健（区间 0.38 nats，最强）|
 
 ## 关键观察
 
-1. **N5 规模 sweep 结论在多 seed 下仍成立**（val_min mean 单调下降）：
-   - baseline 7.26 → small 7.20 → medium 7.08 → large 7.03；
-   - 规模越大 val_min 越低，3-seed mean 与单 seed 趋势一致。
-3. **large 的 std 最大（0.093）**：单 seed42 的 6.93 明显低于 3-seed mean 7.03——**单 seed 低估了 large 的真实水平**；large 对初始化更敏感（5.11M 参数）。
-5. **N6 "dropout=0.1 最佳"结论在多 seed 下不成立**：
-   - 单 seed42：dropout=0.1 (6.99) < dropout=0.0 (7.06) < dropout=0.2 (7.09)；
-   - 3-seed mean：dropout=0.0 (7.08) < dropout=0.1 (7.09) < dropout=0.2 (7.12)；
-   - **dropout=0.1 的单 seed 优势（0.07 nats）是噪声**；多 seed 下 dropout 影响退化为单调递增（0.0 < 0.1 < 0.2），且差距小（0.04 nats）。
-   - 教训：**N6 的结论必须用多 seed 修正**——本实验正是 P1-03 的实跑预演。
-7. **规模 > dropout 仍是稳健结论**：val_min mean 的规模区间（7.26 → 7.03 = 0.23 nats）远大于 dropout 区间（7.08 → 7.12 = 0.04 nats）。
+1. **N7 rope_base 结论被多 seed 推翻**：单 seed 显示的 "10× rope_base → 0.04 nats 改善" 完全消失。在 max_seq_len=64 的短序列下，rope_base 从 10k 到 100k 无显著影响（3-seed 差异 < 0.01 nats，全部在 std 内）。
+2. **N8 n_heads=8 优势不稳健**：单 seed 的 7.03 vs 7.06 优势在多 seed 下消失（7.085 vs 7.078），n_heads=4 反而是 mean 最优。head_dim=16 没有明显收益也没有明显损失。
+3. **N5/N9 规模/d_ff 结论稳健**：参数规模（0.23 nats 区间）和 d_ff（0.38 nats 区间）是真正稳健的影响因素；**d_ff 仍是 val_loss 最大影响变量**。
+4. **d_ff=256 的 std 最大（0.167）**：小 FFN 容量对初始化最敏感；单 seed42 的 7.56 是 3 个 seed 里最差的。
+5. **综合排序**（3-seed mean）：d_ff（0.38）> 规模（0.23）> dropout（0.03）> n_heads（0.02）> rope_base（0.01 噪声级）。
+6. **P1-03 判定标准验证**：用 "mean 差异 > std 之和" 判定，只有 N5（large vs baseline 0.236 > 0.117）、N9（256 vs 1024 0.381 > 0.194）和 N6（0.2 vs 0.0 0.037 < 0.072 不显著）达到阈值。N7/N8 全部不显著。
 
-## 与 P1-03 的关系
+## 教训
 
-本实验是 **P1-03 多 seed 协议的实跑预演**：
-- 固定 3 seeds（42/123/7）；
-- 只报告 val_loss_min 的 mean/std（不做 p50/p95 / CI）；
-- 验证了单 seed 结论在哪些场景稳健（规模 sweep）哪些不稳健（dropout 消融）；
-- P1-03 正式协议会把 seed 数、统计口径（mean/std/CI）、warmup-measured 规则、torch.compile/AMP/CUDA Graph 默认状态写成正式协议文档。
+- **N7/N8 的单 seed 结论已过时**：N7 "rope_base 单调改善" 和 N8 "n_heads=8 最佳" 是初始化噪声，应从报告中降级为"未观察到期多 seed 显著影响"。
+- N9 的 "d_ff 是主要瓶颈" 多 seed 下依然最强，是唯一同时通过单 seed + 多 seed 验证的结论。
+- P1-03 的判定标准（mean 差 > std 和）比直觉可靠：它正确地滤掉了 N7/N8 的假阳性。
 
 ## 不构成正式结论
 
-- 3 seeds 是 3 个样本，mean/std 不构成统计显著性检验（无 CI / p-value）；
-- 不声明任何"最佳配置"（dropout 差异 < 0.05 nats，需更大 seed 数）；
+- 3 seeds 仍不构成统计显著性（无 CI / p-value）；
+- max_seq_len=64 短序列限制 rope_base 的可观测性；
 - 观察严格限定于 OWT cache + 5000 步 + Dense 单架构。
 
 ## 文件索引
 
-- 实验记录：`docs/experiments/multi-seed-sweep/README.md`（本文）
-- 脚本：`scripts/run_multi_seed.py`
-- Artifacts（gitignored）：`artifacts/dense-owt-formal-curve-{...}-seed{42,123,7}-result.json`（18 个）+ `artifacts/multi-seed-overview.json`
+- 脚本：`scripts/run_multi_seed.py`（--only 过滤 + skip-existing + overview 全量重建）
+- 实验记录：`docs/experiments/multi-seed-sweep/README.md`（本文件，v2 全 sweep）
+- Artifacts（gitignored）：39 个 `*-seed{42,123,7}-result.json` + `multi-seed-overview.json`

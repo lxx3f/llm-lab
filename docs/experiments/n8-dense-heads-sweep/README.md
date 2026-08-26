@@ -53,8 +53,9 @@
 
 ### n_heads sensitivity 观察
 
-1. **val_min 随 head 数增加而改善**（n_heads=2 → 4 → 8 = 7.06 → 7.06 → 7.03）：
+1. **单 seed（42）val_min 随 head 数增加而改善**（n_heads=2 → 4 → 8 = 7.06 → 7.06 → 7.03）：
    - n_heads=8 比 2/4 改善约 0.03 nats（0.4%）；
+   - ⚠️ **多 seed 复核（P1-03，3 seeds）不稳健**：3-seed mean = heads-2/4/8 = 7.106/7.078/7.085，heads-4 反而最优，heads-8 无优势。单 seed 观察不构成结论。
    - 在 d_model=128 下，单 head 维度降到 16 后仍能维持或改善 val_loss；
    - 提示 16 维 head 在短序列（max_seq_len=64）下仍能表达足够 attention pattern。
 3. **train_loss 末值随 head 数增加而单调下降**（6.65 → 6.56 → 6.50）：
