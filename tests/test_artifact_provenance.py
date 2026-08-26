@@ -41,6 +41,7 @@ KNOWN_NIGHT_RUN_COMMITS = {
     "b55db7b2227c83e5759c8728af8d9456d14e0043",  # MoE long commit
     "41268d98f73085e120aaf7814c020bc5d531bae1",  # N11 multi-seed provenance
     "f2c323af6d5051d2b7c501b8af5f89f42ddc786d",  # N11 multi-seed + N11 large
+    "cb44a8bd7a97c22eecbeb4d099aeeeccaa4aed02", # N12 ultra 100000-step training
 }
 
 # Every objective artifact: relative path, expected seed, expected
@@ -71,6 +72,11 @@ EXPECTED_ARTIFACTS: list[dict[str, object]] = [
      "seed": 42, "optimizer_steps": 50000, "status": "completed"},
     {"path": "artifacts/dense-owt-formal-curve-long-medium-result.json",
      "seed": 42, "optimizer_steps": 50000, "status": "completed"},
+    # ---- N12 ultra curve (single seed, 100000 steps) ---------------------
+    {"path": "artifacts/dense-owt-formal-curve-ultra-baseline-result.json",
+     "seed": 42, "optimizer_steps": 100000, "status": "completed"},
+    {"path": "artifacts/dense-owt-formal-curve-ultra-medium-result.json",
+     "seed": 42, "optimizer_steps": 100000, "status": "completed"},
     # ---- N11 long multi-seed (3 seeds × {baseline, medium}, 50000 steps) -
     {"path": "artifacts/dense-owt-formal-curve-long-baseline-seed42-result.json",
      "seed": 42, "optimizer_steps": 50000, "status": "completed"},
@@ -188,6 +194,40 @@ class ArtifactProvenanceTests(unittest.TestCase):
             "artifacts/moe-vs-dense-medium-long-curve.png",
         ):
             self.assertTrue((ROOT / rel).is_file(), msg=f"missing plot: {rel}")
+
+    def test_ultra_curve_saturation_signature(self) -> None:
+        """N12 ultra 100000-step training must show saturation: val_loss_min
+        occurs at the END of training (≥90% of training length), with a
+        small positive ``delta_val_loss`` showing mild rebound in the final
+        2% of steps (val at last step > val at min step). This proves we
+        actually trained long enough to see saturation, not just kept
+        improving.
+        """
+        for rel in (
+            "artifacts/dense-owt-formal-curve-ultra-baseline-result.json",
+            "artifacts/dense-owt-formal-curve-ultra-medium-result.json",
+        ):
+            payload = json.loads((ROOT / rel).read_text(encoding="utf-8"))
+            cs = payload["metrics"]["curve_summary"]
+            total_steps = payload["training"]["optimizer_steps"]
+            val_min = cs["val_loss_min"]
+            val_min_step = cs["val_loss_min_step"]
+            val_last = cs["val_loss_last"]
+            delta_val = cs["delta_val_loss"]
+            self.assertEqual(payload["status"], "completed")
+            self.assertEqual(total_steps, 100000)
+            # val_min must occur in the LAST 5% of training (saturation
+            # signal — not still falling linearly).
+            self.assertGreaterEqual(val_min_step, int(total_steps * 0.95),
+                                    msg=f"{rel}: val_min_step={val_min_step} < 95% of {total_steps}")
+            # delta_val_loss must be small + positive (val at last step > val at min step).
+            self.assertGreater(delta_val, 0.0,
+                               msg=f"{rel}: delta_val_loss={delta_val} <= 0 (no rebound)")
+            self.assertLess(delta_val, 0.1,
+                            msg=f"{rel}: delta_val_loss={delta_val} too large (model still improving)")
+            # val_last must be very close to val_min (the model has plateaued).
+            self.assertAlmostEqual(val_last, val_min, delta=0.05,
+                                   msg=f"{rel}: val_last={val_last} far from val_min={val_min}")
 
 
 if __name__ == "__main__":
