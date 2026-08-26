@@ -90,7 +90,7 @@ artifacts/n2-moe-routing-stats.json               → 0 errors
 ## 已知边界
 
 - `config_sha256` 是 YAML 文件字节 SHA256，不是 canonical settings dict hash
-- `dataset_hash` 是 train cache `source.sha256`，不是 cache 文件 SHA256
+- `dataset_hash` 是 train cache `metadata.json` 文件**字节**的 SHA256 hex（合同措辞 "训练 cache 元数据 hash"）；不是 cache `source.sha256` 记录的原数据 SHA256
 - CPU 环境下 `cuda_version`/`gpu_name`/`gpu_compute_capability` 均为 `null`，属正常降级
 - 预 N3 artifact 在 schema 升级后不再通过校验；必须重新生成
 - `gpu_compute_capability` 合同首选形式为 `"major.minor"`（如 `"12.0"`）；N3 后期严格化后 schema 不再接受 `sm_<digits>` 形式（被反向断言 `test_gpu_compute_capability_sm_format_not_emitted` 锁住）

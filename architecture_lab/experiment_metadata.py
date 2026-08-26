@@ -12,12 +12,13 @@ compared without re-reading the host configuration. The block covers:
 - gpu_name                  → torch.cuda.get_device_name(0) (or "unset")
 - gpu_compute_capability    → formatted as "major.minor" (or "unset")
 - tokenizer_revision        → metadata.json `tokenizer.version` (or "unset")
-- dataset_hash              → SHA256 of the original raw source the train
-                              cache was encoded from (cache.metadata
-                              `source.sha256`). This is the *dataset* hash,
-                              not the cache file hash — the latter lives in
-                              the existing train_cache / validation_cache
-                              binding blocks.
+- dataset_hash              → SHA256 of the train-cache metadata file
+                              itself (i.e. the bytes of the train cache's
+                              ``metadata.json``). This makes two runs that
+                              bind the same cache trivially comparable. The
+                              raw source-dataset hash is already recorded
+                              inside the cache metadata as
+                              ``source.sha256``.
 - seed                      → integer seed used for the run (0 if unset)
 
 Per the verification contract: every contract-required non-null metadata
@@ -93,22 +94,21 @@ def _safe_config_sha256(path: str | Path | None) -> str:
 
 
 def _safe_dataset_hash(path: str | Path | None) -> str:
+    """Return the SHA256 of the train-cache metadata file **bytes**.
+
+    Per the verification contract, ``dataset_hash`` is the hash of the
+    loaded training cache metadata file itself, not ``source.sha256``
+    (which is the raw source-dataset hash recorded inside that file).
+    Same content == same hash; this makes two runs trivially comparable
+    when they bind the same cache metadata.
+    """
     if path is None:
         return UNSET
     file = Path(path)
     try:
-        metadata = json.loads(file.read_text(encoding="utf-8"))
-    except (FileNotFoundError, IsADirectoryError, json.JSONDecodeError, OSError):
+        return _sha256_bytes(file.read_bytes())
+    except (FileNotFoundError, IsADirectoryError, OSError):
         return UNSET
-    if not isinstance(metadata, dict):
-        return UNSET
-    source = metadata.get("source")
-    if not isinstance(source, dict):
-        return UNSET
-    sha = source.get("sha256")
-    if not isinstance(sha, str) or not _SHA256_PATTERN.match(sha):
-        return UNSET
-    return sha
 
 
 def _safe_tokenizer_revision(directory: str | Path | None) -> str | None:

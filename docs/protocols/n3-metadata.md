@@ -14,7 +14,7 @@
 | `gpu_name` | string \| null | `torch.cuda.get_device_name(0)` | CUDA 不可用 → `null` |
 | `gpu_compute_capability` | string \| null | 序列化为 `"major.minor"`（合同首选形式） | CUDA 不可用 → `null` |
 | `tokenizer_revision` | string \| null | tokenizer artifact `<dir>/metadata.json` 的 `tokenizer.version` | 缺失或损坏 → `null` |
-| `dataset_hash` | string | train cache `<dir>/metadata.json` 的 `source.sha256` | 缺失或损坏 → `"unset"` |
+| `dataset_hash` | string | train cache `<dir>/metadata.json` 文件字节的 SHA256 hex | 缺失或损坏 → `"unset"` |
 | `seed` | integer | settings 中的 seed | None / 负数 → `0` |
 
 合同 contract-required 字段（`git_commit`/`config_sha256`/`python_version`/`pytorch_version`/`cuda_version`/`dataset_hash`）的 schema type 严格为 `string`，不接受 `null`。可选字段（`gpu_name`/`gpu_compute_capability`/`tokenizer_revision`）的 schema 接受 `string|null`，实现侧对 CPU 环境返回 `null`。`seed` schema type 严格为 `integer`。

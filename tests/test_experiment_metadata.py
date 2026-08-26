@@ -88,7 +88,7 @@ class CollectMetadataTests(unittest.TestCase):
             metadata = collect_metadata(tokenizer_artifact_dir=tmp, seed=0)
             self.assertIsNone(metadata["tokenizer_revision"])
 
-    def test_dataset_hash_reads_source_sha256(self) -> None:
+    def test_dataset_hash_reads_metadata_file_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             fake_sha = "a" * 64
@@ -97,27 +97,25 @@ class CollectMetadataTests(unittest.TestCase):
                 json.dumps({"source": {"sha256": fake_sha}, "cache": {"split": "train"}}), encoding="utf-8"
             )
             metadata = collect_metadata(train_cache_dir=metadata_path, seed=0)
-            self.assertEqual(metadata["dataset_hash"], fake_sha)
+            # dataset_hash is the SHA256 of the train.metadata.json file BYTES,
+            # not the source.sha256 recorded inside it (per the verification
+            # contract "训练 cache 元数据 hash").
+            self.assertEqual(metadata["dataset_hash"], hashlib.sha256(metadata_path.read_bytes()).hexdigest())
+            self.assertNotEqual(metadata["dataset_hash"], fake_sha)
 
     def test_dataset_hash_missing_returns_unset(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            metadata_path = tmp / "train_metadata.json"
-            metadata_path.write_text(
-                json.dumps({"cache": {"split": "train"}}), encoding="utf-8"
-            )
-            metadata = collect_metadata(train_cache_dir=metadata_path, seed=0)
-            self.assertEqual(metadata["dataset_hash"], UNSET)
+        metadata = collect_metadata(train_cache_dir=Path("/nonexistent/train_metadata.json"), seed=0)
+        self.assertEqual(metadata["dataset_hash"], UNSET)
 
-    def test_dataset_hash_bad_format_returns_unset(self) -> None:
+    def test_dataset_hash_directory_resolves_to_metadata_json(self) -> None:
+        # When a directory is passed, the function reads <dir>/metadata.json
+        # bytes — confirms callers can use either form of the contract arg.
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
-            metadata_path = tmp / "train_metadata.json"
-            metadata_path.write_text(
-                json.dumps({"source": {"sha256": "not-a-real-sha"}}), encoding="utf-8"
-            )
-            metadata = collect_metadata(train_cache_dir=metadata_path, seed=0)
-            self.assertEqual(metadata["dataset_hash"], UNSET)
+            metadata_path = tmp / "metadata.json"
+            metadata_path.write_text('{"cache": {"split": "train"}}', encoding="utf-8")
+            metadata = collect_metadata(train_cache_dir=tmp, seed=0)
+            self.assertEqual(metadata["dataset_hash"], hashlib.sha256(metadata_path.read_bytes()).hexdigest())
 
     def test_gpu_fields_null_when_cuda_unavailable(self) -> None:
         with mock.patch("architecture_lab.experiment_metadata._safe_gpu_fields", return_value=(None, None)):
