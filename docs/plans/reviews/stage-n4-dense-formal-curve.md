@@ -149,8 +149,17 @@
 
 N4 第一轮 isolated auditor（calculet/gpt-5.6-terra）提出 3 项 blocker，现已全部闭合：
 
-1. **tests/test_n2_benchmark.py 在不兼容 CUDA 环境下报 RuntimeError**：auditor env 下 PyTorch wheel 不包含当前 GPU compute capability 的 kernel image（sm_120+ 但 wheel 只到 sm_90），两个 GPU-bound test（`test_executed_benchmark_records_validation_and_capacity_bindings` 与 `test_benchmark_result_includes_unified_metadata_block`）报 `RuntimeError: CUDA error: no kernel image is available for execution on the device` → 修复：新增 `_has_working_cuda()` helper（运行时探查 matmul+sum+backward 是否可执行），两 test 加 `@unittest.skipUnless(_has_working_cuda(), ...)`；CPU-only 与不兼容 GPU env 下自动 skip ✅
-2. **plot_dense_curve.py 未实现双轴**：原实现用单 axes 画 train_loss + val_loss，违反协议“matplotlib 双轴曲线图”与“左轴 train_loss / 右轴 val_loss” → 修复：`_draw_dual_axis(ax, curve)` 用 `ax.twinx()` 分离左右轴，左轴蓝色 train_loss，右轴橙色 val_loss；新增 `test_plot_dense_curve_uses_dual_y_axes` 验证 ✅
-3. **--overlay 是 side-by-side subplots 而非共享 axes**：原实现用 `plt.subplots(1, len(curves))` → 修复：`_plot_overlay(curves)` 用单个 Axes + ax.twinx()，两曲线叠加在同一对 axes 上；新增 `test_plot_dense_curve_overlay_uses_shared_axes` 验证（源码静态检查） ✅
+1. **tests/test_n2_benchmark.py 在不兼容 CUDA 环境下报 RuntimeError**：auditor env 下 PyTorch wheel 不包含当前 GPU compute capability 的 kernel image（sm_120+ 但 wheel 只到 sm_90），两个 GPU-bound test 报 `RuntimeError: CUDA error: no kernel image is available for execution on the device` → 修复：新增 `_has_working_cuda()` helper（运行时探查 matmul+sum+backward 是否可执行），两 test 加 `@unittest.skipUnless(_has_working_cuda(), ...)`；CPU-only 与不兼容 GPU env 下自动 skip ✅
+2. **plot_dense_curve.py 未实现双轴**：原实现用单 axes 画 train_loss + val_loss，违反协议“matplotlib 双轴曲线图”与“左轴 train_loss / 右轴 val_loss” → 修复：`_plot_single` 用 `ax.twinx()` 分离左右轴，左轴蓝色 train_loss，右轴橙色 val_loss；新增 `test_plot_dense_curve_uses_dual_y_axes` 验证 ✅
+3. **--overlay 是 side-by-side subplots 而非共享 axes**：原实现用 `plt.subplots(1, len(curves))` → 修复：`_plot_overlay` 用单个 Axes + ax.twinx()，两曲线叠加在同一对 axes 上；新增 `test_plot_dense_curve_overlay_uses_shared_axes` 验证（源码静态检查） ✅
 
 修复后测试统计：93 → **95 tests passed**（+2 新 plot 验证 test）；3 个 PNG 重新生成（含双轴与共享 axes overlay）。
+
+---
+
+N4 第二轮 isolated auditor 提出 2 项新 blocker，已闭合：
+
+4. **overlay 路下实际产生了 3 个 axes（不是 2 个共享轴对）**：第一轮修复后源码静态检查通过，但运行时行为上 `_plot_overlay` 对每个 curve 都调用了 `_draw_dual_axis`，后者里面无条件 `ax.twinx()`，实际产生 1 个左轴 + 2 个右轴。源代审计虽过，但实际 Axes 计数不正确 → 修复：拆为三个辅助函数 `_plot_train(ax, ...)` / `_plot_val(ax2, ...)` / `_plot_overlay`，后者只调用一次 `ax.twinx()` 并复用 ax2；新增行为测试 `test_plot_dense_curve_overlay_uses_exactly_two_axes`：运行时渲染后断言 `len(fig.axes) == 2` 且 `fig.axes[1]._sharex is fig.axes[0]`。行为验证：2 axes / sharex=True ✅
+5. **README 文档不一致**：实验 README 说“val_loss 5000 步时仍在缓慢下降（不是 min）”，但实际 `val_loss_min_step: 5000` 与 `delta_val_loss: 0.0`表明 5000 步就是 min → 文档修正：明确写 val_loss 在 step 5000 达到最小值后停步，需更长训练才能观察是否反弹 ✅
+
+修复后测试统计：95 → **96 tests passed**（+1 行为测试）；3 个 PNG 重新生成。

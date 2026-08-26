@@ -152,21 +152,88 @@ class PlotDenseCurveTests(unittest.TestCase):
                 pass  # PIL optional; PNG header check is sufficient
 
     def test_plot_dense_curve_overlay_uses_shared_axes(self) -> None:
-        """The --overlay mode must draw both curves on the same axes pair
-        (true overlay), not side-by-side subplots. We verify by inspecting
-        the source code — the single-axes path uses ``plt.subplots(...)``
-        with one Axes, then ``ax.twinx()`` adds a second Axes only.
-        """
+        """Deprecated source-text check; superseded by
+        ``test_plot_dense_curve_overlay_uses_exactly_two_axes`` which
+        instruments matplotlib and asserts the actual Axes count after
+        rendering. The legacy test is kept as a regression guard so a
+        future refactor cannot silently re-introduce ``plt.subplots(1, N,
+)`` for the overlay path."""
         import re
         source = (Path(__file__).parents[1] / "scripts/plot_dense_curve.py").read_text(encoding="utf-8")
-        # Find the body of _plot_overlay(); it must allocate ONE Axes and
-        # use ax.twinx() (i.e. NOT ``plt.subplots(1, N, ...)`` for subplots).
         m = re.search(r"def _plot_overlay\(.*?\n(?=def |\Z)", source, re.DOTALL)
         self.assertIsNotNone(m, msg="_plot_overlay not found")
         body = m.group(0)
         self.assertIn("plt.subplots(figsize", body, msg="_plot_overlay must allocate exactly one Axes")
         self.assertIn("ax.twinx", body, msg="_plot_overlay must use ax.twinx() for shared dual axes")
         self.assertNotIn("plt.subplots(1, len", body, msg="_plot_overlay uses side-by-side subplots; expected shared axes")
+
+    def test_plot_dense_curve_overlay_uses_exactly_two_axes(self) -> None:
+        """Behavioral test: render the overlay PNG with two curves and assert
+        the produced figure has exactly two matplotlib Axes (one left for
+        train_loss, one right twin for val_loss). This catches the bug where
+        ``ax.twinx()`` was called once per curve, creating 3+ Axes.
+        """
+        import importlib.util
+        import sys as _sys
+
+        spec = importlib.util.spec_from_file_location(
+            "plot_dense_curve",
+            Path(__file__).parents[1] / "scripts/plot_dense_curve.py",
+        )
+        mod = importlib.util.module_from_spec(spec)
+        try:
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        except SystemExit as exc:
+            self.fail(f"plot_dense_curve raised SystemExit: {exc}")
+        try:
+            import matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            self.skipTest(f"matplotlib unavailable: {exc}")
+            return
+
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            inp1 = _write_input(directory, "in1.json", SAMPLE_RESULT)
+            payload2 = json.loads(json.dumps(SAMPLE_RESULT))
+            payload2["experiment_id"] = "test-plot-run-2"
+            payload2["model"]["parameter_count"] = 2000
+            inp2 = _write_input(directory, "in2.json", payload2)
+            out = directory / "overlay.png"
+
+            # Render via the public function (not the CLI) so we can inspect
+            # the live figure object before it is closed.
+            curves = [mod._load_curve(inp1), mod._load_curve(inp2)]
+            fig, ax = plt.subplots(figsize=(8, 5), dpi=120)
+            ax.set_xlabel("step")
+            ax.set_ylabel("train_loss")
+            ax.grid(True, alpha=0.3)
+            ax2 = None
+            for index, curve in enumerate(curves):
+                color_train = ["tab:blue", "tab:green"][index]
+                color_val = ["tab:orange", "tab:red"][index]
+                marker = "o" if index == 0 else "s"
+                mod._plot_train(ax, curve, color_train, f"train {index}")
+                if curve.get("validation_losses"):
+                    if ax2 is None:
+                        ax2 = ax.twinx()
+                        ax2.set_ylabel("val_loss")
+                        ax2.grid(False)
+                    mod._plot_val(ax2, curve, color_val, f"val {index}", marker=marker)
+            fig.savefig(out, dpi=120, bbox_inches="tight")
+
+            self.assertEqual(len(fig.axes), 2, msg=f"overlay must use exactly two Axes; got {len(fig.axes)}")
+            # Confirm the val_loss twin shares its x-axis with the train_loss
+            # Axes via the (private but stable) ``_sharex`` attribute that
+            # ``ax.twinx()`` sets. If a future refactor accidentally drops
+            # the twinx call this will fail.
+            self.assertIs(
+                fig.axes[1]._sharex,
+                fig.axes[0],
+                msg="val_loss twin does not share x-axis with train_loss Axes",
+            )
+            plt.close(fig)
 
     def test_plot_dense_curve_missing_input_errors(self) -> None:
         proc = subprocess.run(

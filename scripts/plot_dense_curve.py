@@ -67,80 +67,87 @@ def _title_for(curve: dict[str, Any], title_suffix: str = "") -> str:
     return " | ".join(title_parts)
 
 
-def _draw_dual_axis(ax, curve: dict[str, Any], color_train: str = "tab:blue", color_val: str = "tab:orange") -> Any:
-    """Draw a single curve's train_loss (left axis) and val_loss (right axis).
-
-    Returns the right-hand ``Axes`` so callers (overlay mode) can keep adding
-    validation series onto the same twin axes.
-    """
+def _plot_train(ax, curve: dict[str, Any], color: str, label: str) -> None:
+    """Draw a curve's train_loss series onto the given left-axis ``ax``."""
     train_pts = curve["train_losses"]
+    if not train_pts:
+        return
+    steps = [int(s["step"]) for s in train_pts]
+    losses = [float(s["loss"]) for s in train_pts]
+    ax.plot(steps, losses, color=color, linewidth=1.5, label=label)
+
+
+def _plot_val(ax2, curve: dict[str, Any], color: str, label: str, marker: str) -> None:
+    """Draw a curve's validation_loss series onto the given right-axis ``ax2``."""
     val_pts = sorted(
         (int(step), float(loss))
         for step, loss in curve["validation_losses"].items()
     )
-    summary = curve["curve_summary"] or {}
-
-    ax.set_xlabel("step")
-    ax.set_ylabel("train_loss", color=color_train)
-    ax.tick_params(axis="y", labelcolor=color_train)
-
-    if train_pts:
-        steps = [int(s["step"]) for s in train_pts]
-        losses = [float(s["loss"]) for s in train_pts]
-        ax.plot(steps, losses, color=color_train, linewidth=1.5, label="train_loss (left axis)")
-
-    if val_pts:
-        ax2 = ax.twinx()
-        ax2.set_ylabel("val_loss", color=color_val)
-        ax2.tick_params(axis="y", labelcolor=color_val)
-        vsteps = [s for s, _ in val_pts]
-        vlosses = [l for _, l in val_pts]
-        ax2.plot(
-            vsteps,
-            vlosses,
-            color=color_val,
-            linewidth=1.5,
-            marker="o",
-            markersize=4,
-            label="val_loss (right axis)",
+    if not val_pts:
+        return
+    vsteps = [s for s, _ in val_pts]
+    vlosses = [l for _, l in val_pts]
+    ax2.plot(
+        vsteps,
+        vlosses,
+        color=color,
+        linewidth=1.5,
+        marker=marker,
+        markersize=4,
+        label=label,
+    )
+    summary = curve.get("curve_summary") or {}
+    if summary.get("val_loss_min_step") is not None:
+        ax2.axvline(
+            int(summary["val_loss_min_step"]),
+            color=color,
+            linestyle="--",
+            linewidth=0.8,
+            alpha=0.5,
         )
-        if summary.get("val_loss_min_step") is not None:
-            ax2.axvline(
-                int(summary["val_loss_min_step"]),
-                color=color_val,
-                linestyle="--",
-                linewidth=0.8,
-                alpha=0.6,
-                label=f"min_val @ step {int(summary['val_loss_min_step'])}",
-            )
-        ax2.grid(False)  # avoid double-grid
-        return ax2
-    return None
 
 
 def _plot_single(curve: dict[str, Any], output: Path, title_suffix: str = "") -> None:
-    """Render a single Dense training curve to its own PNG."""
+    """Render a single Dense training curve to its own PNG with twin axes."""
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(8, 5), dpi=120)
-    _draw_dual_axis(ax, curve)
-    ax.set_title(_title_for(curve, title_suffix), fontsize=9)
+    ax.set_xlabel("step")
+    ax.set_ylabel("train_loss", color="tab:blue")
+    ax.tick_params(axis="y", labelcolor="tab:blue")
     ax.grid(True, alpha=0.3)
+    _plot_train(ax, curve, "tab:blue", "train_loss (left axis)")
 
-    # Combined legend (both axes' artists)
-    handles_train, labels_train = ax.get_legend_handles_labels()
-    ax2_artist = None
-    for other in fig.axes[1:]:
-        h2, l2 = other.get_legend_handles_labels()
-        if any("val" in lab for lab in l2):
-            handles_train.extend(h2)
-            labels_train.extend(l2)
-            ax2_artist = other
-            break
-    ax.legend(handles_train, labels_train, loc="upper right", fontsize=8)
+    has_val = bool(curve.get("validation_losses"))
+    if has_val:
+        ax2 = ax.twinx()
+        ax2.set_ylabel("val_loss", color="tab:orange")
+        ax2.tick_params(axis="y", labelcolor="tab:orange")
+        ax2.grid(False)
+        _plot_val(ax2, curve, "tab:orange", "val_loss (right axis)", marker="o")
+        # min marker legend entry
+        summary = curve.get("curve_summary") or {}
+        if summary.get("val_loss_min_step") is not None:
+            ax2.plot(
+                [],
+                [],
+                color="tab:orange",
+                linestyle="--",
+                linewidth=0.8,
+                label=f"min_val @ step {int(summary['val_loss_min_step'])}",
+            )
+
+    ax.set_title(_title_for(curve, title_suffix), fontsize=9)
+
+    handles, labels = ax.get_legend_handles_labels()
+    if has_val and len(fig.axes) > 1:
+        h2, l2 = fig.axes[1].get_legend_handles_labels()
+        handles.extend(h2)
+        labels.extend(l2)
+    ax.legend(handles, labels, loc="upper right", fontsize=8)
 
     fig.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -150,11 +157,13 @@ def _plot_single(curve: dict[str, Any], output: Path, title_suffix: str = "") ->
 
 
 def _plot_overlay(curves: list[dict[str, Any]], output: Path) -> None:
-    """Render multiple curves sharing one axes pair (true overlay).
+    """Render multiple curves sharing one pair of axes (true overlay).
 
-    Both runs are drawn on the same ``ax`` (left axis: train_loss) and the
-    same ``ax.twinx()`` (right axis: val_loss). Each run gets a distinct
-    color so the curves can be told apart in the legend.
+    Allocation rule (audited): the figure must contain EXACTLY two Axes —
+    one left ``ax`` for train_loss and one right ``ax2 = ax.twinx()`` for
+    val_loss. Each subsequent run reuses both Axes; ``twinx()`` is called
+    at most once. This is enforced by the
+    ``test_plot_dense_curve_overlay_uses_exactly_two_axes`` behavioral test.
     """
     import matplotlib
 
@@ -163,60 +172,50 @@ def _plot_overlay(curves: list[dict[str, Any]], output: Path) -> None:
 
     palette_train = ["tab:blue", "tab:green", "tab:purple", "tab:brown"]
     palette_val = ["tab:orange", "tab:red", "tab:olive", "tab:pink"]
+    markers = ["o", "s", "^", "D"]
 
     fig, ax = plt.subplots(figsize=(8, 5), dpi=120)
-    ax2 = None
+    ax.set_xlabel("step")
+    ax.set_ylabel("train_loss")
+    ax.grid(True, alpha=0.3)
+    ax2 = None  # created lazily on the first curve that has val data
     for index, curve in enumerate(curves):
         color_train = palette_train[index % len(palette_train)]
         color_val = palette_val[index % len(palette_val)]
-        # First curve creates the twin axes; subsequent curves reuse it.
-        ax2_candidate = _draw_dual_axis(
+        marker = markers[index % len(markers)]
+        _plot_train(
             ax,
             curve,
-            color_train=color_train,
-            color_val=color_val,
+            color_train,
+            label=f"train_loss {curve['experiment_id']} (left axis)",
         )
-        if ax2 is None and ax2_candidate is not None:
-            ax2 = ax2_candidate
-        elif ax2 is not None:
-            # Re-draw the val series onto the shared ax2 with this run's color
-            val_pts = sorted(
-                (int(step), float(loss))
-                for step, loss in curve["validation_losses"].items()
+        if curve.get("validation_losses"):
+            if ax2 is None:
+                ax2 = ax.twinx()
+                ax2.set_ylabel("val_loss")
+                ax2.grid(False)
+            _plot_val(
+                ax2,
+                curve,
+                color_val,
+                label=f"val_loss {curve['experiment_id']} (right axis)",
+                marker=marker,
             )
-            if val_pts:
-                vsteps = [s for s, _ in val_pts]
-                vlosses = [l for _, l in val_pts]
-                ax2.plot(
-                    vsteps,
-                    vlosses,
-                    color=color_val,
-                    linewidth=1.5,
-                    marker="s" if index == 1 else "o",
-                    markersize=4,
-                    label=f"val_loss {curve['experiment_id']} (right axis)",
-                )
-            summary = curve.get("curve_summary") or {}
-            if summary.get("val_loss_min_step") is not None:
-                ax2.axvline(
-                    int(summary["val_loss_min_step"]),
-                    color=color_val,
-                    linestyle="--",
-                    linewidth=0.8,
-                    alpha=0.5,
-                )
+
+    if ax2 is None:
+        # No validation data in any input — still need a twin for symmetry
+        ax2 = ax.twinx()
+        ax2.set_ylabel("val_loss")
 
     ax.set_title(
         "Overlay: " + " vs ".join(c["experiment_id"] for c in curves),
         fontsize=9,
     )
-    ax.grid(True, alpha=0.3)
 
     handles, labels = ax.get_legend_handles_labels()
-    if ax2 is not None:
-        h2, l2 = ax2.get_legend_handles_labels()
-        handles.extend(h2)
-        labels.extend(l2)
+    h2, l2 = ax2.get_legend_handles_labels()
+    handles.extend(h2)
+    labels.extend(l2)
     ax.legend(handles, labels, loc="upper right", fontsize=7)
 
     fig.tight_layout()
