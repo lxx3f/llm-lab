@@ -48,21 +48,26 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
     layers: dict[str, bool | None] = {}
     expected_calls: list[dict[str, Any]] = sample.get("expected_tool_calls", [])
 
-    # Normalize tool_calls: missing key, None, or any non-list value is treated
-    # as a malformed transcript. ``parse_success`` reports the parse outcome;
-    # subsequent layers fall back to empty lists so they never crash on
-    # NoneType. (Auditor round 7.)
+    # Normalize tool_calls: missing key, None, non-list, OR a list whose
+    # elements are not all structured mappings (e.g. ``[None]``, ``[1]``,
+    # ``["x"]``) is treated as a malformed transcript. ``parse_success``
+    # reports the parse outcome; subsequent layers fall back to empty lists
+    # so they never crash on NoneType / non-dict members. (Auditor rounds 7-8.)
     raw_calls = transcript.get("tool_calls")
-    is_list = isinstance(raw_calls, list)
-    transcript_calls: list[dict[str, Any]] = raw_calls if is_list else []
+    is_list_of_dicts = isinstance(raw_calls, list) and all(
+        isinstance(c, dict) for c in raw_calls
+    )
+    transcript_calls: list[dict[str, Any]] = raw_calls if is_list_of_dicts else []
 
     # Layer 1: parse_success — transcript is structurally parseable into a
-    # tool_calls list (an empty list is a valid parse, e.g. no_tool samples).
-    layers["parse_success"] = is_list
+    # list of structured tool-call objects (an empty list is valid; e.g.
+    # no_tool samples). Any non-list or non-dict member is a parse failure.
+    layers["parse_success"] = is_list_of_dicts
 
-    if not is_list:
+    if not is_list_of_dicts:
         # Malformed transcript: all lower layers are N/A; first_failure is
-        # parse_success.
+        # parse_success. ``task_success`` is evaluated independently from
+        # ``final_answer`` so the final-answer check still works.
         layers["schema_valid"] = None
         layers["call_plan_matches"] = None
         layers["execution_success"] = None

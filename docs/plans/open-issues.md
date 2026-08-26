@@ -545,7 +545,7 @@ parse_success
   parse_success → schema_valid → call_plan_matches → execution_success → result_grounded → task_success；
   scripts/classify_tool_failure.py 实现分类器（--sample / --transcript / --output）；
   D1 数据集已生成（126 样例，6 种 task_type 全覆盖，train/dev/test 100/13/13，所有 single/multi-tool 样例含 expected_result）；
-  tests/test_d1_failure.py 23 单测（含集成验证：MockExecutor 执行 expected_tool_calls、expected_result 一致性、depends_on 可达性、D1SemanticIntegrationTests 6 测试）。
+  tests/test_d1_failure.py 31 单测（含集成验证：MockExecutor 执行 expected_tool_calls、expected_result 一致性、depends_on 可达性、D1SemanticIntegrationTests 6 测试、MalformedTranscriptRegressionTests 8 个反向断言）。
 遗留：完整八级分类（tool_name_correct / argument_value_correct / final_answer_correct）留正式评测阶段；
   D1 用确定性模板生成（mock-only 约束），真实 LLM 生成留 D1.1。
 ```

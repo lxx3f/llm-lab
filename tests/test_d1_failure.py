@@ -462,6 +462,44 @@ class MalformedTranscriptRegressionTests(unittest.TestCase):
                          {"parse_success", "schema_valid", "call_plan_matches",
                           "execution_success", "result_grounded", "task_success"})
 
+    def test_malformed_list_members_fail_parse_without_crash(self) -> None:
+        """Regression (auditor round 8): ``[None]``, ``[1]``, ``["x"]``
+        previously crashed with AttributeError on ``call.get(...)``. The
+        classifier must now detect a list whose members are not all
+        structured mappings and report ``parse_success=False``."""
+        sample = self._sample()
+        for bad in ([None], [1], ["x"], [None, {"call_id": "c1"}], [True, False]):
+            result = classify(sample, {"tool_calls": bad, "final_answer": "2"})
+            self.assertFalse(result["layers"]["parse_success"], msg=f"input={bad!r}")
+            self.assertEqual(result["first_failure"], "parse_success", msg=f"input={bad!r}")
+            # Downstream layers must be N/A (None), not crash.
+            for name in ("schema_valid", "call_plan_matches", "execution_success", "result_grounded"):
+                self.assertIsNone(result["layers"][name], msg=f"{name} for {bad!r}")
+
+    def test_empty_dict_member_parses_but_fails_schema(self) -> None:
+        """``[{}]`` is technically a list of dicts, so parse_success is True,
+        but the empty mapping has no ``name`` and no ``arguments``, so
+        schema_valid correctly reports False (downstream catch)."""
+        sample = self._sample()
+        result = classify(sample, {"tool_calls": [{}], "final_answer": "2"})
+        self.assertTrue(result["layers"]["parse_success"])
+        self.assertFalse(result["layers"]["schema_valid"])
+        self.assertEqual(result["first_failure"], "schema_valid")
+
+    def test_mixed_list_with_malformed_member_fails_parse(self) -> None:
+        """If even one member is non-dict, parse fails entirely — never
+        partial-parse, never crash."""
+        sample = self._sample()
+        result = classify(sample, {
+            "tool_calls": [
+                {"call_id": "c1", "name": "d1_calculate", "arguments": {"expression": "1+1"}},
+                None,  # malformed member
+            ],
+            "final_answer": "2",
+        })
+        self.assertFalse(result["layers"]["parse_success"])
+        self.assertEqual(result["first_failure"], "parse_success")
+
 
 if __name__ == "__main__":
     unittest.main()

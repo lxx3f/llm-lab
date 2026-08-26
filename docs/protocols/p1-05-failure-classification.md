@@ -82,7 +82,7 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 
 ## 校验
 
-- `scripts/run_tests.py full`：tests/test_d1_failure.py（23 tests：manifest / schema / task_type 覆盖 / 确定性 / 六层分类各一 / 全 task_type 集成 / D1 端到端 mock 执行 / expected_result 一致性 / depends_on 可达性 / result_grounded 实际激活）；
+- `scripts/run_tests.py full`：tests/test_d1_failure.py（31 tests：manifest / schema / task_type 覆盖 / 确定性 / 六层分类各一 / 全 task_type 集成 / D1 端到端 mock 执行 / expected_result 一致性 / depends_on 可达性 / result_grounded 实际激活 / MalformedTranscriptRegressionTests 8 个反向断言）；
 - 生成器退出码 0 且 0 schema errors。
 
 ## 应用范围
