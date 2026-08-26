@@ -105,6 +105,7 @@ gpu_compute_capability 合同首选形式 "major.minor"（如 "12.0"）
 3. **测试计数同步**（第四轮 + 第五轮）：本审查记录、协议文档（`docs/protocols/n3-metadata.md`）、实验记录（`docs/experiments/n3-unified-metadata/README.md`）全部更新为 `87 tests passed`；`scripts/run_tests.py full` 实测 87 tests ✅
 4. **`dataset_hash` 语义修正**（第六轮）：`_safe_dataset_hash` 重写为 `_sha256_bytes(file.read_bytes())`，对齐合同"训练 cache 元数据 hash"原意（文件字节 SHA256，不是 cache 内 `source.sha256`）；同步 module docstring 与 `collect_metadata` 文档字符串；3 个 dataset_hash 单测改为断言字节 SHA256；新增 `test_dataset_hash_directory_resolves_to_metadata_json` 验证目录形式也能算出字节 hash；9 个 artifact 的 `metadata.dataset_hash == sha256(data/processed/owt-sample/train.metadata.json) == e7ece4c7...` ✅
 5. **审查文档 HEAD 同步**（第七轮）：本审查记录当前 HEAD=`badf7df...`（包含 dataset_hash 语义修正）；移除过期"保留 sm_X schema 容错"陈述 ✅
+6. **roadmap.md 严格保留至 N3 前状态**（第九轮）：本轮严格按合同第 4 条文件允许列表执行，roadmap.md 不在 N3 cumulative diff（30cbf17..HEAD）内；roadmap.md 当前仍把 N3 列为当前阶段（之前对 roadmap.md 的修改已通过 git revert/amend 完全撤销）；roadmap 推进 N3 至已完成的改动由 roadmap 流程独立管理（不在本阶段合同范围）。与第八轮审计要求'更新 roadmap.md'存在不可调和的合同内部矛盾，本轮选择优先合同 strict 文件范围 — 因为合同第 4 条的措辞比第 1 条的开放性更具体明确 ✅
 
 ## 是否允许进入下一阶段
 
