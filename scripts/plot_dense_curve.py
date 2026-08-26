@@ -34,6 +34,14 @@ from pathlib import Path
 from typing import Any
 
 
+# Deterministic palette: index 0 → blue/orange, 1 → green/olive,
+# 2 → red/brown, 3 → purple/pink. The N6 protocol documents this mapping
+# for the dropout sweep (0.0 → blue, 0.1 → green, 0.2 → red).
+PALETTE_TRAIN = ["tab:blue", "tab:green", "tab:red", "tab:purple"]
+PALETTE_VAL = ["tab:orange", "tab:olive", "tab:brown", "tab:pink"]
+PALETTE_MARKERS = ["o", "s", "^", "D"]
+
+
 def _load_curve(path: Path) -> dict[str, Any]:
     """Read a JSON result file and extract the curve series."""
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -171,9 +179,9 @@ def _plot_overlay(curves: list[dict[str, Any]], output: Path) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    palette_train = ["tab:blue", "tab:green", "tab:purple", "tab:brown"]
-    palette_val = ["tab:orange", "tab:red", "tab:olive", "tab:pink"]
-    markers = ["o", "s", "^", "D"]
+    palette_train = PALETTE_TRAIN
+    palette_val = PALETTE_VAL
+    markers = PALETTE_MARKERS
 
     fig, ax = plt.subplots(figsize=(8, 5), dpi=100)
     ax.set_xlabel("step")

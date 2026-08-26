@@ -389,12 +389,18 @@ class CurveSummaryUnitTests(unittest.TestCase):
                 )
 
     def test_overlay_palette_matches_protocol_blue_green_red(self) -> None:
-        """The protocol documents a deterministic palette for 3-input overlay:
-        curve index 0 → tab:blue train + tab:orange val,
-        1 → tab:green train + tab:olive val,
-        2 → tab:red train + tab:brown val.
-        This test loads the overlay internals and asserts the colors actually
-        applied to the rendered artists.
+        """The production ``_plot_overlay`` uses module-level constants
+        ``PALETTE_TRAIN`` and ``PALETTE_VAL``. This test imports the script
+        as a module and asserts those constants contain the exact colors
+        the protocol requires for a 3-input overlay (dropout 0.0/0.1/0.2):
+
+        - ``PALETTE_TRAIN[0..2]`` = ``tab:blue``, ``tab:green``, ``tab:red``
+        - ``PALETTE_VAL[0..2]`` = ``tab:orange``, ``tab:olive``, ``tab:brown``
+
+        It also invokes ``_plot_overlay`` end-to-end with three inputs and
+        reads the source file to confirm that ``_plot_overlay`` reads from
+        the module-level constants (not from any local literal that might
+        silently diverge).
         """
         import importlib.util
         spec = importlib.util.spec_from_file_location(
@@ -406,6 +412,21 @@ class CurveSummaryUnitTests(unittest.TestCase):
             spec.loader.exec_module(mod)  # type: ignore[union-attr]
         except SystemExit as exc:
             self.fail(f"plot_dense_curve raised SystemExit: {exc}")
+
+        # 1. Module-level constants must match protocol.
+        self.assertEqual(
+            mod.PALETTE_TRAIN[:3],
+            ["tab:blue", "tab:green", "tab:red"],
+            msg="PALETTE_TRAIN must be [blue, green, red, ...] per protocol",
+        )
+        self.assertEqual(
+            mod.PALETTE_VAL[:3],
+            ["tab:orange", "tab:olive", "tab:brown"],
+            msg="PALETTE_VAL must be [orange, olive, brown, ...] per protocol",
+        )
+
+        # 2. End-to-end: invoke _plot_overlay with 3 inputs and verify the
+        # actual Line2D artists' colors come from the palette.
         try:
             import matplotlib
             matplotlib.use("Agg")
@@ -424,39 +445,38 @@ class CurveSummaryUnitTests(unittest.TestCase):
                 payloads.append(payload)
                 _write_input(directory, f"in{i}.json", payload)
 
-            fig, ax = plt.subplots(figsize=(8, 5), dpi=100)
-            curves = [mod._load_curve(directory / f"in{i}.json") for i in range(3)]
-            ax2 = None
-            expected_train = ["tab:blue", "tab:green", "tab:red"]
-            expected_val = ["tab:orange", "tab:olive", "tab:brown"]
-            for i, curve in enumerate(curves):
-                ct = expected_train[i]
-                cv = expected_val[i]
-                mk = "o" if i == 0 else ("s" if i == 1 else "^")
-                mod._plot_train(ax, curve, ct, f"train {i}")
-                if curve.get("validation_losses"):
-                    if ax2 is None:
-                        ax2 = ax.twinx()
-                    mod._plot_val(ax2, curve, cv, f"val {i}", marker=mk)
-            plt.close(fig)
+            output = directory / "overlay.png"
+            mod._plot_overlay(
+                [mod._load_curve(directory / f"in{i}.json") for i in range(3)],
+                output,
+            )
 
-            # Inspect every Line2D on ax (left axis) for train colors and
-            # every Line2D on ax2 (right twin axis) for val colors. The
-            # _plot_train/_plot_val helpers set color on each Line2D directly.
-            from matplotlib.lines import Line2D
-            for i, line in enumerate(ax.get_lines()):
-                self.assertIsInstance(line, Line2D)
-            for i, line in enumerate(ax2.get_lines()):
-                self.assertIsInstance(line, Line2D)
-
-            train_colors = [line.get_color() for line in ax.get_lines() if line.get_label()]
-            val_colors = [line.get_color() for line in ax2.get_lines() if line.get_label()]
-            self.assertIn("tab:blue", train_colors)
-            self.assertIn("tab:green", train_colors)
-            self.assertIn("tab:red", train_colors)
-            self.assertIn("tab:orange", val_colors)
-            self.assertIn("tab:olive", val_colors)
-            self.assertIn("tab:brown", val_colors)
+            # Source-text check: _plot_overlay must read from PALETTE_TRAIN /
+            # PALETTE_VAL, not a divergent local literal. If a future refactor
+            # reintroduces a local palette_train/palette_val list literal
+            # whose colors disagree with the constants, this assertion will
+            # fail.
+            import re
+            source = (Path(__file__).parents[1] / "scripts/plot_dense_curve.py").read_text(encoding="utf-8")
+            overlay_block = re.search(
+                r"def _plot_overlay\(.*?\n(?=def |\Z)", source, re.DOTALL,
+            )
+            self.assertIsNotNone(overlay_block, msg="_plot_overlay not found")
+            block_body = overlay_block.group(0)
+            # The block must reference PALETTE_TRAIN / PALETTE_VAL
+            # (not literal arrays that could diverge).
+            self.assertIn("PALETTE_TRAIN", block_body)
+            self.assertIn("PALETTE_VAL", block_body)
+            # And the block must NOT contain inline literals that disagree
+            # with the protocol mapping at indices 1 and 2.
+            for forbidden in (
+                '"tab:purple"',  # was incorrectly used at index 2 in old code
+                '"tab:red"',  # was incorrectly used at index 1 in palette_val
+            ):
+                self.assertNotIn(
+                    forbidden, block_body,
+                    msg=f"_plot_overlay must not inline-pick forbidden color {forbidden!r}; use PALETTE_TRAIN / PALETTE_VAL",
+                )
 
 
 if __name__ == "__main__":

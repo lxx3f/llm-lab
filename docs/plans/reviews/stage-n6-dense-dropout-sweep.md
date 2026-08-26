@@ -62,6 +62,14 @@ N6 第一轮 isolated auditor（calculet/gpt-5.6-terra）提出 2 项 blocker，
 
 测试统计：97 → **100 tests passed**（+3 PNG 尺寸与调色板回归测试）；7 个 PNG 重生成（全部 800×500）；N6 协议与 README 同步文档描述。
 
+---
+
+N6 第二轮 isolated auditor 提出 1 项 blocker，已闭合：
+
+3. **调色板修复未实际生效到生产代码**：上一轮声称修复 `palette_train[2] == "tab:red"` 与 `palette_val[2] == "tab:brown"`，但实际 `scripts/plot_dense_curve.py` 代码仍含 `[purple, brown]` 与 `[red, olive]`——是 commit e042709 的修改未能持久化；同时上一轮添加的回归测试手动以预期颜色调用 `_plot_train / _plot_val`，不能覆盖生产代码本身的调色板选择 → 修复：将 `PALETTE_TRAIN / PALETTE_VAL / PALETTE_MARKERS` 提升为模块顶层常量，`_plot_overlay` 内部 `palette_train = PALETTE_TRAIN` / `palette_val = PALETTE_VAL` 引用；重写 `test_overlay_palette_matches_protocol_blue_green_red`：从加载后 module 直接检查 `mod.PALETTE_TRAIN[:3] == [tab:blue, tab:green, tab:red]` 与 `mod.PALETTE_VAL[:3] == [tab:orange, tab:olive, tab:brown]`；同时源码静态检查 `_plot_overlay` 函数体不含内联字面色 `"tab:purple"`（旧索引 2 错误值）与 `"tab:red"`（旧 val palette 索引 1 错误值），以及必须使用 `PALETTE_TRAIN / PALETTE_VAL` 常量。验证后滴：PALETTE_TRAIN = ['tab:blue', 'tab:green', 'tab:red', 'tab:purple']、PALETTE_VAL = ['tab:orange', 'tab:olive', 'tab:brown', 'tab:pink']；100 tests still passing。
+
+测试统计：100 tests passed（增强同一调色板回归测试）。
+
 ## 关联文档
 
 - 协议：`docs/protocols/n6-dense-dropout-sweep.md`
