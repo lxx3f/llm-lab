@@ -47,11 +47,32 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
     """
     layers: dict[str, bool | None] = {}
     expected_calls: list[dict[str, Any]] = sample.get("expected_tool_calls", [])
-    transcript_calls: list[dict[str, Any]] = transcript.get("tool_calls", [])
+
+    # Normalize tool_calls: missing key, None, or any non-list value is treated
+    # as a malformed transcript. ``parse_success`` reports the parse outcome;
+    # subsequent layers fall back to empty lists so they never crash on
+    # NoneType. (Auditor round 7.)
+    raw_calls = transcript.get("tool_calls")
+    is_list = isinstance(raw_calls, list)
+    transcript_calls: list[dict[str, Any]] = raw_calls if is_list else []
 
     # Layer 1: parse_success — transcript is structurally parseable into a
     # tool_calls list (an empty list is a valid parse, e.g. no_tool samples).
-    layers["parse_success"] = isinstance(transcript_calls, list)
+    layers["parse_success"] = is_list
+
+    if not is_list:
+        # Malformed transcript: all lower layers are N/A; first_failure is
+        # parse_success.
+        layers["schema_valid"] = None
+        layers["call_plan_matches"] = None
+        layers["execution_success"] = None
+        layers["result_grounded"] = None
+        expected_answer = sample.get("expected_answer")
+        if expected_answer is None:
+            layers["task_success"] = None
+        else:
+            layers["task_success"] = str(expected_answer) in (transcript.get("final_answer", "") or "")
+        return {"layers": layers, "first_failure": "parse_success"}
 
     # Layer 2: schema_valid — every transcript call's arguments satisfy the
     # named tool's declared parameters schema.

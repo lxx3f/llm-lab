@@ -391,5 +391,77 @@ class D1SemanticIntegrationTests(unittest.TestCase):
         self.assertEqual(undetermined, [], msg=f"result_grounded never activated: {undetermined}")
 
 
+class MalformedTranscriptRegressionTests(unittest.TestCase):
+    """Reverse-assertion tests: classify() must not crash and must report
+    parse_success=False (with first_failure='parse_success') when the
+    transcript's ``tool_calls`` field is missing, null, or non-list."""
+
+    def _sample(self) -> dict:
+        return {
+            "schema_version": "1.0",
+            "id": "malformed-test",
+            "messages": [{"role": "user", "content": "q"}],
+            "tools": [{"type": "function", "function": {
+                "name": "d1_calculate",
+                "parameters": {"type": "object", "properties": {"expression": {"type": "string"}}, "required": ["expression"]},
+            }}],
+            "expected_tool_calls": [{"call_id": "c1", "name": "d1_calculate", "arguments": {"expression": "1+1"}}],
+            "expected_answer": "2",
+            "metadata": {"source": "test", "license": "test", "task_type": "single_tool",
+                         "data_version": "D1", "pipeline_version": "test", "created_at": "2026-08-27T00:00:00Z",
+                         "validation": {"schema_valid": True}},
+        }
+
+    def test_missing_tool_calls_field_fails_parse(self) -> None:
+        """No ``tool_calls`` key at all → parse_success=False, no crash."""
+        sample = self._sample()
+        result = classify(sample, {"final_answer": "2"})
+        self.assertFalse(result["layers"]["parse_success"])
+        self.assertEqual(result["first_failure"], "parse_success")
+        # All downstream layers are N/A when the transcript is unparseable.
+        for name in ("schema_valid", "call_plan_matches", "execution_success", "result_grounded"):
+            self.assertIsNone(result["layers"][name], msg=f"{name} should be None when parse fails")
+
+    def test_null_tool_calls_fails_parse(self) -> None:
+        """``tool_calls: None`` → parse_success=False (regression: previously
+        crashed with TypeError on len(None))."""
+        sample = self._sample()
+        result = classify(sample, {"tool_calls": None, "final_answer": "2"})
+        self.assertFalse(result["layers"]["parse_success"])
+        self.assertEqual(result["first_failure"], "parse_success")
+
+    def test_non_list_tool_calls_fails_parse(self) -> None:
+        """``tool_calls: 'not a list'`` (string), ``{}`` (dict), ``42`` (int)
+        are all malformed parses."""
+        sample = self._sample()
+        for bad in ("not a list", {"oops": True}, 42, 3.14):
+            result = classify(sample, {"tool_calls": bad, "final_answer": "2"})
+            self.assertFalse(result["layers"]["parse_success"], msg=f"input={bad!r}")
+            self.assertEqual(result["first_failure"], "parse_success", msg=f"input={bad!r}")
+
+    def test_task_success_still_evaluated_when_parse_fails(self) -> None:
+        """Even with a malformed tool_calls, the final_answer can be checked
+        against expected_answer (task_success is independent of parsing)."""
+        sample = self._sample()
+        result = classify(sample, {"tool_calls": None, "final_answer": "2"})
+        self.assertTrue(result["layers"]["task_success"])
+        result = classify(sample, {"tool_calls": None, "final_answer": "nope"})
+        self.assertFalse(result["layers"]["task_success"])
+
+    def test_null_tool_calls_does_not_crash_execution_layer(self) -> None:
+        """Regression: previously, ``execution_success``/``result_grounded``
+        blocks short-circuited correctly, but ``call_plan_matches`` did not.
+        Verify the whole pipeline survives a null tool_calls."""
+        sample = self._sample()
+        # If this raises, the regression is back.
+        result = classify(sample, {"tool_calls": None, "final_answer": "anything"})
+        self.assertIn("layers", result)
+        self.assertIn("first_failure", result)
+        self.assertIsInstance(result["layers"], dict)
+        self.assertEqual(set(result["layers"].keys()),
+                         {"parse_success", "schema_valid", "call_plan_matches",
+                          "execution_success", "result_grounded", "task_success"})
+
+
 if __name__ == "__main__":
     unittest.main()

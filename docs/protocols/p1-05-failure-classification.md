@@ -54,7 +54,7 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 
 - P1-01 MockExecutor 产生 `execution_outcome`（success / mock_not_found / argument_invalid / mock_exception）；
 - P1-05 分类器消费这些 outcome 作为 `execution_success` 层的输入；
-- `result_grounded` 依赖样例的 `expected_result` 字段（D1 生成器可选写入）。
+- `result_grounded` 依赖样例的 `expected_result` 字段（D1 生成器对所有有 expected_tool_calls 的样例均写入 deterministic 值）。
 
 ## D1 数据集（本阶段交付）
 
@@ -94,5 +94,4 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 ## 遗留
 
 - 完整八级分类（tool_name_correct / argument_value_correct / final_answer_correct）未实现——当前六层够用，扩展留到正式评测；
-- D1 的 `expected_result` 字段大多为空（模板未固化结果），`result_grounded` 层在真实 mock 执行时启用；
 - D1 样例未用真实 LLM 生成（mock-only 约束下用确定性模板 + examples.d1_mocks），`source` 标注为 d1-synthetic-template。canonical D1 已通过 MockExecutor 端到端验证（108/108 expected calls 全部可执行且 result 与 expected_result 一致），result_grounded 层在 canonical 数据上实际激活；D1.1 真实 LLM 生成留后续阶段。
