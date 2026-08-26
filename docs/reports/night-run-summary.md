@@ -82,7 +82,7 @@
 | MoE 50000 步长训练 | ✅ | moe-owt-formal-curve-long-result.json (6.0434 @ 50000) |
 | N11 长训练多 seed | ✅ | baseline/medium × 3 seeds (std < 0.01) |
 | N11 large 50000 步 | ✅ | 5.2639 @ 50000，3-scale overlay |
-| D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，六层分类器，15 测试 |
+| D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，六层分类器，23 测试 |
 | 夜间跑总结报告 | ✅ | 本文档 |
 
 ### 未解决（objective 外，单 seed 局限）
