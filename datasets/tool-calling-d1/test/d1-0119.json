@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "id": "d1-0119",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant with tool access."
+    },
+    {
+      "role": "user",
+      "content": "今天深圳的天气怎么样？（不需要工具）"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "Get current weather for a city.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "直接回答深圳天气，不调用工具。",
+  "metadata": {
+    "source": "d1-synthetic-template",
+    "license": "project-internal",
+    "task_type": "no_tool",
+    "task_template": "no_tool_greeting",
+    "data_version": "D1",
+    "pipeline_version": "p1-05-d1-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true,
+      "tool_execution_valid": null,
+      "answer_valid": null,
+      "quality_passed": null
+    }
+  }
+}

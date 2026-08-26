@@ -537,6 +537,19 @@ parse_success
 
 如果只记录工具执行成功率和任务完成率，无法定位模型失败发生在哪一步。
 
+**决策（2026-08-27，P1-05 阶段完成）**
+
+```text
+状态：已解决
+决策：五层失败分类已落 docs/protocols/p1-05-failure-classification.md：
+  parse_success → schema_valid → execution_success → result_grounded → task_success；
+  scripts/classify_tool_failure.py 实现分类器（--sample / --transcript / --output）；
+  D1 数据集已生成（126 样例，6 种 task_type 全覆盖，train/dev/test 80/10/10）；
+  tests/test_d1_failure.py 10 单测。
+遗留：完整八级分类（tool_name_correct / argument_value_correct / final_answer_correct）留正式评测阶段；
+  D1 用确定性模板生成（mock-only 约束），真实 LLM 生成留 D1.1。
+```
+
 ---
 
 ### P1-06 JSON Schema 校验不能替代语义校验
