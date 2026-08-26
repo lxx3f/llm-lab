@@ -34,6 +34,7 @@
 | 统一 benchmark/result 元数据 | git commit / config hash / CUDA/PyTorch/GPU compute capability / seed；4 个 schema metadata 块 + 4 个 CLI 注入 | `stage-n3-unified-metadata.md` |
 | Dense 正式训练曲线 | baseline 0.66M + medium 2.10M 各 5000 步；train_losses + validation_losses 序列 + curve_summary；matplotlib PNG 曲线 | `stage-n4-dense-formal-curve.md` |
 | Dense 规模 sweep | 在 N4 基础上增加 small 1.23M + large 5.11M，4 规模点 + 4-curve overlay PNG + 规模敏感性表 | `stage-n5-dense-scale-sweep.md` |
+| Dense dropout 消融 | medium 2.10M × dropout ∈ {0.0, 0.1, 0.2}，3 dropout 点 + 3-curve overlay PNG + dropout sensitivity 表 | `stage-n6-dense-dropout-sweep.md` |
 
 这些阶段都已通过阶段审查（`minimax-cn/MiniMax-M3` reviewer），不允许回退。
 
