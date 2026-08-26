@@ -38,6 +38,10 @@ RUNS = [
     ("configs/dense_training.owt-formal-curve-medium-heads-8.example.yaml", "dense-owt-formal-curve-medium-heads-8"),
     ("configs/dense_training.owt-formal-curve-medium-dff-256.example.yaml", "dense-owt-formal-curve-medium-dff-256"),
     ("configs/dense_training.owt-formal-curve-medium-dff-1024.example.yaml", "dense-owt-formal-curve-medium-dff-1024"),
+    # N11 long curve (50000 steps, seed 42 already exists as -result.json;
+    # multi-seed variant writes -seed{42,123,7}-result.json).
+    ("configs/dense_training.owt-formal-curve-long-baseline.example.yaml", "dense-owt-formal-curve-long-baseline"),
+    ("configs/dense_training.owt-formal-curve-long-medium.example.yaml", "dense-owt-formal-curve-long-medium"),
 ]
 SEEDS = [42, 123, 7]
 SEED_SUFFIX = {42: "seed42", 123: "seed123", 7: "seed7"}
