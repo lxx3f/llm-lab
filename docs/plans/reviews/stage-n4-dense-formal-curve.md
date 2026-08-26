@@ -163,3 +163,9 @@ N4 第二轮 isolated auditor 提出 2 项新 blocker，已闭合：
 5. **README 文档不一致**：实验 README 说“val_loss 5000 步时仍在缓慢下降（不是 min）”，但实际 `val_loss_min_step: 5000` 与 `delta_val_loss: 0.0`表明 5000 步就是 min → 文档修正：明确写 val_loss 在 step 5000 达到最小值后停步，需更长训练才能观察是否反弹 ✅
 
 修复后测试统计：95 → **96 tests passed**（+1 行为测试）；3 个 PNG 重新生成。
+
+---
+
+N4 第三轮 isolated auditor 提出 1 项 blocker，已闭合：
+
+6. **README “共同点”部分遗留旧句**：前轮只改了 Medium 部分，但 `docs/experiments/n4-dense-formal-curve/README.md` "共同点"中仍含 "val_loss 5000 步时仍在缓慢下降（不是 min）"，与 `val_loss_min_step: 5000 / delta_val_loss: 0.0` 矛盾 → 修复：删掉该错误句子，改写为 val_loss 5000 步时两实验均达到最小值（与 `curve_summary.val_loss_min_step` 字段一致）；同时 Baseline 部分补上“`val_loss_min_step: 5000`，与 last 一致”备注；新增回归测试 `test_experiment_readme_doc_consistency`：运行时检查 README 不含 "不是 min"/"5000 步时仍在缓慢下降" 与 artifacts 的 `val_loss_min_step == 5000` 一致。测试统计：96 → **97 tests passed**（+1 文档一致性检查 test）。

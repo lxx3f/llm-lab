@@ -167,6 +167,36 @@ class PlotDenseCurveTests(unittest.TestCase):
         self.assertIn("ax.twinx", body, msg="_plot_overlay must use ax.twinx() for shared dual axes")
         self.assertNotIn("plt.subplots(1, len", body, msg="_plot_overlay uses side-by-side subplots; expected shared axes")
 
+    def test_experiment_readme_doc_consistency(self) -> None:
+        """Sanity check on docs/experiments/n4-dense-formal-curve/README.md:
+        the prose must agree with the artifacts it documents.
+
+        This guards against the regression caught by the isolated auditor:
+        README claimed "val_loss 5000 步时不是 min" while both artifacts have
+        ``val_loss_min_step == 5000``. Any future README edit that contradicts
+        the artifact's documented minima must be caught here.
+        """
+        readme = (Path(__file__).parents[1] / "docs/experiments/n4-dense-formal-curve/README.md").read_text(encoding="utf-8")
+        # The forbidden phrasings from previous auditor rejections:
+        for forbidden in ("不是 min", "5000 步时仍在缓慢下降"):
+            self.assertNotIn(
+                forbidden,
+                readme,
+                msg=f"README still contains stale phrasing: {forbidden!r}",
+            )
+        # The required confirmation that both runs reach their minimum at step 5000:
+        self.assertIn("val_loss_min_step", readme)
+        # Both runs end at step 5000 in their artifacts:
+        for path in ("artifacts/dense-owt-formal-curve-result.json",
+                     "artifacts/dense-owt-formal-curve-medium-result.json"):
+            if not Path(path).exists():
+                continue  # artifacts are gitignored; skip if absent
+            summary = json.loads(Path(path).read_text(encoding="utf-8"))["metrics"]["curve_summary"]
+            self.assertEqual(
+                summary["val_loss_min_step"], 5000,
+                msg=f"{path} should reach min val at step 5000 per README",
+            )
+
     def test_plot_dense_curve_overlay_uses_exactly_two_axes(self) -> None:
         """Behavioral test: render the overlay PNG with two curves and assert
         the produced figure has exactly two matplotlib Axes (one left for

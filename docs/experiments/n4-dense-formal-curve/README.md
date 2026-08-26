@@ -44,7 +44,7 @@
 ### 共同点
 
 - 两条曲线都看到明显的 train_loss 单调下降（Δ_train_loss < 0，符合协议 sanity check）
-- val_loss 5000 步时仍在缓慢下降（不是 min），曲线尚未收尾
+- val_loss 5000 步时两实验均达到 `val_loss_min_step: 5000` 与 `delta_val_loss: 0.0`（末点就是最小值，因采样到 step 5000 就停步；继续训练才能判断是否反弹）
 - warmup 100 步后 loss 进入快速下降区间
 - medium 起始 train_loss 比 baseline 高约 1.7×（vocab 随机采样+大模型的 logits scale）
 - medium 末段 val_loss（7.06）**低于** baseline（7.23）约 0.17——规模 3.2× 带来 val_loss 改善 2.4%
@@ -52,7 +52,7 @@
 ### Baseline（0.66M）
 
 - train_loss 5000 步时仍在 6.8 附近震荡（lr 已到 min_lr_ratio=0.1 的下限 ~3e-5）
-- val_loss 4200 步开始稳定在 7.23 附近；5000 步略降（7.2323 < 7.2491 @ 4800）
+- val_loss 4200 步开始稳定在 7.23 附近；5000 步略降（7.2323 < 7.2491 @ 4800）；`val_loss_min_step: 5000`，与 last 一致
 
 ### Medium（2.10M）
 
