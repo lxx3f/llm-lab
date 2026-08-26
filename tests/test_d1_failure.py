@@ -54,6 +54,44 @@ class D1DatasetTests(unittest.TestCase):
             task_types.add(sample["metadata"]["task_type"])
         self.assertEqual(task_types, ALL_TASK_TYPES, msg=f"missing task types: {ALL_TASK_TYPES - task_types}")
 
+    def test_canonical_expected_call_count_is_117(self) -> None:
+        """Defensive contract (auditor round 11): canonical D1 has exactly
+        117 expected tool calls across all 126 samples, all with
+        deterministic expected_result. Counting by task_type:
+            single_tool (36 samples × 1 call) = 36
+            multi_tool (18 samples × 2 calls) = 36
+            tool_error_response (9 samples × 1 call) = 9
+            insufficient_result (18 samples × 1 call) = 18
+            requirement_change (18 samples × 1 call) = 18
+            total = 117
+        If the generator changes (e.g. new sub-scenario added), this test
+        forces the documentation, protocols, and completion summary to be
+        updated to match."""
+        manifest = json.loads((D1_DIR / "MANIFEST.json").read_text(encoding="utf-8"))
+        counts_by_type: dict[str, int] = {}
+        total_calls = 0
+        calls_with_expected_result = 0
+        for entry in manifest["samples"]:
+            sample = json.loads((D1_DIR / entry["path"]).read_text(encoding="utf-8"))
+            calls = sample.get("expected_tool_calls", [])
+            total_calls += len(calls)
+            counts_by_type[sample["metadata"]["task_type"]] = (
+                counts_by_type.get(sample["metadata"]["task_type"], 0) + len(calls)
+            )
+            for c in calls:
+                if "expected_result" in c:
+                    calls_with_expected_result += 1
+        self.assertEqual(
+            counts_by_type,
+            {"single_tool": 36, "multi_tool": 36, "tool_error": 9,
+             "insufficient_result": 18, "requirement_change": 18, "no_tool": 0},
+            msg=f"call counts by task_type drifted: {counts_by_type}",
+        )
+        self.assertEqual(total_calls, 117,
+                         msg=f"canonical expected call count drifted from 117 to {total_calls}")
+        self.assertEqual(calls_with_expected_result, 117,
+                         msg=f"expected_result coverage drifted: {calls_with_expected_result}/117")
+
     def test_manifest_hashes_match_files(self) -> None:
         import hashlib
         manifest = json.loads((D1_DIR / "MANIFEST.json").read_text(encoding="utf-8"))

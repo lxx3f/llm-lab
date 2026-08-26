@@ -21,7 +21,7 @@
 
 - **用途**：SFT 训练 + 评测数据；
 - **规模**：≥100 样例（canonical 126）；
-- **来源**：**当前 MVP（mock-only）**：`scripts/generate_d1_dataset.py` 确定性模板生成（标注 `source: d1-synthetic-template`），配合 `examples/d1_mocks.py` 产生 deterministic `expected_result`，并由 `MockExecutor` 端到端验证 108/108 expected calls 可执行；**D1.1**：需 LLM API 凭证，使用真实 LLM 生成 + 人工过滤（标注 `source: <model-name>@<version>`）；
+- **来源**：**当前 MVP（mock-only）**：`scripts/generate_d1_dataset.py` 确定性模板生成（标注 `source: d1-synthetic-template`），配合 `examples/d1_mocks.py` 产生 deterministic `expected_result`，并由 `MockExecutor` 端到端验证 117/117 expected calls 可执行；**D1.1**：需 LLM API 凭证，使用真实 LLM 生成 + 人工过滤（标注 `source: <model-name>@<version>`）；
 - **split**：train/dev/test = 100/13/13；
 - **hash**：每个样例 + 分片 + 全集合 hash；
 - **质量检查**：schema valid 100%、parse_success 100%、tool_execution_valid ≥ 95%。

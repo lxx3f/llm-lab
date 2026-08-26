@@ -69,7 +69,7 @@
 
 ## 7. 测试与提交
 
-- `scripts/run_tests.py full`：**151 tests passing**（夜间跑开始前 100 → 151）；
+- `scripts/run_tests.py full`：**152 tests passing**（夜间跑开始前 100 → 152）；
 - Git：main 从夜间跑起点 `43260e3` 推进到最终 commit（+12 commits：multi-seed 39-run / provenance fix / moe-long / n11-multi-seed / n11-large / p1-05 / d1-manifest-repro / report / p1-05 auditor fixes ×2）；当前 HEAD 即最终 commit，provenance 由 tests/test_artifact_provenance.py 动态验证。
 
 ## 8. 完成状态与遗留
@@ -82,7 +82,7 @@
 | MoE 50000 步长训练 | ✅ | moe-owt-formal-curve-long-result.json (6.0434 @ 50000) |
 | N11 长训练多 seed | ✅ | baseline/medium × 3 seeds (std < 0.01) |
 | N11 large 50000 步 | ✅ | 5.2639 @ 50000，3-scale overlay |
-| D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，六层分类器，33 测试（test_d1_failure.py）|
+| D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，六层分类器，34 测试（test_d1_failure.py）|
 | 夜间跑总结报告 | ✅ | 本文档 |
 
 ### 未解决（objective 外，单 seed 局限）
@@ -90,7 +90,7 @@
 - **MoE 多 seed（5000/50000 步 × 3 seeds）未跑**——MoE vs Dense 的差距是单 seed 观察；
 - **N11 large 多 seed 未跑**（只跑了单 seed 42）；
 - 100000 步训练上限未测试（50000 步仍未触底，更长步数是否有天花板未知）；
-- D1 的 result_grounded 层已通过 MockExecutor 端到端验证（108/108 expected calls 全部可执行）；真实推理后端接入后该层会接收真实 LLM 输出。
+- D1 的 result_grounded 层已通过 MockExecutor 端到端验证（117/117 expected calls 全部可执行）；真实推理后端接入后该层会接收真实 LLM 输出。
 
 > 上述未解决项不影响本报告对已完成阶段的结论；单 seed 的 MoE/large 对比已明确标注为观察值。
 
