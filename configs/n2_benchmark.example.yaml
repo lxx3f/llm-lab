@@ -1,0 +1,45 @@
+model:
+  name: n2-owt-small
+  architecture: DenseTransformer
+  vocab_size: 8192
+  max_seq_len: 64
+  d_model: 64
+  n_heads: 4
+  n_layers: 2
+  d_ff: 64
+  dropout: 0.0
+  rope_base: 10000.0
+
+moe:
+  num_experts: 4
+  capacity_factor: 1.0
+  aux_loss_weight: 0.01
+
+data:
+  tokenizer: artifacts/tokenizers/owt-bpe/v0.2.0/tokenizer.json
+  train_tokens: data/processed/owt-sample/train.tokens.uint16
+  train_metadata: data/processed/owt-sample/train.metadata.json
+  validation_metadata: data/processed/owt-sample/validation.metadata.json
+
+optimizer:
+  name: AdamW
+  learning_rate: 0.0003
+  weight_decay: 0.01
+scheduler:
+  name: warmup_cosine
+  warmup_steps: 1
+  min_lr_ratio: 0.1
+amp:
+  enabled: false
+  dtype: float16
+
+benchmark:
+  seed: 42
+  device: auto
+  dtype: float32
+  batch_size: 2
+  sequence_length: 32
+  token_budget: 128
+  gradient_accumulation_steps: 1
+  warmup_steps: 1
+  measured_steps: 2

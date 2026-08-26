@@ -41,7 +41,7 @@
 | 子阶段 | 范围 | 退出条件 |
 |---|---|---|
 | N1 MoE Top-1 训练闭环 | MoE 配置加载、active loss + aux loss、checkpoint/resume、result schema | MoE 1MiB smoke 与 formal cache 100-step smoke 通过 |
-| N2 Dense/MoE 公平对比协议 | 相同 total params / 相同 active params 两套协议、active 参数工具、统一 benchmark schema | 两套协议的对比实验记录和 result JSON 落盘 |
+| N2 Dense/MoE 公平对比协议 | 相同 total params / 相同 active params 两套协议、统一 benchmark/routing stats schema、实际 A/B smoke | A/B 四个 Dense/MoE result JSON 与 routing stats JSON 通过 schema 校验并落盘 |
 | N3 统一 benchmark/result 元数据 | git commit / config hash / CUDA/PyTorch/GPU compute capability / seed | fast/full 测试与 schema 校验通过 |
 | N4 Dense 正式训练曲线 | 更长 max_steps、formal cache、train/val loss 序列 | 曲线记录和 experiment record 落盘 |
 

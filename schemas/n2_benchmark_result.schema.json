@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llm-lab.local/schemas/n2_benchmark_result.schema.json",
+  "title": "LLM Lab N2 Architecture Benchmark Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "result_type", "experiment_id", "status", "protocol", "model", "alignment", "binding", "metrics", "benchmark", "routing"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "result_type": {"const": "architecture_benchmark"},
+    "experiment_id": {"type": "string", "minLength": 1},
+    "status": {"const": "completed"},
+    "protocol": {"enum": ["A", "B"]},
+    "model": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "architecture", "config", "moe_config", "parameter_count_total", "parameter_count_active", "active_parameter_definition"],
+      "properties": {
+        "name": {"type": "string"}, "architecture": {"enum": ["DenseTransformer", "MoETransformer"]}, "config": {"type": "object"}, "moe_config": {"type": ["object", "null"]}, "parameter_count_total": {"type": "integer", "minimum": 1}, "parameter_count_active": {"type": "integer", "minimum": 1}, "active_parameter_definition": {"type": "string", "minLength": 1}
+      }
+    },
+    "alignment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["basis", "target_parameters", "delta", "relative_error", "dense_d_ff", "moe_d_ff"],
+      "properties": {"basis": {"enum": ["total_parameters", "active_parameters"]}, "target_parameters": {"type": "integer", "minimum": 1}, "delta": {"type": "integer", "minimum": 0}, "relative_error": {"type": "number", "minimum": 0}, "dense_d_ff": {"type": "integer", "minimum": 1}, "moe_d_ff": {"type": "integer", "minimum": 1}}
+    },
+    "binding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["data_version", "tokenizer_sha256", "train_cache_metadata_sha256", "validation_cache_metadata_sha256", "seed", "batch_size", "sequence_length", "token_budget", "gradient_accumulation_steps", "optimizer", "scheduler", "amp"],
+      "properties": {"data_version": {"type": ["string", "null"]}, "tokenizer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "train_cache_metadata_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "validation_cache_metadata_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "seed": {"type": "integer"}, "batch_size": {"type": "integer", "minimum": 1}, "sequence_length": {"type": "integer", "minimum": 2}, "token_budget": {"type": "integer", "minimum": 1}, "gradient_accumulation_steps": {"type": "integer", "minimum": 1}, "optimizer": {"type": "object"}, "scheduler": {"type": "object"}, "amp": {"type": "object"}}
+    },
+    "metrics": {
+      "type": "object", "additionalProperties": false,
+      "required": ["train_lm_loss", "loss_capacity_factor", "validation_lm_loss", "aux_loss", "total_loss"],
+      "properties": {"train_lm_loss": {"type": ["number", "null"]}, "loss_capacity_factor": {"enum": [1.0, null]}, "validation_lm_loss": {"type": ["number", "null"]}, "aux_loss": {"type": ["number", "null"]}, "total_loss": {"type": ["number", "null"]}}
+    },
+    "benchmark": {
+      "type": "object", "additionalProperties": false,
+      "required": ["warmup_steps", "measured_steps", "latency_statistic", "prefill", "decode"],
+      "properties": {"warmup_steps": {"type": "integer", "minimum": 0}, "measured_steps": {"type": "integer", "minimum": 1}, "latency_statistic": {"const": "mean"}, "prefill": {"$ref": "#/$defs/prefill"}, "decode": {"$ref": "#/$defs/decode"}}
+    },
+    "routing": {
+      "type": "object", "additionalProperties": false,
+      "required": ["collect_stats", "prefill_capacity_factor", "decode_capacity_factor", "prefill", "decode"],
+      "properties": {"collect_stats": {"const": false}, "prefill_capacity_factor": {"enum": [1.0, null]}, "decode_capacity_factor": {"enum": [2.0, null]}, "prefill": {"type": ["object", "null"]}, "decode": {"type": ["object", "null"]}}
+    }
+  },
+  "$defs": {
+    "prefill": {"type": "object", "additionalProperties": false, "required": ["batch_size", "input_tokens", "latency_ms", "tokens_per_second", "peak_memory_mb"], "properties": {"batch_size": {"type": "integer", "minimum": 1}, "input_tokens": {"type": "integer", "minimum": 1}, "latency_ms": {"type": "number", "minimum": 0}, "tokens_per_second": {"type": "number", "minimum": 0}, "peak_memory_mb": {"type": ["number", "null"], "minimum": 0}}},
+    "decode": {"type": "object", "additionalProperties": false, "required": ["batch_size", "context_tokens", "new_tokens_per_step", "latency_ms_per_token", "tokens_per_second", "peak_memory_mb"], "properties": {"batch_size": {"type": "integer", "minimum": 1}, "context_tokens": {"type": "integer", "minimum": 1}, "new_tokens_per_step": {"const": 1}, "latency_ms_per_token": {"type": "number", "minimum": 0}, "tokens_per_second": {"type": "number", "minimum": 0}, "peak_memory_mb": {"type": ["number", "null"], "minimum": 0}}}
+  }
+}

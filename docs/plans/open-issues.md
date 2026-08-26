@@ -241,7 +241,7 @@ N1 训练闭环已完成大阶段审查，审查结论为通过；正式阶段 c
 **决策（2026-08-26）**
 
 ```text
-状态：未解决（N2 未开始）
+状态：已解决（N2 A/B smoke 已完成）
 决策：两套对比协议固定，执行顺序为 A → B。
 
 协议 A：相同 total params
@@ -274,8 +274,10 @@ N1 训练闭环已完成大阶段审查，审查结论为通过；正式阶段 c
   - 两套协议下 Dense/MoE 使用同一 tokenizer 与同一 cache
   - 同一 optimizer、scheduler、AMP、accumulation、seed
   - 报告需同时给出 total/active 参数与 routing stats（避免重复 P0-04）
-  - MoE prefill/decode 行为需在 P0-05 解决后再跑正式 benchmark
-```
+  - 两套协议均使用同一 tokenizer/cache、seed=42、batch=2、sequence=32、token budget=128
+  - A/B 四个 Dense/MoE benchmark result JSON 与独立 routing stats JSON 已落盘并通过 schema 校验
+  - latency benchmark 固定 collect_stats=false；routing stats 独立使用 collect_stats=true
+  - formal benchmark、N3 元数据、多 seed 统计和严格性能结论仍不在 N2 范围
 
 ---
 
@@ -304,7 +306,7 @@ output, aux_loss, stats = moe(x, collect_stats=False)
 **决策（2026-08-26）**
 
 ```text
-状态：未解决（N1 阶段实现接口，N2 提供分析与报告）
+状态：已解决（N2 routing stats 已实现并完成独立 smoke）
 决策：MoE routing statistics 采集开关机制固定。
 
 接口：
@@ -320,7 +322,7 @@ output, aux_loss, stats = moe(x, collect_stats=False)
 
 result JSON 与 benchmark JSON 都必须记录 collect_stats 开关状态。
 
-归属：N1 实现接口；N2 提供 routing stats 分析脚本与报告输出。
+归属：N1 实现接口；N2 已提供 routing stats 分析脚本与报告输出。
 ```
 
 ---
@@ -353,7 +355,7 @@ result JSON 与 benchmark JSON 都必须记录 collect_stats 开关状态。
 **决策（2026-08-26）**
 
 ```text
-状态：未解决（N1 实现接口与默认 capacity_factor，N2 提供 benchmark 输出）
+状态：已解决（N2 benchmark 已显式记录两阶段 capacity）
 决策：接受 prefill/decode 不严格等价，并在报告中显式记录。
 
 capacity 策略：
@@ -367,8 +369,8 @@ capacity 策略：
 调用路径：inference 接口提供 prefill/decode 两个调用点，分别传入不同
 capacity_factor；不允许隐式使用一个 capacity_factor。
 
-归属：N1 实现接口与默认 capacity_factor；N2 提供 prefill/decode
-各自 benchmark 输出与报告。
+归属：N1 实现接口与默认 capacity_factor；N2 已提供 prefill/decode 各自 benchmark 输出与报告。
+
 ```
 
 ---

@@ -21,6 +21,8 @@ if str(ROOT) not in sys.path:
 
 FAST_MODULES = (
     ("tests", "test_batching.py"),
+    ("tests", "test_n2_benchmark.py"),
+    ("tests", "test_n2_result_schema.py"),
     ("tests", "test_dense_result_schema.py"),
     ("tests", "test_stage0_schemas.py"),
     ("tests", "test_token_cache.py"),
@@ -38,6 +40,8 @@ MODULES = {
     "training": (
         ("tests", "test_dense_training.py"),
         ("tests", "test_moe_training.py"),
+        ("tests", "test_n2_benchmark.py"),
+        ("tests", "test_n2_result_schema.py"),
         ("tests", "test_dense_result_schema.py"),
     ),
     "architecture": (
@@ -106,6 +110,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         modules = (
             ("tests", "test_batching.py"),
+            ("tests", "test_n2_benchmark.py"),
+            ("tests", "test_n2_result_schema.py"),
             ("tests", "test_dense_result_schema.py"),
             ("tests", "test_dense_training.py"),
             ("tests", "test_moe_training.py"),
