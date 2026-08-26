@@ -55,8 +55,8 @@
 | **P1-01** | MockExecutor + tool_execution_result schema v1.0 + CLI + 8 单测 |
 | **P1-03** | 多 seed 协议（3 seeds={42,123,7}，mean/std，判定标准）|
 | **P1-04** | D0 MANIFEST workflow（build_d0_manifest.py）+ 3 样例 source=synthetic |
-| **P1-05** | 五层失败分类（parse/schema/execution/grounded/task）+ D1 数据集（126 样例，6 task_type）|
-| **D1 数据集** | 确定性模板生成，train/dev/test 80/10/10，MANIFEST + sha256 |
+| **P1-05** | 六层失败分类（parse/schema/call_plan/execution/grounded/task）+ D1 数据集（126 样例，6 task_type）|
+| **D1 数据集** | 确定性模板生成（seed=2026），train/dev/test=100/13/13，MANIFEST + sha256 + 目录与 manifest 严格一致 |
 
 ## 6. 文件与产物索引
 
@@ -70,7 +70,7 @@
 ## 7. 测试与提交
 
 - `scripts/run_tests.py full`：**127 tests passing**（夜间跑开始前 100 → 127）；
-- Git：main 从 `43260e3` 推进到 `8207a64`（+7 commits：multi-seed 39-run / provenance / moe-long / n11-multi-seed / n11-large / p1-05 / provenance fix）。
+- Git：main 从 `43260e3` 推进到 `e9c8702`（+9 commits：multi-seed 39-run / provenance fix / moe-long / n11-multi-seed / n11-large / p1-05 / d1-manifest-repro / report）。
 
 ## 8. 遗留与下一步
 

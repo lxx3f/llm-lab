@@ -6,24 +6,26 @@
 
 工具调用评测如果只记录"工具执行成功率"和"任务完成率"，无法定位模型失败发生在哪一步。P1-05 固定五层错误分类。
 
-## 五层失败层级
+## 六层失败层级（v2，2026-08-27 修订）
 
 ```text
-parse_success      ← 模型输出能否解析为结构化 tool calls
-→ schema_valid     ← 每个 call 是否匹配工具声明的参数 schema
+parse_success       ← transcript 结构可解析为 tool_calls 列表（空列表是合法解析）
+→ schema_valid      ← 每个 call 的 arguments 符合命名工具的声明 schema
+→ call_plan_matches ← 调用与 expected_tool_calls 的 name/arguments/顺序/依赖一致
 → execution_success ← MockExecutor 是否成功执行（含依赖序）
-→ result_grounded  ← 实际工具结果是否等于 expected_result
-→ task_success     ← final_answer 是否包含 expected_answer
+→ result_grounded   ← 实际工具结果是否等于 expected_result（未声明时 N/A）
+→ task_success      ← final_answer 是否包含 expected_answer（null 时 N/A）
 ```
 
-**首次失败层** = 模型失败的具体位置。例如：
-- `parse_success` 失败：模型输出无法解析；
-- `schema_valid` 失败：参数缺字段/类型错；
-- `execution_success` 失败：mock 抛错/依赖未完成；
-- `result_grounded` 失败：工具返回了错误结果（模型没正确传参）；
-- `task_success` 失败：工具调用全对但最终回答错误。
+**层语义规则**：
 
-> 完整八级（open-issue P1-05 原文含 tool_name_correct / argument_value_correct / final_answer_correct）在需要更细粒度时扩展；当前五层覆盖 parse→execute→ground→answer 的评测闭环。
+- `no_tool` 样例（expected_tool_calls 为空）：正确输出 = 空 tool_calls；parse/schema/execution/grounding 平凡通过；
+- `tool_error` 样例：模型应**检测到无效调用并报告**，不应执行——expected_tool_calls 为空，正确 transcript 也无调用；
+- `expected_answer: null`：task_success = None（不可判定），不计入失败；
+- 未声明 `expected_result` 的调用：result_grounded = None（不可判定），不计入失败；
+- **首次失败层**（None 跳过）= 模型失败的具体位置。
+
+> 完整八级（open-issue P1-05 原文含 tool_name_correct / argument_value_correct / final_answer_correct）在需要更细粒度时扩展；当前六层覆盖 parse→plan→execute→ground→answer 的评测闭环。
 
 ## 分类器接口
 

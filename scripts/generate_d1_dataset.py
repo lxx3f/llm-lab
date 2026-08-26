@@ -189,7 +189,7 @@ def build_samples(count: int, rng: random.Random) -> list[dict[str, Any]]:
                 sid,
                 _messages(f"请计算 {expr}，如果工具缺少必要参数就说明。", []),
                 [CALC_TOOL],
-                [{"call_id": f"call-{sid}", "name": "calculate", "arguments": {}}],
+                [],  # Model must NOT call with invalid args; it should report the error.
                 "工具缺少必要参数 expression，应报告错误。",
                 "tool_error", "tool_missing_arg",
             ))
@@ -222,11 +222,17 @@ def validate(sample: dict[str, Any], validator: Any) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--count", type=int, default=120)
+    parser.add_argument("--count", type=int, default=126)
     parser.add_argument("--seed", type=int, default=2026)
     args = parser.parse_args()
     if args.count < 3:
         raise SystemExit("--count must be >= 3")
+
+    # Canonical dataset is 126 (100/13/13); reject other counts unless explicit.
+    if args.count != 126:
+        print(f"[generate_d1_dataset] WARNING: non-canonical count {args.count} "
+              "(canonical is 126; --count is for determinism checks only)",
+              file=sys.stderr)
 
     rng = random.Random(args.seed)
     samples = build_samples(args.count, rng)
@@ -242,6 +248,14 @@ def main() -> int:
     samples.sort(key=lambda s: s["id"])
     n = len(samples)
     train, dev, test = samples[: int(n * 0.8)], samples[int(n * 0.8): int(n * 0.9)], samples[int(n * 0.9):]
+
+    # Remove stale files from previous generations so the on-disk layout
+    # matches the manifest exactly (no leftover files from other --count runs).
+    for split_name in ("train", "dev", "test"):
+        split_dir = OUT_DIR / split_name
+        if split_dir.is_dir():
+            for old in split_dir.glob("d1-*.json"):
+                old.unlink()
 
     manifest_samples: list[dict[str, Any]] = []
     for split_name, split_samples in (("train", train), ("dev", dev), ("test", test)):

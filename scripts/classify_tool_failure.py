@@ -3,14 +3,20 @@
 Evaluates a model's tool-calling transcript against a D0/D1 sample through
 five failure layers:
 
-    parse_success      model output parsed into structured tool calls
-    schema_valid       each call matches the tool's declared schema
-    execution_success  MockExecutor ran the calls (all dependencies OK)
-    result_grounded    expected tool result equals mock result
-    task_success       expected_answer is contained in the final answer
+    parse_success      transcript has a structured tool_calls list
+    schema_valid       every call's arguments match the named tool's schema
+    call_plan_matches  calls match expected name/arguments/order/dependencies
+    execution_success  MockExecutor ran all calls successfully
+    result_grounded    actual results match expected results (where declared)
+    task_success       final answer contains expected_answer (where declared)
 
-Each layer's pass/fail is recorded; the first failing layer identifies where
-the model failed (per open-issue P1-05).
+Layers that are undefined for a sample (e.g. ``task_success`` when
+``expected_answer`` is null, ``result_grounded`` when no ``expected_result``
+is declared) are reported as ``None`` (not applicable) and never count as the
+first failure.
+
+For ``no_tool`` samples (empty ``expected_tool_calls``), the correct output is
+an empty tool-call list; parse/schema/execution/grounding are trivially true.
 
 Usage:
     .venv/python.exe scripts/classify_tool_failure.py \\
@@ -34,18 +40,28 @@ from jsonschema import Draft202012Validator  # noqa: E402
 
 
 def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, Any]:
-    """Classify a model transcript against the sample through 5 layers."""
-    layers: dict[str, bool] = {}
+    """Classify a model transcript against the sample through the layers.
 
-    # Layer 1: parse_success — transcript contains a tool-calls list.
-    calls = transcript.get("tool_calls", [])
-    layers["parse_success"] = isinstance(calls, list) and len(calls) > 0
+    Returns ``{"layers": {...}, "first_failure": str | None}`` where layer
+    values are True / False / None (None = not applicable).
+    """
+    layers: dict[str, bool | None] = {}
+    expected_calls: list[dict[str, Any]] = sample.get("expected_tool_calls", [])
+    transcript_calls: list[dict[str, Any]] = transcript.get("tool_calls", [])
 
-    # Layer 2: schema_valid — every call matches the tool's arguments schema.
-    schema_valid = True
+    # Layer 1: parse_success — transcript is structurally parseable into a
+    # tool_calls list (an empty list is a valid parse, e.g. no_tool samples).
+    layers["parse_success"] = isinstance(transcript_calls, list)
+
+    # Layer 2: schema_valid — every transcript call's arguments satisfy the
+    # named tool's declared parameters schema.
+    schema_valid: bool | None = True
     if layers["parse_success"]:
-        for call in calls:
-            tool = next((t for t in sample["tools"] if t["function"]["name"] == call.get("name")), None)
+        for call in transcript_calls:
+            tool = next(
+                (t for t in sample.get("tools", []) if t["function"]["name"] == call.get("name")),
+                None,
+            )
             if tool is None:
                 schema_valid = False
                 break
@@ -55,32 +71,70 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
                 break
     layers["schema_valid"] = schema_valid
 
-    # Layer 3: execution_success — every call ran without mock error.
-    layers["execution_success"] = all(
-        call.get("execution_outcome") == "success" for call in calls
-    ) if layers["parse_success"] else False
+    # Layer 3: call_plan_matches — transcript calls match the expected plan:
+    # same names, same arguments, same order, and same depends_on edges.
+    plan_matches: bool | None = True
+    if len(expected_calls) == 0:
+        # no_tool: expect no calls.
+        plan_matches = len(transcript_calls) == 0
+    elif not isinstance(transcript_calls, list):
+        plan_matches = None
+    else:
+        if len(transcript_calls) != len(expected_calls):
+            plan_matches = False
+        else:
+            for exp, act in zip(expected_calls, transcript_calls):
+                if exp.get("name") != act.get("name"):
+                    plan_matches = False
+                    break
+                if exp.get("arguments") != act.get("arguments"):
+                    plan_matches = False
+                    break
+                exp_deps = sorted(exp.get("depends_on") or [])
+                act_deps = sorted(act.get("depends_on") or [])
+                if exp_deps != act_deps:
+                    plan_matches = False
+                    break
+    layers["call_plan_matches"] = plan_matches
 
-    # Layer 4: result_grounded — actual mock result == expected result.
-    expected = sample.get("expected_tool_calls", [])
-    grounded = True
-    if layers["execution_success"]:
-        for idx, call in enumerate(calls):
-            exp = next((e for e in expected if e.get("call_id") == call.get("call_id")), None)
+    # Layer 4: execution_success — every transcript call executed without a
+    # mock error. Undefined (None) when there are no calls.
+    if not isinstance(transcript_calls, list) or len(transcript_calls) == 0:
+        layers["execution_success"] = None if len(expected_calls) > 0 else True
+    else:
+        layers["execution_success"] = all(
+            call.get("execution_outcome") == "success" for call in transcript_calls
+        )
+
+    # Layer 5: result_grounded — actual results match expected results where
+    # expected_result is declared. None when no expected_result is declared.
+    grounded: bool | None = True
+    grounded_declared = False
+    if isinstance(transcript_calls, list):
+        for call in transcript_calls:
+            exp = next(
+                (e for e in expected_calls if e.get("call_id") == call.get("call_id")),
+                None,
+            )
             if exp is None or "expected_result" not in exp:
                 continue
-            actual = call.get("result")
-            if actual != exp["expected_result"]:
+            grounded_declared = True
+            if call.get("result") != exp["expected_result"]:
                 grounded = False
                 break
-    layers["result_grounded"] = grounded
+    layers["result_grounded"] = grounded if grounded_declared else None
 
-    # Layer 5: task_success — expected answer appears in final assistant text.
+    # Layer 6: task_success — final answer contains expected_answer where
+    # declared. None when expected_answer is null (unverifiable).
     expected_answer = sample.get("expected_answer")
-    final_text = transcript.get("final_answer", "") or ""
-    layers["task_success"] = bool(expected_answer) and str(expected_answer) in final_text
+    if expected_answer is None:
+        layers["task_success"] = None
+    else:
+        final_text = transcript.get("final_answer", "") or ""
+        layers["task_success"] = str(expected_answer) in final_text
 
-    # First failing layer (or None if all pass).
-    first_failure = next((name for name, ok in layers.items() if not ok), None)
+    # First failing layer (skip None / not-applicable).
+    first_failure = next((name for name, ok in layers.items() if ok is False), None)
     return {"layers": layers, "first_failure": first_failure}
 
 

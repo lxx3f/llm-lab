@@ -31,13 +31,7 @@
       }
     }
   ],
-  "expected_tool_calls": [
-    {
-      "call_id": "call-d1-0081",
-      "name": "calculate",
-      "arguments": {}
-    }
-  ],
+  "expected_tool_calls": [],
   "expected_answer": "工具缺少必要参数 expression，应报告错误。",
   "metadata": {
     "source": "d1-synthetic-template",
