@@ -33,22 +33,21 @@
 | Dense/MoE 公平对比协议 | 相同 total params / 相同 active params 两套协议、统一 benchmark/routing stats schema、实际 A/B smoke | `stage-n2-dense-moe-fairness.md` |
 | 统一 benchmark/result 元数据 | git commit / config hash / CUDA/PyTorch/GPU compute capability / seed；4 个 schema metadata 块 + 4 个 CLI 注入 | `stage-n3-unified-metadata.md` |
 | Dense 正式训练曲线 | baseline 0.66M + medium 2.10M 各 5000 步；train_losses + validation_losses 序列 + curve_summary；matplotlib PNG 曲线 | `stage-n4-dense-formal-curve.md` |
+| Dense 规模 sweep | 在 N4 基础上增加 small 1.23M + large 5.11M，4 规模点 + 4-curve overlay PNG + 规模敏感性表 | `stage-n5-dense-scale-sweep.md` |
 
 这些阶段都已通过阶段审查（`minimax-cn/MiniMax-M3` reviewer），不允许回退。
 
-## 当前阶段：N5+ 规模敏感性 / 消融（候选）
+## 当前阶段：P1 工具执行器
 
-目标：在 N4 baseline + medium 的基础上进一步消融（更大模型 / 不同 d_ff / RoPE base / dropout），或跳到 P1 评测器/工具执行器。
-
-目标：在同一 token budget、同一 tokenizer、同一 cache 上对比 Dense 和 MoE Top-1，得到可解释的训练/参数量/吞吐指标。
-
-子阶段：
+目标：在 N5 规模 sweep 之后，从架构/训练阶段跨到评测阶段，先建立工具执行器的最小闭环。子阶段：
 
 | 子阶段 | 范围 | 退出条件 |
 |---|---|---|
-| N5 规模消融（候选） | 在 N4 baseline + medium 之上扩展更大模型 / dropout / RoPE base sensitivity | 曲线记录和 experiment record 落盘 |
+| P1-01 mock 执行器 | 无外部依赖的 mock 工具、structured result schema | schema 与 example 落盘 |
+| P1-02 沙箱执行器 | subprocess / timeout / 资源限制 / 退出码 | schema 与 example 落盘 |
+| P1-03 失败分类 | parse_success / schema_valid / execution_success / result_grounded / task_success 五级 | 分类 schema 与 mock 失败测试 |
 
-每个子阶段完成后再进入下一子阶段；任一子阶段失败必须先更新本路线图和 `open-issues.md`。
+任一子阶段失败必须先更新本路线图和 `open-issues.md`。
 
 ## 下一阶段：评测器、工具执行器、SFT
 
