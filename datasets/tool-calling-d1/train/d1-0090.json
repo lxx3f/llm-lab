@@ -15,7 +15,7 @@
     {
       "type": "function",
       "function": {
-        "name": "get_weather",
+        "name": "d1_get_weather",
         "description": "Get current weather for a city.",
         "parameters": {
           "type": "object",
@@ -34,13 +34,14 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d1-0090",
-      "name": "get_weather",
+      "name": "d1_get_weather",
       "arguments": {
         "city": "北京"
-      }
+      },
+      "expected_result": "北京 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "最终以最新要求（北京）为准。",
+  "expected_answer": "最终以最新要求（北京）为准。北京 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

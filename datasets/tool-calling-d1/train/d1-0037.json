@@ -15,7 +15,7 @@
     {
       "type": "function",
       "function": {
-        "name": "get_weather",
+        "name": "d1_get_weather",
         "description": "Get current weather for a city.",
         "parameters": {
           "type": "object",
@@ -34,13 +34,14 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d1-0037",
-      "name": "get_weather",
+      "name": "d1_get_weather",
       "arguments": {
         "city": "西安"
-      }
+      },
+      "expected_result": "西安 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": null,
+  "expected_answer": "西安 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

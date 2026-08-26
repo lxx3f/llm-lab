@@ -64,6 +64,8 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 - **126 样例**（train=100 / dev=13 / test=13），覆盖 6 种 task_type：
   - no_tool 18 / single_tool 36 / multi_tool 18 / tool_error 18 / insufficient_result 18 / requirement_change 18；
 - 每个样例 schema v1.0 valid；MANIFEST.json（每文件 sha256 + 聚合 hash + split）；
+- 所有有调用的样例（108/108 expected calls）都有 deterministic `expected_result`（由 `examples.d1_mocks` 计算）；
+- 生成器在写盘前调用 MockExecutor 端到端验证所有 expected_tool_calls 执行成功 + result 一致；生成 exit 非 0 代表任何样例语义失败；
 - `metadata.source = "d1-synthetic-template"`，`pipeline_version = "p1-05-d1-generator"`。
 
 ### 模板清单
@@ -80,7 +82,7 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 
 ## 校验
 
-- `scripts/run_tests.py full`：tests/test_d1_failure.py（15 tests：manifest / schema / task_type 覆盖 / 确定性 / 六层分类各一 / 全 task_type 集成）；
+- `scripts/run_tests.py full`：tests/test_d1_failure.py（23 tests：manifest / schema / task_type 覆盖 / 确定性 / 六层分类各一 / 全 task_type 集成 / D1 端到端 mock 执行 / expected_result 一致性 / depends_on 可达性 / result_grounded 实际激活）；
 - 生成器退出码 0 且 0 schema errors。
 
 ## 应用范围
@@ -93,4 +95,4 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 
 - 完整八级分类（tool_name_correct / argument_value_correct / final_answer_correct）未实现——当前六层够用，扩展留到正式评测；
 - D1 的 `expected_result` 字段大多为空（模板未固化结果），`result_grounded` 层在真实 mock 执行时启用；
-- D1 样例未用真实 LLM 生成（mock-only 约束下用确定性模板），`source` 标注为 d1-synthetic-template。
+- D1 样例未用真实 LLM 生成（mock-only 约束下用确定性模板 + examples.d1_mocks），`source` 标注为 d1-synthetic-template。canonical D1 已通过 MockExecutor 端到端验证（108/108 expected calls 全部可执行且 result 与 expected_result 一致），result_grounded 层在 canonical 数据上实际激活；D1.1 真实 LLM 生成留后续阶段。

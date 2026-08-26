@@ -15,8 +15,8 @@
     {
       "type": "function",
       "function": {
-        "name": "calculate",
-        "description": "Evaluate a simple arithmetic expression.",
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -33,7 +33,7 @@
     {
       "type": "function",
       "function": {
-        "name": "web_search",
+        "name": "d1_web_search",
         "description": "Search the web for information.",
         "parameters": {
           "type": "object",
@@ -56,23 +56,25 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d1-0003-a",
-      "name": "calculate",
+      "name": "d1_calculate",
       "arguments": {
         "expression": "9 * 11"
-      }
+      },
+      "expected_result": 99
     },
     {
       "call_id": "call-d1-0003-b",
-      "name": "web_search",
+      "name": "d1_web_search",
       "arguments": {
         "query": "RTX 5070 Ti 规格"
       },
       "depends_on": [
         "call-d1-0003-a"
-      ]
+      ],
+      "expected_result": "关于「RTX 5070 Ti 规格」找到 3 条结果。"
     }
   ],
-  "expected_answer": null,
+  "expected_answer": "计算结果：99；搜索结果：关于「RTX 5070 Ti 规格」找到 3 条结果。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

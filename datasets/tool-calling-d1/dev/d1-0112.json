@@ -15,7 +15,7 @@
     {
       "type": "function",
       "function": {
-        "name": "get_weather",
+        "name": "d1_get_weather",
         "description": "Get current weather for a city.",
         "parameters": {
           "type": "object",

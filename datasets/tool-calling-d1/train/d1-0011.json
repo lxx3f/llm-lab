@@ -15,8 +15,8 @@
     {
       "type": "function",
       "function": {
-        "name": "calculate",
-        "description": "Evaluate a simple arithmetic expression.",
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
         "parameters": {
           "type": "object",
           "properties": {

@@ -15,8 +15,8 @@
     {
       "type": "function",
       "function": {
-        "name": "calculate",
-        "description": "Evaluate a simple arithmetic expression.",
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -34,13 +34,14 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d1-0120",
-      "name": "calculate",
+      "name": "d1_calculate",
       "arguments": {
         "expression": "2 + 3"
-      }
+      },
+      "expected_result": 5
     }
   ],
-  "expected_answer": null,
+  "expected_answer": "2 + 3 = 5",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

@@ -22,7 +22,7 @@
 - **用途**：SFT 训练 + 评测数据；
 - **规模**：≥100 样例；
 - **来源**：LLM 生成 + 人工过滤（标注 `source: <model-name>@<version>`）；
-- **split**：train/dev/test = 80/10/10；
+- **split**：train/dev/test = 100/13/13；
 - **hash**：每个样例 + 分片 + 全集合 hash；
 - **质量检查**：schema valid 100%、parse_success 100%、tool_execution_valid ≥ 95%。
 

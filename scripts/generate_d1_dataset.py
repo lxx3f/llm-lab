@@ -1,14 +1,21 @@
 """Deterministic D1 tool-calling dataset generator.
 
-Generates >=100 tool_calling_sample JSON documents from templates with
+Generates 126 tool_calling_sample JSON documents from templates with
 deterministic pseudo-randomness (fixed seed), covering all six task_types:
 
 - no_tool: answer without calling a tool
-- single_tool: exactly one tool call
-- multi_tool: >=2 dependent/independent calls
+- single_tool: exactly one tool call (with computed ``expected_result``)
+- multi_tool: >=2 dependent/independent calls (with computed results)
 - tool_error: the model should detect a tool error (bad input, missing arg)
 - insufficient_result: tool result is insufficient → ask follow-up
 - requirement_change: user changes the requirement mid-conversation
+
+For ``single_tool`` and ``multi_tool`` the generator computes
+``expected_result`` deterministically by invoking the canonical D1 mocks
+(``examples.d1_mocks``); the samples are then end-to-end executed through
+``MockExecutor`` so every emitted sample is *semantically* valid (the mock
+actually returns the declared ``expected_result``), not merely
+schema-valid.
 
 Output layout (data_version=D1, split=train/dev/test 100/13/13):
 
@@ -40,12 +47,13 @@ from jsonschema import Draft202012Validator, FormatChecker  # noqa: E402
 OUT_DIR = ROOT / "datasets" / "tool-calling-d1"
 SCHEMA_PATH = ROOT / "schemas" / "tool_calling_sample.schema.json"
 
-# Tool definitions shared by templates.
+# Tool definitions shared by templates. Names match ``examples.d1_mocks`` so
+# the canonical samples can be executed by ``MockExecutor`` end-to-end.
 CALC_TOOL = {
     "type": "function",
     "function": {
-        "name": "calculate",
-        "description": "Evaluate a simple arithmetic expression.",
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
         "parameters": {
             "type": "object",
             "properties": {"expression": {"type": "string"}},
@@ -57,7 +65,7 @@ CALC_TOOL = {
 WEATHER_TOOL = {
     "type": "function",
     "function": {
-        "name": "get_weather",
+        "name": "d1_get_weather",
         "description": "Get current weather for a city.",
         "parameters": {
             "type": "object",
@@ -70,7 +78,7 @@ WEATHER_TOOL = {
 SEARCH_TOOL = {
     "type": "function",
     "function": {
-        "name": "web_search",
+        "name": "d1_web_search",
         "description": "Search the web for information.",
         "parameters": {
             "type": "object",
@@ -130,6 +138,8 @@ def _messages(user_text: str, tool_outputs: list[tuple[str, str]] | None = None)
 
 
 def build_samples(count: int, rng: random.Random) -> list[dict[str, Any]]:
+    from examples.d1_mocks import d1_calculate, d1_get_weather, d1_web_search
+
     samples: list[dict[str, Any]] = []
     cities = ["北京", "上海", "深圳", "广州", "杭州", "成都", "武汉", "西安", "重庆", "南京"]
     expressions = ["2 + 3", "17 * 4", "100 / 5", "3 ** 4", "(8 - 3) * 6", "99 - 45", "12 + 87", "56 / 7", "9 * 11", "250 / 25"]
@@ -151,36 +161,40 @@ def build_samples(count: int, rng: random.Random) -> list[dict[str, Any]]:
             ))
         elif kind == 1:  # single_tool calculator
             expr = rng.choice(expressions)
+            calc_result = d1_calculate(expr)
             samples.append(_sample(
                 sid,
                 _messages(f"请计算 {expr} 的结果。", []),
                 [CALC_TOOL],
-                [{"call_id": f"call-{sid}", "name": "calculate", "arguments": {"expression": expr}}],
-                None,
+                [{"call_id": f"call-{sid}", "name": "d1_calculate", "arguments": {"expression": expr}, "expected_result": calc_result}],
+                f"{expr} = {calc_result}",
                 "single_tool", "single_calc",
             ))
         elif kind == 2:  # single_tool weather
             city = rng.choice(cities)
+            weather_result = d1_get_weather(city)
             samples.append(_sample(
                 sid,
                 _messages(f"帮我查一下{city}现在的天气。", []),
                 [WEATHER_TOOL],
-                [{"call_id": f"call-{sid}", "name": "get_weather", "arguments": {"city": city}}],
-                None,
+                [{"call_id": f"call-{sid}", "name": "d1_get_weather", "arguments": {"city": city}, "expected_result": weather_result}],
+                weather_result,
                 "single_tool", "single_weather",
             ))
         elif kind == 3:  # multi_tool
             expr = rng.choice(expressions)
             query = rng.choice(queries)
+            calc_result = d1_calculate(expr)
+            search_result = d1_web_search(query)
             samples.append(_sample(
                 sid,
                 _messages(f"先计算 {expr}，再搜索一下 {query}。", []),
                 [CALC_TOOL, SEARCH_TOOL],
                 [
-                    {"call_id": f"call-{sid}-a", "name": "calculate", "arguments": {"expression": expr}},
-                    {"call_id": f"call-{sid}-b", "name": "web_search", "arguments": {"query": query}, "depends_on": [f"call-{sid}-a"]},
+                    {"call_id": f"call-{sid}-a", "name": "d1_calculate", "arguments": {"expression": expr}, "expected_result": calc_result},
+                    {"call_id": f"call-{sid}-b", "name": "d1_web_search", "arguments": {"query": query}, "depends_on": [f"call-{sid}-a"], "expected_result": search_result},
                 ],
-                None,
+                f"计算结果：{calc_result}；搜索结果：{search_result}",
                 "multi_tool", "multi_calc_search",
             ))
         elif kind == 4:  # tool_error (missing required argument)
@@ -195,22 +209,24 @@ def build_samples(count: int, rng: random.Random) -> list[dict[str, Any]]:
             ))
         elif kind == 5:  # insufficient_result
             query = rng.choice(queries)
+            search_result = d1_web_search(query, limit=1)
             samples.append(_sample(
                 sid,
                 _messages(f"搜索 '{query}'，如果结果不足就追问用户补充。", []),
                 [SEARCH_TOOL],
-                [{"call_id": f"call-{sid}", "name": "web_search", "arguments": {"query": query}}],
-                "搜索结果可能不足，需追问用户补充。",
+                [{"call_id": f"call-{sid}", "name": "d1_web_search", "arguments": {"query": query, "limit": 1}, "expected_result": search_result}],
+                f"仅找到 1 条结果，可能不足，需追问用户补充。原始结果：{search_result}",
                 "insufficient_result", "insufficient_search",
             ))
         else:  # requirement_change
             city = rng.choice(cities)
+            weather_result = d1_get_weather("北京")
             samples.append(_sample(
                 sid,
                 _messages(f"先查{city}天气，然后我改主意了：改成查北京。", []),
                 [WEATHER_TOOL],
-                [{"call_id": f"call-{sid}", "name": "get_weather", "arguments": {"city": "北京"}}],
-                "最终以最新要求（北京）为准。",
+                [{"call_id": f"call-{sid}", "name": "d1_get_weather", "arguments": {"city": "北京"}, "expected_result": weather_result}],
+                f"最终以最新要求（北京）为准。{weather_result}",
                 "requirement_change", "req_change_city",
             ))
     return samples
@@ -243,6 +259,53 @@ def main() -> int:
         errs = validate(sample, validator)
         if errs:
             errors.append(f"{sample['id']}: {errs}")
+
+    # Semantic integration check: every sample's expected_tool_calls must run
+    # end-to-end through MockExecutor with outcome=success and the mock result
+    # must equal the sample's declared expected_result. This guarantees the
+    # canonical dataset can actually exercise the result_grounded layer.
+    from architecture_lab.execution import MockExecutor
+    import examples.d1_mocks as d1_mocks
+    registry = {
+        "d1_calculate": d1_mocks.d1_calculate,
+        "d1_get_weather": d1_mocks.d1_get_weather,
+        "d1_web_search": d1_mocks.d1_web_search,
+    }
+    semantic_failures: list[str] = []
+    call_ids_seen: set[str] = set()
+    for sample in samples:
+        executor = MockExecutor()
+        for tool in sample.get("tools", []):
+            fn = registry.get(tool["function"]["name"])
+            if fn is None:
+                continue
+            executor.register_mock(tool["function"]["name"], fn, tool["function"]["parameters"])
+        transcript_calls = [
+            {
+                "tool_name": e["name"],
+                "call_id": e["call_id"],
+                "arguments": e["arguments"],
+                "depends_on": e.get("depends_on", []),
+            }
+            for e in sample.get("expected_tool_calls", [])
+        ]
+        results = executor.execute_sequence(transcript_calls)
+        for exp_call, exec_result in zip(sample.get("expected_tool_calls", []), results):
+            if exec_result["outcome"] != "success":
+                semantic_failures.append(
+                    f"{sample['id']} call {exp_call['call_id']!r} outcome={exec_result['outcome']!r} error={exec_result['error']!r}"
+                )
+                continue
+            if "expected_result" in exp_call and exec_result["result"] != exp_call["expected_result"]:
+                semantic_failures.append(
+                    f"{sample['id']} call {exp_call['call_id']!r} mock={exec_result['result']!r} expected={exp_call['expected_result']!r}"
+                )
+        call_ids_seen.update(e["call_id"] for e in sample.get("expected_tool_calls", []))
+
+    if semantic_failures:
+        for line in semantic_failures[:10]:
+            print(f"[generate_d1_dataset] SEMANTIC FAIL: {line}", file=sys.stderr)
+        raise SystemExit(f"[generate_d1_dataset] {len(semantic_failures)} semantic integration failure(s)")
 
     # Deterministic split: sort by id, then 100/13/13 (126 samples).
     samples.sort(key=lambda s: s["id"])
