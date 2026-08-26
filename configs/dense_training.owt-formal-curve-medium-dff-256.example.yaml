@@ -1,0 +1,50 @@
+model:
+  name: dense-owt-formal-curve-medium-dff-256
+  architecture: DenseTransformer
+  vocab_size: 8192
+  max_seq_len: 64
+  d_model: 128
+  n_heads: 4
+  n_layers: 4
+  d_ff: 256
+  dropout: 0.0
+  rope_base: 10000.0
+
+data:
+  tokenizer: artifacts/tokenizers/owt-bpe/v0.2.0/tokenizer.json
+  train_tokens: data/processed/owt-sample/train.tokens.uint16
+  train_metadata: data/processed/owt-sample/train.metadata.json
+  train_source: data/raw/owt-sample/owt_train.txt
+  train_max_bytes: 536870912
+  validation_tokens: data/processed/owt-sample/validation.tokens.uint16
+  validation_metadata: data/processed/owt-sample/validation.metadata.json
+  validation_source: data/raw/owt-sample/owt_valid.txt
+  validation_max_bytes: 67108864
+
+training:
+  seed: 42
+  device: auto
+  dtype: float32
+  batch_size: 8
+  sequence_length: 64
+  learning_rate: 0.0003
+  weight_decay: 0.01
+  gradient_clip_norm: 1.0
+  gradient_accumulation_steps: 1
+  scheduler:
+    name: warmup_cosine
+    warmup_steps: 100
+    min_lr_ratio: 0.1
+  amp:
+    enabled: true
+    dtype: bfloat16
+  max_steps: 5000
+  log_interval: 50
+  validation_interval: 200
+  validation_batches: 8
+  checkpoint: artifacts/checkpoints/dense-owt-formal-curve-medium-dff-256.pt
+  prompt: "The meaning of life is"
+  max_new_tokens: 32
+
+output:
+  result_json: artifacts/dense-owt-formal-curve-medium-dff-256-result.json
