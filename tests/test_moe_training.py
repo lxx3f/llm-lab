@@ -60,6 +60,14 @@ class MoETrainingTests(unittest.TestCase):
             self.assertEqual(result["generation"]["prefill_expert_capacity"], 1)
             self.assertEqual(result["generation"]["decode_capacity_factor"], 2.0)
             self.assertEqual(result["generation"]["decode_expert_capacity"], 1)
+            # v1.1 curve fields must be present and internally consistent.
+            self.assertEqual(result["schema_version"], "1.1")
+            self.assertIn("train_losses", result["metrics"])
+            self.assertIn("curve_summary", result["metrics"])
+            summary = result["metrics"]["curve_summary"]
+            self.assertGreaterEqual(summary["train_loss_sample_count"], 1)
+            self.assertGreaterEqual(summary["val_loss_count"], 1)
+            self.assertIsNotNone(summary["val_loss_min"])
             output = root / "moe-result.json"
             write_moe_training_result(result, output)
             self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["result_type"], "moe_training")

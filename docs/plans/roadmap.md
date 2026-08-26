@@ -38,6 +38,7 @@
 | Dense RoPE base 消融 | medium 2.10M × rope_base ∈ {10000, 50000, 100000}，3 rope_base 点 + 3-curve overlay PNG + RoPE sensitivity 表 | `stage-n7-dense-rope-sweep.md` |
 | Dense n_heads 消融 | medium 2.10M × n_heads ∈ {2, 4, 8}，3 head 数点 + 3-curve overlay PNG + attention head sensitivity 表 | `stage-n8-dense-heads-sweep.md` |
 | Dense d_ff 消融 | medium × d_ff ∈ {256, 512, 1024}，3 d_ff 点 + 3-curve overlay PNG + FFN hidden sensitivity 表 | `stage-n9-dense-dff-sweep.md` |
+| MoE 5000 步训练曲线 | MoE Top-1 5000 步（total 2.10M / active 1.51M）；MoE schema v1.1 对齐 Dense；MoE vs Dense medium 对比 | `stage-moe-owt-formal-curve.md` |
 
 这些阶段都已通过阶段审查（`minimax-cn/MiniMax-M3` reviewer），不允许回退。
 

@@ -4,52 +4,538 @@
   "title": "LLM Lab MoE Training Result",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "result_type", "experiment_id", "timestamp", "status", "metadata", "model", "data", "training", "metrics", "artifacts", "generation"],
+  "required": [
+    "schema_version",
+    "result_type",
+    "experiment_id",
+    "timestamp",
+    "status",
+    "metadata",
+    "model",
+    "data",
+    "training",
+    "metrics",
+    "artifacts",
+    "generation"
+  ],
   "properties": {
-    "schema_version": {"const": "1.0"},
-    "result_type": {"const": "moe_training"},
-    "experiment_id": {"type": "string", "minLength": 1},
-    "timestamp": {"type": "string", "format": "date-time"},
-    "status": {"enum": ["completed"]},
-    "metadata": {"$ref": "#/$defs/metadata"},
+    "schema_version": {
+      "const": "1.1"
+    },
+    "result_type": {
+      "const": "moe_training"
+    },
+    "experiment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "enum": [
+        "completed"
+      ]
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
     "model": {
-      "type": "object", "additionalProperties": false,
-      "required": ["name", "architecture", "config", "moe_config", "parameter_count_total", "parameter_count_top1_active", "active_parameter_definition"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "architecture",
+        "config",
+        "moe_config",
+        "parameter_count_total",
+        "parameter_count_top1_active",
+        "active_parameter_definition"
+      ],
       "properties": {
-        "name": {"type": "string", "minLength": 1}, "architecture": {"const": "MoETransformer"}, "config": {"type": "object"}, "moe_config": {"type": "object"}, "parameter_count_total": {"type": "integer", "minimum": 1}, "parameter_count_top1_active": {"type": "integer", "minimum": 1}, "active_parameter_definition": {"type": "string", "minLength": 1}
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "const": "MoETransformer"
+        },
+        "config": {
+          "type": "object"
+        },
+        "moe_config": {
+          "type": "object"
+        },
+        "parameter_count_total": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parameter_count_top1_active": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "active_parameter_definition": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
-    "data": {"$ref": "#/$defs/data"},
-    "training": {"type": "object", "additionalProperties": false, "required": ["seed", "device", "model_dtype", "optimizer_steps", "epoch", "micro_batch_size", "gradient_accumulation_steps", "effective_batch_size", "sequence_length", "expert_capacity", "expert_capacity_definition", "optimizer", "scheduler", "amp", "collect_stats"], "properties": {"seed": {"type": "integer"}, "device": {"type": "string"}, "model_dtype": {"type": "string"}, "optimizer_steps": {"type": "integer", "minimum": 0}, "epoch": {"type": "integer", "minimum": 0}, "micro_batch_size": {"type": "integer", "minimum": 1}, "gradient_accumulation_steps": {"type": "integer", "minimum": 1}, "effective_batch_size": {"type": "integer", "minimum": 1}, "sequence_length": {"type": "integer", "minimum": 2}, "expert_capacity": {"type": "integer", "minimum": 1}, "expert_capacity_definition": {"type": "string", "minLength": 1}, "optimizer": {"type": "object"}, "scheduler": {"type": "object"}, "amp": {"type": "object"}, "collect_stats": {"const": false}}},
-    "metrics": {"type": "object", "additionalProperties": false, "required": ["last_train_lm_loss", "last_train_aux_loss", "last_train_total_loss", "validation_metrics"], "properties": {"last_train_lm_loss": {"type": ["number", "null"]}, "last_train_aux_loss": {"type": ["number", "null"]}, "last_train_total_loss": {"type": ["number", "null"]}, "validation_metrics": {"type": "object", "additionalProperties": {"$ref": "#/$defs/metric"}}}},
-    "artifacts": {"type": "object", "additionalProperties": false, "required": ["checkpoint_path", "checkpoint_sha256"], "properties": {"checkpoint_path": {"type": "string"}, "checkpoint_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}}},
-    "generation": {"type": "object", "additionalProperties": false, "required": ["prompt", "max_new_tokens", "text", "collect_stats", "prefill_capacity_factor", "prefill_token_count", "prefill_expert_capacity", "decode_capacity_factor", "decode_token_count", "decode_expert_capacity"], "properties": {"prompt": {"type": "string"}, "max_new_tokens": {"type": "integer", "minimum": 0}, "text": {"type": ["string", "null"]}, "collect_stats": {"const": false}, "prefill_capacity_factor": {"const": 1.0}, "prefill_token_count": {"type": "integer", "minimum": 1}, "prefill_expert_capacity": {"type": "integer", "minimum": 1}, "decode_capacity_factor": {"const": 2.0}, "decode_token_count": {"const": 1}, "decode_expert_capacity": {"type": "integer", "minimum": 1}}}
+    "data": {
+      "$ref": "#/$defs/data"
+    },
+    "training": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seed",
+        "device",
+        "model_dtype",
+        "optimizer_steps",
+        "epoch",
+        "micro_batch_size",
+        "gradient_accumulation_steps",
+        "effective_batch_size",
+        "sequence_length",
+        "expert_capacity",
+        "expert_capacity_definition",
+        "optimizer",
+        "scheduler",
+        "amp",
+        "collect_stats"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer"
+        },
+        "device": {
+          "type": "string"
+        },
+        "model_dtype": {
+          "type": "string"
+        },
+        "optimizer_steps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "micro_batch_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gradient_accumulation_steps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "effective_batch_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sequence_length": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "expert_capacity": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expert_capacity_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "optimizer": {
+          "type": "object"
+        },
+        "scheduler": {
+          "type": "object"
+        },
+        "amp": {
+          "type": "object"
+        },
+        "collect_stats": {
+          "const": false
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "last_train_lm_loss",
+        "last_train_aux_loss",
+        "last_train_total_loss",
+        "validation_metrics",
+        "train_losses",
+        "curve_summary"
+      ],
+      "properties": {
+        "last_train_lm_loss": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "last_train_aux_loss": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "last_train_total_loss": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "validation_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/metric"
+          }
+        },
+        "train_losses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "step",
+              "loss",
+              "lr"
+            ],
+            "properties": {
+              "step": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "loss": {
+                "type": "number"
+              },
+              "lr": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "curve_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "train_loss_first",
+            "train_loss_last",
+            "val_loss_min",
+            "val_loss_min_step",
+            "val_loss_last",
+            "delta_train_loss",
+            "delta_val_loss",
+            "train_loss_sample_count",
+            "val_loss_count"
+          ],
+          "properties": {
+            "train_loss_first": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "train_loss_last": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "val_loss_min": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "val_loss_min_step": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "val_loss_last": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "delta_train_loss": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "delta_val_loss": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "train_loss_sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "val_loss_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint_path",
+        "checkpoint_sha256"
+      ],
+      "properties": {
+        "checkpoint_path": {
+          "type": "string"
+        },
+        "checkpoint_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prompt",
+        "max_new_tokens",
+        "text",
+        "collect_stats",
+        "prefill_capacity_factor",
+        "prefill_token_count",
+        "prefill_expert_capacity",
+        "decode_capacity_factor",
+        "decode_token_count",
+        "decode_expert_capacity"
+      ],
+      "properties": {
+        "prompt": {
+          "type": "string"
+        },
+        "max_new_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "collect_stats": {
+          "const": false
+        },
+        "prefill_capacity_factor": {
+          "const": 1.0
+        },
+        "prefill_token_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "prefill_expert_capacity": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decode_capacity_factor": {
+          "const": 2.0
+        },
+        "decode_token_count": {
+          "const": 1
+        },
+        "decode_expert_capacity": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
   },
   "$defs": {
     "metadata": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "git_commit", "config_sha256", "python_version", "pytorch_version",
-        "cuda_version", "gpu_name", "gpu_compute_capability",
-        "tokenizer_revision", "dataset_hash", "seed"
+        "git_commit",
+        "config_sha256",
+        "python_version",
+        "pytorch_version",
+        "cuda_version",
+        "gpu_name",
+        "gpu_compute_capability",
+        "tokenizer_revision",
+        "dataset_hash",
+        "seed"
       ],
       "properties": {
-        "git_commit": {"type": "string", "pattern": "^([0-9a-f]{40}|\\d{14}-[a-z0-9]{6}|unset)$", "minLength": 1},
-        "config_sha256": {"type": "string", "pattern": "^([a-f0-9]{64}|unset)$", "minLength": 1},
-        "python_version": {"type": "string", "minLength": 1},
-        "pytorch_version": {"type": "string", "pattern": "^([0-9]+\\.[0-9]+\\.[0-9]+.*|unset)$", "minLength": 1},
-        "cuda_version": {"type": "string", "pattern": "^([0-9]+\\.[0-9]+.*|unset)$", "minLength": 1},
-        "gpu_name": {"type": ["string", "null"], "minLength": 1},
-        "gpu_compute_capability": {"type": ["string", "null"], "pattern": "^([0-9]+\\.[0-9]+|unset)$"},
-        "tokenizer_revision": {"type": ["string", "null"], "minLength": 1},
-        "dataset_hash": {"type": "string", "pattern": "^([a-f0-9]{64}|unset)$", "minLength": 1},
-        "seed": {"type": "integer", "minimum": 0}
+        "git_commit": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{40}|\\d{14}-[a-z0-9]{6}|unset)$",
+          "minLength": 1
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^([a-f0-9]{64}|unset)$",
+          "minLength": 1
+        },
+        "python_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pytorch_version": {
+          "type": "string",
+          "pattern": "^([0-9]+\\.[0-9]+\\.[0-9]+.*|unset)$",
+          "minLength": 1
+        },
+        "cuda_version": {
+          "type": "string",
+          "pattern": "^([0-9]+\\.[0-9]+.*|unset)$",
+          "minLength": 1
+        },
+        "gpu_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "gpu_compute_capability": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9]+\\.[0-9]+|unset)$"
+        },
+        "tokenizer_revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "dataset_hash": {
+          "type": "string",
+          "pattern": "^([a-f0-9]{64}|unset)$",
+          "minLength": 1
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
-    "tokenizer": {"type": "object", "required": ["path", "artifact_sha256", "vocab_size"], "properties": {"path": {"type": "string"}, "artifact_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "vocab_size": {"type": "integer", "minimum": 1}}},
-    "cache": {"type": "object", "required": ["split", "token_count", "encoded_bytes", "metadata_sha256", "token_file_sha256"], "properties": {"split": {"type": "string"}, "token_count": {"type": "integer", "minimum": 1}, "encoded_bytes": {"type": "integer", "minimum": 1}, "metadata_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "token_file_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}},
-    "data": {"type": "object", "additionalProperties": false, "required": ["data_version", "tokenizer", "train_cache", "validation_cache"], "properties": {"data_version": {"type": ["string", "null"]}, "tokenizer": {"$ref": "#/$defs/tokenizer"}, "train_cache": {"$ref": "#/$defs/cache"}, "validation_cache": {"$ref": "#/$defs/cache"}}},
-    "metric": {"type": "object", "additionalProperties": false, "required": ["lm_loss", "aux_loss", "total_loss"], "properties": {"lm_loss": {"type": "number"}, "aux_loss": {"type": "number"}, "total_loss": {"type": "number"}}}
+    "tokenizer": {
+      "type": "object",
+      "required": [
+        "path",
+        "artifact_sha256",
+        "vocab_size"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "vocab_size": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "cache": {
+      "type": "object",
+      "required": [
+        "split",
+        "token_count",
+        "encoded_bytes",
+        "metadata_sha256",
+        "token_file_sha256"
+      ],
+      "properties": {
+        "split": {
+          "type": "string"
+        },
+        "token_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "encoded_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "metadata_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "token_file_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_version",
+        "tokenizer",
+        "train_cache",
+        "validation_cache"
+      ],
+      "properties": {
+        "data_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tokenizer": {
+          "$ref": "#/$defs/tokenizer"
+        },
+        "train_cache": {
+          "$ref": "#/$defs/cache"
+        },
+        "validation_cache": {
+          "$ref": "#/$defs/cache"
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lm_loss",
+        "aux_loss",
+        "total_loss"
+      ],
+      "properties": {
+        "lm_loss": {
+          "type": "number"
+        },
+        "aux_loss": {
+          "type": "number"
+        },
+        "total_loss": {
+          "type": "number"
+        }
+      }
+    }
   }
 }

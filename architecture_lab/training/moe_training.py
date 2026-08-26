@@ -27,6 +27,7 @@ from architecture_lab.tokenization import BPETokenizer
 from architecture_lab.training.dense_training import (
     build_scheduler,
     causal_loss,
+    compute_curve_summary,
     resolve_amp,
     resolve_device,
     resolve_dtype,
@@ -240,8 +241,12 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
     model.train()
     validation_interval = int(training.get("validation_interval", max_steps))
     validation_batches = int(training.get("validation_batches", 1))
+    log_interval = int(training.get("log_interval", 1))
+    if log_interval <= 0:
+        raise ValueError("log_interval must be positive")
     checkpoint_path = Path(training["checkpoint"])
     train_metrics: list[tuple[float, float, float]] = []
+    train_loss_samples: list[dict[str, Any]] = []
     validation_metrics: dict[str, dict[str, float]] = {}
     epoch = state.epoch
     iterator = iter(train_batcher.iter_epoch(device=device))
@@ -273,10 +278,20 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
         state = MoETrainingState(step=state.step + 1, epoch=epoch)
         metrics = tuple(value / accumulation for value in sums)
         train_metrics.append(metrics)
+        if state.step % log_interval == 0 or state.step == max_steps:
+            train_loss_samples.append({
+                "step": int(state.step),
+                "loss": float(metrics[0]),
+                "lr": float(optimizer.param_groups[0]["lr"]),
+            })
         if state.step % validation_interval == 0 or state.step == max_steps:
             lm, aux, total = evaluate(model, validation_batcher, batches=validation_batches, device=device)
             validation_metrics[str(state.step)] = {"lm_loss": lm, "aux_loss": aux, "total_loss": total}
             save_checkpoint(checkpoint_path, model=model, optimizer=optimizer, scheduler=scheduler, scaler=scaler, state=state, settings=settings, tokenizer_path=tokenizer_path, train_metadata_path=train_metadata_path, validation_metadata_path=validation_metadata_path)
+    validation_losses: dict[str, float] = {
+        str(step): float(metrics["lm_loss"]) for step, metrics in validation_metrics.items()
+    }
+    curve_summary = compute_curve_summary(train_loss_samples, validation_losses)
     prompt = str(training.get("prompt", ""))
     generated = generate_text(model, tokenizer, prompt, max_new_tokens=int(training.get("max_new_tokens", 0)), device=device) if prompt and int(training.get("max_new_tokens", 0)) > 0 else None
-    return build_result(settings=settings, model=model, tokenizer_path=tokenizer_path, train_token_path=Path(data["train_tokens"]), train_metadata_path=train_metadata_path, validation_token_path=Path(data["validation_tokens"]), validation_metadata_path=validation_metadata_path, device=device, model_dtype=dtype, optimizer_steps=state.step, epoch=state.epoch, train_metrics=train_metrics, validation_metrics=validation_metrics, checkpoint_path=checkpoint_path, prompt=prompt, max_new_tokens=int(training.get("max_new_tokens", 0)), generated_text=generated, gradient_accumulation_steps=accumulation, scheduler_config={"name": "warmup_cosine", "warmup_steps": int(scheduler_settings.get("warmup_steps", 0)), "total_steps": max_steps, "min_lr_ratio": float(scheduler_settings.get("min_lr_ratio", 0.0)), "final_learning_rate": optimizer.param_groups[0]["lr"]}, amp_config={"enabled": amp_enabled, "dtype": str(amp_dtype).replace("torch.", ""), "scaler_enabled": scaler_enabled})
+    return build_result(settings=settings, model=model, tokenizer_path=tokenizer_path, train_token_path=Path(data["train_tokens"]), train_metadata_path=train_metadata_path, validation_token_path=Path(data["validation_tokens"]), validation_metadata_path=validation_metadata_path, device=device, model_dtype=dtype, optimizer_steps=state.step, epoch=state.epoch, train_metrics=train_metrics, validation_metrics=validation_metrics, train_loss_samples=train_loss_samples, curve_summary=curve_summary, checkpoint_path=checkpoint_path, prompt=prompt, max_new_tokens=int(training.get("max_new_tokens", 0)), generated_text=generated, gradient_accumulation_steps=accumulation, scheduler_config={"name": "warmup_cosine", "warmup_steps": int(scheduler_settings.get("warmup_steps", 0)), "total_steps": max_steps, "min_lr_ratio": float(scheduler_settings.get("min_lr_ratio", 0.0)), "final_learning_rate": optimizer.param_groups[0]["lr"]}, amp_config={"enabled": amp_enabled, "dtype": str(amp_dtype).replace("torch.", ""), "scaler_enabled": scaler_enabled})
