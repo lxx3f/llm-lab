@@ -20,7 +20,8 @@
 
 ## N3 commit 范围
 
-- `ee5c1a1 feat(metadata): add unified experiment metadata to all result schemas`（squash 后单一 commit，等价于 `5d50187` + `e8bce42` + `830165e` + `48a2281` + `4578264` 的合并版本；contract 第 4 条允许文件列表约束在 squash 4 后已闭合）。
+- `ee5c1a1 feat(metadata): add unified experiment metadata to all result schemas`（squash 后单一 commit，等价于 `5d50187` + `e8bce42` + `830165e` + `48a2281` + `4578264` 的合并版本；contract 第 4 条允许文件列表约束在 squash 后已闭合）。
+- `638153f fix(metadata): strict dotted gpu_cc and review-process format`（后续修正：移除 `gpu_compute_capability` schema 中 `sm_<digits>` 历史形式，新增 sm_120 反向断言测试；审查文档按 `docs/plans/review-process.md` 格式使用 `minimax-cn/MiniMax-M3` 字段）。
 
 ## 阶段 审查条目
 
@@ -28,14 +29,14 @@
 
 - 完成范围：roadmap N3 全部合同条款（4 个 schema metadata 块 + 4 个 CLI 落盘前注入 + 10 字段收集 + 9 个 artifact 重新生成 + 阶段审查文档）。
 - 未完成范围：N4 Dense 正式训练曲线（仍归下一阶段）；P1-03 多 seed 统计区间协议（独立阶段设计）。
-- 测试结果：`scripts/run_tests.py full` → 86 tests passed；Stage 0 examples → 5/5 PASS；N3 单元测试 → 14/14 PASS。
+- 测试结果：`scripts/run_tests.py full` → 87 tests passed；Stage 0 examples → 5/5 PASS；N3 单元测试 → 15/15 PASS（含 `test_gpu_compute_capability_sm_format_not_emitted` 反向断言）。
 - 实验结果：9 个 artifact（`dense-owt-formal[-cache-result]`、`moe-owt-formal[-cache-result]`、`n2-a-{dense,moe}`、`n2-b-{dense,moe}`、`n2-moe-routing-stats`）schema 校验 0 errors；`metadata.git_commit == git rev-parse HEAD`；`metadata.gpu_compute_capability` 为合同首选形式 `"major.minor"`（如 `"12.0"`）。
 - 新发现问题：无新阻塞性问题。
 - 计划调整：无；N4 进入按 roadmap 执行。
 - 是否允许进入下一阶段：是（CAN_ENTER_N4）。
 - 下一步：N4 Dense 正式训练曲线（更长 max_steps、formal cache、train/val loss 序列）。
 
-## 实现范围（commit `ee5c1a1` 后）
+## 实现范围（commit `638153f` 后）
 
 ```text
 architecture_lab/experiment_metadata.py      # collect_metadata(*, config_path, tokenizer_artifact_dir, train_cache_dir, seed) + UNSET sentinel；tokenizer metadata 读取 inline
@@ -54,7 +55,7 @@ tests/test_n2_benchmark.py                  # metadata 块断言
 tests/test_n2_result_schema.py              # artifact schema 校验
 scripts/run_tests.py                        # 注册 test_experiment_metadata
 docs/protocols/n3-metadata.md               # 协议（"unset"/0 与 dotted gpu_cc）
-docs/experiments/n3-unified-metadata/README.md  # 实验记录（86 tests，9 artifact，dotted gpu_cc）
+docs/experiments/n3-unified-metadata/README.md  # 实验记录（87 tests，9 artifact，严格 dotted gpu_cc）
 docs/plans/reviews/stage-n3-unified-metadata.md  # 本文件
 docs/plans/open-issues.md                   # P1-01 / P1-02 关闭
 docs/plans/roadmap.md                        # N3 退出条件（重构后）
@@ -66,11 +67,11 @@ README.md                                    # 同步
 ## 验证证据
 
 ```text
-HEAD: ee5c1a1bc0ac8a3869e534b55837d98abe3b7dd7
+HEAD: 638153f750c20c91be38dd29f8c6d42f8670b70f
 
-.venv/python.exe scripts/run_tests.py full → 86 tests passed
+.venv/python.exe scripts/run_tests.py full → 87 tests passed
 Stage 0 examples → 5/5 PASS
-N3 单测 → 14/14 PASS
+N3 单测 → 15/15 PASS（含 sm_120 反向断言）
 N3 schema 专项 → 4/4 PASS（dense/moe/n2_bench/n2_routing）
 
 9 个 artifact schema 校验（Draft202012Validator）：
@@ -88,20 +89,20 @@ git_commit 匹配（每个 artifact 的 metadata.git_commit == git rev-parse HEA
 gpu_compute_capability 合同首选形式 "major.minor"（如 "12.0"）
 ```
 
-## contract 逐项复核（commit `ee5c1a1` 后）
+## contract 逐项复核（commit `638153f` 后）
 
 1. `scripts/run_tests.py full` exit code 0；≥ 69 prior + 新增 metadata 单测 + CLI 测试全部 passed；Stage 0 examples 全部 PASS ✅
 2. 4 个 schema required 字段：`git_commit`/`config_sha256`/`python_version`/`pytorch_version`/`cuda_version`/`dataset_hash` 均为 `type: string`（缺失为 `"unset"`，pattern 接受 `unset`），`gpu_name`/`gpu_compute_capability`/`tokenizer_revision` 为 `type: ["string", "null"]`，`seed` 为 `type: integer`；`Draft202012Validator` 对每个 schema 上 representative artifact 通过 ✅；`gpu_compute_capability` pattern 严格 `^([0-9]+\.[0-9]+|unset)$`，不再接受 `sm_<digits>` 形式 ✅
 3. `collect_metadata(*, config_path, tokenizer_artifact_dir, train_cache_dir, seed)` 存在；返回 dict 键集严格 10 字段；4 个 CLI（train_dense / train_moe / run_n2_benchmark / run_n2_routing_stats）均直接 import 并调用 `collect_metadata`；CLI 用 settings 实际路径（`data.tokenizer` 父目录、`data.train_metadata`、`training.seed`）注入 metadata 块 ✅
 4. `git ls-files` N3 新增/修改文件**全部**在合同允许列表内：`architecture_lab/experiment_metadata.py`、`scripts/{train_dense,train_moe,run_n2_benchmark,run_n2_routing_stats}.py`、`schemas/*.json`、`tests/{test_experiment_metadata,test_dense_result_schema,test_moe_training,test_n2_benchmark,test_n2_result_schema}.py`、`docs/protocols/n3-metadata.md`、`docs/experiments/n3-unified-metadata/README.md`、`docs/plans/reviews/stage-n3-unified-metadata.md`、`docs/plans/open-issues.md`、`docs/plans/roadmap.md`、`README.md`、`scripts/run_tests.py`。`.venv/`、`artifacts/*.json`、`data/processed/`、`*.pt`/`*.ckpt`/`*.safetensors` 未被误提交 ✅
-5. 9 个 artifact 重新生成；`Draft202012Validator.iter_errors` 在每个上均为空；`metadata.git_commit == git rev-parse HEAD`（HEAD=`ee5c1a1bc0ac8a3869e534b55837d98abe3b7dd7`）✅
+5. 9 个 artifact 重新生成；`Draft202012Validator.iter_errors` 在每个上均为空；`metadata.git_commit == git rev-parse HEAD`（HEAD=`638153f750c20c91be38dd29f8c6d42f8670b70f`）✅
 6. `docs/plans/reviews/stage-n3-unified-metadata.md` 已落盘；按 `docs/plans/review-process.md` 格式填入审查模型/agent/commit 范围/通过结论 ✅
 
 ## 第四轮审计（isolated auditor, calculet/gpt-5.6-terra）的三项阻断已闭合
 
 1. **`gpu_compute_capability` schema 严格化**：4 个 schema 的 pattern 改为 `^([0-9]+\.[0-9]+|unset)$`，移除 `sm_[0-9]+`；新增 `tests/test_experiment_metadata.py::test_gpu_compute_capability_sm_format_not_emitted` 阴性测试，断言 collect_metadata 不再以 `sm_` 开头输出；9 个 artifact 的 `metadata.gpu_compute_capability` 仍为 `"12.0"` ✅
 2. **审查文档按 review-process.md 格式**：本审查记录已使用 `minimax-cn/MiniMax-M3` 字段填入"审查模型"与"实际 provider/model"；声明 isolated auditor 进程使用 `calculet/gpt-5.6-terra`（用户项目级 `.pi-glla/settings.json::auditorModel` 配置例外）✅
-3. **测试计数同步**：本审查记录、协议文档（`docs/protocols/n3-metadata.md`）、实验记录（`docs/experiments/n3-unified-metadata/README.md`）全部更新为 `86 tests passed`；`scripts/run_tests.py full` 实测 86 tests ✅
+3. **测试计数同步**：本审查记录、协议文档（`docs/protocols/n3-metadata.md`）、实验记录（`docs/experiments/n3-unified-metadata/README.md`）全部更新为 `87 tests passed`；`scripts/run_tests.py full` 实测 87 tests ✅
 
 ## 是否允许进入下一阶段
 
@@ -110,7 +111,7 @@ gpu_compute_capability 合同首选形式 "major.minor"（如 "12.0"）
 依据：
 - N3 合同全部 6 项通过（验证证据见上）；
 - 9 个 artifact 含完整 metadata；
-- 86 tests + Stage 0 examples 全部 PASS；
+- 87 tests + Stage 0 examples 全部 PASS；
 - N3 范围边界清晰，未越界改 N2 协议、capacity、collect_stats、cache binding、模型结构、超参；
 - 合同第 4 条允许列表与第 1 条"落盘前注入 metadata"的内部矛盾已通过**把注入责任全部移到 CLI** 解决；
 - 不再修改 `architecture_lab/training/*`、`architecture_lab/tokenization/*`、`docs/plans/roadmap.md`。

@@ -58,7 +58,7 @@ README.md                                   # 同步
 ## 验证
 
 ```text
-.venv/python.exe scripts/run_tests.py full → 86 tests passed
+.venv/python.exe scripts/run_tests.py full → 87 tests passed
 Stage 0 examples → 5/5 PASS
 N3 单元测试 → 14/14 PASS
 ```
@@ -93,4 +93,4 @@ artifacts/n2-moe-routing-stats.json               → 0 errors
 - `dataset_hash` 是 train cache `source.sha256`，不是 cache 文件 SHA256
 - CPU 环境下 `cuda_version`/`gpu_name`/`gpu_compute_capability` 均为 `null`，属正常降级
 - 预 N3 artifact 在 schema 升级后不再通过校验；必须重新生成
-- `gpu_compute_capability` 合同首选形式为 `"major.minor"`（如 `"12.0"`），保留对历史 `"sm_X"` 形式的 schema 容错
+- `gpu_compute_capability` 合同首选形式为 `"major.minor"`（如 `"12.0"`）；N3 后期严格化后 schema 不再接受 `sm_<digits>` 形式（被反向断言 `test_gpu_compute_capability_sm_format_not_emitted` 锁住）
