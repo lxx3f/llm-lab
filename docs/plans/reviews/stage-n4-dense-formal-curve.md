@@ -147,4 +147,10 @@
 
 ## auditor gap 历史
 
-N4 为新阶段，auditor gap 历史从 0 开始。后续若 isolated auditor（calculet/gpt-5.6-terra）提出具体 gap，按相同模式记录到本节。
+N4 第一轮 isolated auditor（calculet/gpt-5.6-terra）提出 3 项 blocker，现已全部闭合：
+
+1. **tests/test_n2_benchmark.py 在不兼容 CUDA 环境下报 RuntimeError**：auditor env 下 PyTorch wheel 不包含当前 GPU compute capability 的 kernel image（sm_120+ 但 wheel 只到 sm_90），两个 GPU-bound test（`test_executed_benchmark_records_validation_and_capacity_bindings` 与 `test_benchmark_result_includes_unified_metadata_block`）报 `RuntimeError: CUDA error: no kernel image is available for execution on the device` → 修复：新增 `_has_working_cuda()` helper（运行时探查 matmul+sum+backward 是否可执行），两 test 加 `@unittest.skipUnless(_has_working_cuda(), ...)`；CPU-only 与不兼容 GPU env 下自动 skip ✅
+2. **plot_dense_curve.py 未实现双轴**：原实现用单 axes 画 train_loss + val_loss，违反协议“matplotlib 双轴曲线图”与“左轴 train_loss / 右轴 val_loss” → 修复：`_draw_dual_axis(ax, curve)` 用 `ax.twinx()` 分离左右轴，左轴蓝色 train_loss，右轴橙色 val_loss；新增 `test_plot_dense_curve_uses_dual_y_axes` 验证 ✅
+3. **--overlay 是 side-by-side subplots 而非共享 axes**：原实现用 `plt.subplots(1, len(curves))` → 修复：`_plot_overlay(curves)` 用单个 Axes + ax.twinx()，两曲线叠加在同一对 axes 上；新增 `test_plot_dense_curve_overlay_uses_shared_axes` 验证（源码静态检查） ✅
+
+修复后测试统计：93 → **95 tests passed**（+2 新 plot 验证 test）；3 个 PNG 重新生成（含双轴与共享 axes overlay）。

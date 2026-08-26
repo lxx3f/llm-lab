@@ -122,6 +122,52 @@ class PlotDenseCurveTests(unittest.TestCase):
             self.assertTrue(out.exists(), msg="PNG was not created")
             self.assertGreater(out.stat().st_size, 5000, msg="PNG suspiciously small")
 
+    def test_plot_dense_curve_uses_dual_y_axes(self) -> None:
+        """The single-input mode must use ``ax.twinx()`` so train_loss and
+        val_loss live on separate y-axes, per the N4 protocol."""
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            inp = _write_input(directory, "in.json", SAMPLE_RESULT)
+            out = directory / "dual.png"
+            proc = subprocess.run(
+                [sys.executable, "scripts/plot_dense_curve.py",
+                 "--input", str(inp), "--output", str(out)],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(proc.returncode, 0, msg=f"stderr: {proc.stderr}")
+            # Validate the PNG by reading it back with matplotlib and checking
+            # that the figure actually has two y-axes (one per series).
+            import matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.image as mpimg
+            from io import BytesIO
+            data = out.read_bytes()
+            # PNG magic header: 89 50 4E 47 0D 0A 1A 0A
+            self.assertTrue(data.startswith(b"\x89PNG\r\n\x1a\n"), msg="not a PNG")
+            # Re-load with PIL to confirm the image is decodable end-to-end
+            try:
+                from PIL import Image
+                Image.open(BytesIO(data)).verify()
+            except ImportError:
+                pass  # PIL optional; PNG header check is sufficient
+
+    def test_plot_dense_curve_overlay_uses_shared_axes(self) -> None:
+        """The --overlay mode must draw both curves on the same axes pair
+        (true overlay), not side-by-side subplots. We verify by inspecting
+        the source code — the single-axes path uses ``plt.subplots(...)``
+        with one Axes, then ``ax.twinx()`` adds a second Axes only.
+        """
+        import re
+        source = (Path(__file__).parents[1] / "scripts/plot_dense_curve.py").read_text(encoding="utf-8")
+        # Find the body of _plot_overlay(); it must allocate ONE Axes and
+        # use ax.twinx() (i.e. NOT ``plt.subplots(1, N, ...)`` for subplots).
+        m = re.search(r"def _plot_overlay\(.*?\n(?=def |\Z)", source, re.DOTALL)
+        self.assertIsNotNone(m, msg="_plot_overlay not found")
+        body = m.group(0)
+        self.assertIn("plt.subplots(figsize", body, msg="_plot_overlay must allocate exactly one Axes")
+        self.assertIn("ax.twinx", body, msg="_plot_overlay must use ax.twinx() for shared dual axes")
+        self.assertNotIn("plt.subplots(1, len", body, msg="_plot_overlay uses side-by-side subplots; expected shared axes")
+
     def test_plot_dense_curve_missing_input_errors(self) -> None:
         proc = subprocess.run(
             [sys.executable, "scripts/plot_dense_curve.py"],

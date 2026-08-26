@@ -23,6 +23,32 @@ from architecture_lab.tokenization import BPETokenizer
 from scripts.run_n2_benchmark import benchmark
 
 
+def _has_working_cuda() -> bool:
+    """Return True only if a CUDA forward+backward actually executes on this machine.
+
+    Some environments report ``torch.cuda.is_available() == True`` but the installed
+    PyTorch wheel does not contain a kernel image for the GPU's compute
+    capability (e.g. sm_120 RTX 5070 Ti on a PyTorch build that only ships
+    up to sm_90). Running CUDA ops in such an env raises::
+
+        RuntimeError: CUDA error: no kernel image is available for execution on the device
+
+    Tests that drive a real CUDA benchmark should be guarded with
+    ``@unittest.skipUnless(_has_working_cuda(), ...)`` so they skip cleanly
+    instead of erroring out and breaking the ``full`` test suite.
+    """
+    if not torch.cuda.is_available():
+        return False
+    try:
+        x = torch.randn(2, 3, device="cuda", requires_grad=True)
+        y = (x * 2).sum()
+        y.backward()
+        torch.cuda.synchronize()
+        return True
+    except Exception:
+        return False
+
+
 class N2BenchmarkTests(unittest.TestCase):
     def test_routing_aggregation_reports_load_and_drop_rate(self) -> None:
         result = aggregate_routing([
@@ -64,6 +90,7 @@ class N2BenchmarkTests(unittest.TestCase):
         self.assertIsNotNone(metrics["validation_lm_loss"])
 
 
+    @unittest.skipUnless(_has_working_cuda(), "no working CUDA kernel image on this host")
     def test_executed_benchmark_records_validation_and_capacity_bindings(self) -> None:
         config = Path("configs/n2_benchmark.example.yaml")
         dense = benchmark(config, "A", "DenseTransformer")
@@ -78,6 +105,7 @@ class N2BenchmarkTests(unittest.TestCase):
         self.assertEqual(moe["routing"]["prefill_capacity_factor"], 1.0)
         self.assertEqual(moe["routing"]["decode_capacity_factor"], 2.0)
 
+    @unittest.skipUnless(_has_working_cuda(), "no working CUDA kernel image on this host")
     def test_benchmark_result_includes_unified_metadata_block(self) -> None:
         config = Path("configs/n2_benchmark.example.yaml")
         result = benchmark(config, "A", "DenseTransformer")

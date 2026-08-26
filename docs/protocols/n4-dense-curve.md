@@ -86,12 +86,12 @@ metrics.required = [
 `scripts/plot_dense_curve.py`：
 
 ```bash
-# 单一曲线
+# 单一曲线（双轴：train_loss 左轴 + val_loss 右轴）
 .venv/python.exe scripts/plot_dense_curve.py \
     --input artifacts/dense-owt-formal-curve-result.json \
     --output artifacts/dense-owt-formal-curve.png
 
-# 双曲线 overlay
+# 双曲线 overlay（共享 axes、同一对 train/val 左右轴）
 .venv/python.exe scripts/plot_dense_curve.py \
     --input artifacts/dense-owt-formal-curve-result.json \
     --input artifacts/dense-owt-formal-curve-medium-result.json \
@@ -101,7 +101,9 @@ metrics.required = [
 
 输出 PNG：
 - 800×500，dpi=120
-- 蓝线 = train_loss（左轴）；橙线 = val_loss（右轴），含 min marker 虚线
+- 蓝线 = train_loss（左轴，`ax.twinx()` 之前）；橙线 = val_loss（右轴，`ax.twinx()` 之后）
+- 双轴 = train_loss (左, 蓝色 y-label `train_loss`) + val_loss (右, 橙色 y-label `val_loss`)，含 min marker 虚线
+- overlay 模式 = 两个 run 叠加在同一对 axes 上（每个 run 独立颜色）
 - 标题含 experiment_id、参数数量、last_train_loss、min_val_loss
 
 ### matplotlib 不可用时
