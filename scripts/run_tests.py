@@ -28,6 +28,7 @@ FAST_MODULES = (
     ("tests", "test_plot_dense_curve.py"),
     ("tests", "test_stage0_schemas.py"),
     ("tests", "test_d0_manifest.py"),
+    ("tests", "test_sweep_doc_consistency.py"),
     ("tests", "test_artifact_provenance.py"),
     ("tests", "test_token_cache.py"),
     ("architecture_lab/tests", "test_dense_transformer.py"),
@@ -50,6 +51,7 @@ MODULES = {
         ("tests", "test_plot_dense_curve.py"),
         ("tests", "test_experiment_metadata.py"),
         ("tests", "test_d0_manifest.py"),
+        ("tests", "test_sweep_doc_consistency.py"),
         ("tests", "test_artifact_provenance.py"),
     ),
     "architecture": (
@@ -128,6 +130,7 @@ def main(argv: list[str] | None = None) -> int:
             ("tests", "test_moe_training.py"),
             ("tests", "test_stage0_schemas.py"),
             ("tests", "test_d0_manifest.py"),
+            ("tests", "test_sweep_doc_consistency.py"),
             ("tests", "test_artifact_provenance.py"),
             ("tests", "test_token_cache.py"),
             ("tests", "test_token_cache_cli.py"),
