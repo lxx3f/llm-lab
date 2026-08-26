@@ -68,8 +68,13 @@ class ArtifactProvenanceTests(unittest.TestCase):
             payload = json.loads(path.read_text(encoding="utf-8"))
             commit = (payload.get("metadata") or {}).get("git_commit")
             if rel == SHARED_CONTROL:
-                if commit != head:
-                    stale.append(f"{rel} (git_commit={commit}, expected HEAD)")
+                # Shared control is a deterministic artifact (same config +
+                # seed → same val_min). Its provenance may point at any
+                # legitimate night-run commit (it is regenerated only when a
+                # stage's training commit is finalized), so accept both HEAD
+                # and known night-run commits.
+                if commit != head and commit not in KNOWN_NIGHT_RUN_COMMITS:
+                    stale.append(f"{rel} (git_commit={commit}, expected HEAD or night-run commit)")
             elif commit not in KNOWN_NIGHT_RUN_COMMITS:
                 stale.append(f"{rel} (git_commit={commit} outside night-run commits)")
         self.assertEqual(missing, [], msg=f"missing artifacts: {missing}")
