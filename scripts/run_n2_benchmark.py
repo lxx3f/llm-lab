@@ -27,6 +27,7 @@ from architecture_lab.benchmarks.n2 import (  # noqa: E402
     resolve_device,
     resolve_dtype,
     set_seed,
+    train_for_benchmark,
 )
 from architecture_lab.tokenization import BPETokenizer  # noqa: E402
 from architecture_lab.benchmarks.results import write_n2_result  # noqa: E402
@@ -42,17 +43,10 @@ def benchmark(config_path: Path, protocol: str, architecture: str, output: Path 
     dtype = resolve_dtype(str(settings["benchmark"].get("dtype", "float32")))
     tokenizer = BPETokenizer.load(settings["data"]["tokenizer"])
     model, _ = build_models(settings, architecture, d_ff, device, dtype, vocab_size=tokenizer.vocab_size)
-    input_ids = benchmark_inputs(settings, device)
     total, active = parameter_counts(model)
+    training_metrics = train_for_benchmark(model, settings, architecture=architecture, device=device)
+    input_ids = benchmark_inputs(settings, device, split="train")
     measured = measure_model(model, input_ids, architecture=architecture, settings=settings, device=device)
-    with torch.no_grad():
-        if architecture == "DenseTransformer":
-            logits, lm_loss = model(input_ids, labels=input_ids)
-            aux_loss = None
-            total_loss = lm_loss
-        else:
-            logits, lm_loss, aux_loss = model(input_ids, labels=input_ids, collect_stats=False)
-            total_loss = model.total_loss(lm_loss, aux_loss)
     target = alignment["target_parameters"]
     actual = total if protocol == "A" else active
     result = {
@@ -80,11 +74,11 @@ def benchmark(config_path: Path, protocol: str, architecture: str, output: Path 
         },
         "binding": cache_binding(settings, tokenizer),
         "metrics": {
-            "train_lm_loss": float(lm_loss),
+            "train_lm_loss": float(training_metrics["train_lm_loss"]),
             "loss_capacity_factor": PREFILL_CAPACITY_FACTOR if architecture == "MoETransformer" else None,
-            "validation_lm_loss": None,
-            "aux_loss": float(aux_loss) if aux_loss is not None else None,
-            "total_loss": float(total_loss),
+            "validation_lm_loss": float(training_metrics["validation_lm_loss"]),
+            "aux_loss": float(training_metrics["aux_loss"]) if training_metrics["aux_loss"] is not None else None,
+            "total_loss": float(training_metrics["total_loss"]),
         },
         "benchmark": {
             "warmup_steps": int(settings["benchmark"]["warmup_steps"]),

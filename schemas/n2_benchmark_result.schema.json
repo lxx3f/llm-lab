@@ -25,8 +25,8 @@
     },
     "binding": {
       "type": "object", "additionalProperties": false,
-      "required": ["data_version", "tokenizer_sha256", "train_cache_metadata_sha256", "validation_cache_metadata_sha256", "seed", "batch_size", "sequence_length", "token_budget", "gradient_accumulation_steps", "optimizer", "scheduler", "amp"],
-      "properties": {"data_version": {"type": ["string", "null"]}, "tokenizer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "train_cache_metadata_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "validation_cache_metadata_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "seed": {"type": "integer"}, "batch_size": {"type": "integer", "minimum": 1}, "sequence_length": {"type": "integer", "minimum": 2}, "token_budget": {"type": "integer", "minimum": 1}, "gradient_accumulation_steps": {"type": "integer", "minimum": 1}, "optimizer": {"type": "object"}, "scheduler": {"type": "object"}, "amp": {"type": "object"}}
+      "required": ["data_version", "tokenizer_sha256", "train_cache_metadata_sha256", "validation_cache_metadata_sha256", "train_cache_sha256", "validation_cache_sha256", "seed", "batch_size", "sequence_length", "token_budget", "gradient_accumulation_steps", "optimizer", "scheduler", "amp"],
+      "properties": {"data_version": {"type": ["string", "null"]}, "tokenizer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "train_cache_metadata_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "validation_cache_metadata_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "train_cache_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "validation_cache_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "seed": {"type": "integer"}, "batch_size": {"type": "integer", "minimum": 1}, "sequence_length": {"type": "integer", "minimum": 2}, "token_budget": {"type": "integer", "minimum": 1}, "gradient_accumulation_steps": {"type": "integer", "minimum": 1}, "optimizer": {"type": "object"}, "scheduler": {"type": "object"}, "amp": {"type": "object"}}
     },
     "metrics": {
       "type": "object", "additionalProperties": false,

@@ -12,7 +12,7 @@ from typing import Any
 import torch
 import yaml
 
-from architecture_lab.data.batching import load_token_cache
+from architecture_lab.data.batching import TokenStreamBatcher, load_token_cache
 from architecture_lab.models.dense_transformer import (
     DenseTransformer,
     TransformerConfig,
@@ -25,7 +25,12 @@ from architecture_lab.models.moe_transformer import (
     count_moe_parameters,
 )
 from architecture_lab.tokenization import BPETokenizer
-from architecture_lab.training.dense_training import sha256_file
+from architecture_lab.training.dense_training import (
+    build_scheduler,
+    causal_loss,
+    resolve_amp,
+    sha256_file,
+)
 
 
 PREFILL_CAPACITY_FACTOR = 1.0
@@ -123,25 +128,152 @@ def choose_protocol_d_ff(settings: dict[str, Any], protocol: str, vocab_size: in
         )
         return {"dense_d_ff": base, "moe_d_ff": selected, "target_parameters": dense_total}
     if protocol == "B":
+        # Protocol B fixes both Dense and per-expert widths to D_act. The MoE
+        # router is shared overhead, so the resulting active delta is recorded
+        # explicitly rather than silently changing the requested width.
         return {"dense_d_ff": base, "moe_d_ff": base, "target_parameters": dense_active}
     raise ValueError("protocol must be A or B")
 
 
-def benchmark_inputs(settings: dict[str, Any], device: torch.device) -> torch.Tensor:
+def benchmark_inputs(
+    settings: dict[str, Any],
+    device: torch.device,
+    *,
+    split: str = "train",
+) -> torch.Tensor:
     data = settings["data"]
+    if split == "train":
+        token_path, metadata_path = data["train_tokens"], data["train_metadata"]
+    elif split == "validation":
+        token_path, metadata_path = data["validation_tokens"], data["validation_metadata"]
+    else:
+        raise ValueError("split must be train or validation")
     tokens, _ = load_token_cache(
-        token_path=data["train_tokens"],
-        metadata_path=data["train_metadata"],
-        split="train",
+        token_path=token_path,
+        metadata_path=metadata_path,
+        tokenizer_path=data["tokenizer"],
+        split=split,
         mmap=True,
     )
     batch = int(settings["benchmark"]["batch_size"])
     seq = int(settings["benchmark"]["sequence_length"])
     needed = batch * seq
     if tokens.numel() < needed + 1:
-        raise ValueError("train cache is too short for N2 benchmark input")
+        raise ValueError(f"{split} cache is too short for N2 benchmark input")
     rows = [tokens[index * seq : (index + 1) * seq] for index in range(batch)]
     return torch.stack(rows).to(device=device, dtype=torch.long)
+
+
+def train_for_benchmark(
+    model: DenseTransformer | MoETransformer,
+    settings: dict[str, Any],
+    *,
+    architecture: str,
+    device: torch.device,
+) -> dict[str, Any]:
+    """Run the configured short optimizer protocol before measuring inference."""
+    data = settings["data"]
+    benchmark = settings["benchmark"]
+    train_tokens, _ = load_token_cache(
+        token_path=data["train_tokens"], metadata_path=data["train_metadata"],
+        tokenizer_path=data["tokenizer"], split="train", mmap=True,
+    )
+    validation_tokens, _ = load_token_cache(
+        token_path=data["validation_tokens"], metadata_path=data["validation_metadata"],
+        tokenizer_path=data["tokenizer"], split="validation", mmap=True,
+    )
+    batch_size = int(benchmark["batch_size"])
+    sequence_length = int(benchmark["sequence_length"])
+    accumulation = int(benchmark.get("gradient_accumulation_steps", 1))
+    token_budget = int(benchmark["token_budget"])
+    tokens_per_update = batch_size * sequence_length * accumulation
+    if token_budget <= 0 or token_budget % tokens_per_update:
+        raise ValueError("token_budget must be a positive multiple of effective batch tokens")
+    optimizer_steps = token_budget // tokens_per_update
+    train_batcher = TokenStreamBatcher(train_tokens, batch_size=batch_size, sequence_length=sequence_length, seed=int(benchmark["seed"]))
+    validation_batcher = TokenStreamBatcher(validation_tokens, batch_size=batch_size, sequence_length=sequence_length, seed=int(benchmark["seed"]) + 1)
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=float(settings.get("optimizer", {}).get("learning_rate", 3e-4)),
+        weight_decay=float(settings.get("optimizer", {}).get("weight_decay", 0.0)),
+    )
+    scheduler_settings = settings.get("scheduler", {}) or {}
+    scheduler = build_scheduler(
+        optimizer,
+        warmup_steps=int(scheduler_settings.get("warmup_steps", 0)),
+        total_steps=optimizer_steps,
+        min_lr_ratio=float(scheduler_settings.get("min_lr_ratio", 0.0)),
+    )
+    amp_enabled, amp_dtype, scaler_enabled = resolve_amp(settings, device)
+    scaler = torch.amp.GradScaler(device=device.type, enabled=scaler_enabled)
+    iterator = iter(train_batcher.iter_epoch(device=device))
+    model.train()
+    train_metrics: list[tuple[float, float, float]] = []
+    for _ in range(optimizer_steps):
+        optimizer.zero_grad(set_to_none=True)
+        sums = [0.0, 0.0, 0.0]
+        for _ in range(accumulation):
+            try:
+                inputs, targets = next(iterator)
+            except StopIteration:
+                iterator = iter(train_batcher.iter_epoch(device=device))
+                inputs, targets = next(iterator)
+            with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=amp_enabled):
+                if architecture == "DenseTransformer":
+                    logits, _ = model(inputs)
+                    lm_loss = causal_loss(logits, targets)
+                    aux_loss = None
+                    total_loss = lm_loss
+                else:
+                    logits, _, aux_loss = model(inputs, collect_stats=False, capacity_factor=PREFILL_CAPACITY_FACTOR)
+                    lm_loss = causal_loss(logits, targets)
+                    total_loss = model.total_loss(lm_loss, aux_loss)
+            sums[0] += float(lm_loss.detach())
+            sums[1] += float(aux_loss.detach()) if aux_loss is not None else 0.0
+            sums[2] += float(total_loss.detach())
+            scaler.scale(total_loss / accumulation).backward()
+        if scaler_enabled:
+            scaler.unscale_(optimizer)
+        scaler.step(optimizer)
+        scaler.update()
+        scheduler.step()
+        train_metrics.append(tuple(value / accumulation for value in sums))
+
+    model.eval()
+    validation_lm: list[float] = []
+    validation_aux: list[float] = []
+    with torch.no_grad():
+        validation_batches = int(benchmark.get("validation_batches", 1))
+        for index, (inputs, targets) in enumerate(validation_batcher.iter_epoch(device=device)):
+            if index >= validation_batches:
+                break
+            if architecture == "DenseTransformer":
+                logits, _ = model(inputs)
+                lm_loss = causal_loss(logits, targets)
+                aux_loss = None
+            else:
+                logits, _, aux_loss = model(inputs, collect_stats=False, capacity_factor=PREFILL_CAPACITY_FACTOR)
+                lm_loss = causal_loss(logits, targets)
+            validation_lm.append(float(lm_loss))
+            if aux_loss is not None:
+                validation_aux.append(float(aux_loss))
+    if not validation_lm:
+        raise ValueError("validation cache produced no benchmark batches")
+    last_train = train_metrics[-1]
+    aux_value = sum(validation_aux) / len(validation_aux) if validation_aux else None
+    validation_lm_value = sum(validation_lm) / len(validation_lm)
+    if aux_value is not None:
+        total_value = validation_lm_value + model.moe_config.aux_loss_weight * aux_value
+    else:
+        total_value = validation_lm_value
+    return {
+        "train_lm_loss": last_train[0],
+        "validation_lm_loss": sum(validation_lm) / len(validation_lm),
+        "aux_loss": aux_value,
+        "total_loss": total_value,
+        "optimizer_steps": optimizer_steps,
+        "effective_tokens": token_budget,
+    }
 
 
 def synchronize(device: torch.device) -> None:
@@ -226,15 +358,27 @@ def measure_model(model, input_ids: torch.Tensor, *, architecture: str, settings
 def cache_binding(settings: dict[str, Any], tokenizer: BPETokenizer) -> dict[str, Any]:
     data = settings["data"]
     metadata = __import__("json").loads(Path(data["train_metadata"]).read_text(encoding="utf-8"))
+    # Validate both cache files at binding construction time so a result cannot
+    # claim a shared validation cache that was never readable or hash-bound.
+    for split in ("train", "validation"):
+        load_token_cache(
+            token_path=data[f"{split}_tokens"],
+            metadata_path=data[f"{split}_metadata"],
+            tokenizer_path=data["tokenizer"],
+            split=split,
+            mmap=True,
+        )
     return {
         "data_version": metadata.get("data_version"),
         "tokenizer_sha256": sha256_file(data["tokenizer"]),
         "train_cache_metadata_sha256": sha256_file(data["train_metadata"]),
         "validation_cache_metadata_sha256": sha256_file(data["validation_metadata"]),
+        "train_cache_sha256": sha256_file(data["train_tokens"]),
+        "validation_cache_sha256": sha256_file(data["validation_tokens"]),
         "seed": int(settings["benchmark"]["seed"]),
         "batch_size": int(settings["benchmark"]["batch_size"]),
         "sequence_length": int(settings["benchmark"]["sequence_length"]),
-        "token_budget": int(settings["benchmark"]["batch_size"]) * int(settings["benchmark"]["sequence_length"]) * int(settings["benchmark"]["measured_steps"]),
+        "token_budget": int(settings["benchmark"]["token_budget"]),
         "gradient_accumulation_steps": int(settings["benchmark"].get("gradient_accumulation_steps", 1)),
         "optimizer": settings.get("optimizer", {"name": "AdamW"}),
         "scheduler": settings.get("scheduler", {"name": "not_run"}),

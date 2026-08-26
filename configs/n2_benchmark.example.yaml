@@ -20,6 +20,7 @@ data:
   train_tokens: data/processed/owt-sample/train.tokens.uint16
   train_metadata: data/processed/owt-sample/train.metadata.json
   validation_metadata: data/processed/owt-sample/validation.metadata.json
+  validation_tokens: data/processed/owt-sample/validation.tokens.uint16
 
 optimizer:
   name: AdamW
@@ -40,6 +41,7 @@ benchmark:
   batch_size: 2
   sequence_length: 32
   token_budget: 128
+  validation_batches: 1
   gradient_accumulation_steps: 1
   warmup_steps: 1
   measured_steps: 2

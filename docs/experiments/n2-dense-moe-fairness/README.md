@@ -2,12 +2,13 @@
 
 ## 范围
 
-N2 在同一 OWT BPE tokenizer、同一 train cache、同一 seed、batch、sequence length 和 token budget 下，运行两套 Dense/MoE Top-1 对比协议：
+N2 在同一 OWT BPE tokenizer、同一 train/validation token cache、同一 seed、batch、sequence length 和 token budget 下，先执行短训练协议，再运行两套 Dense/MoE Top-1 inference 对比协议：
 
 - **协议 A：相同 total parameters**。Dense `d_ff=64`，MoE 4 experts、每 expert `d_ff=16`；实际 total parameter 差值显式记录。
+
 - **协议 B：相同 active parameters**。Dense `d_ff=64`，MoE 每 expert `d_ff=64`；实际 Top-1 active parameter 差值显式记录。
 
-N2 只运行单 seed、单 batch/sequence 配置和 PyTorch eager mean latency smoke，不产生正式模型质量、多 seed统计或置信区间结论。当前随机初始化 smoke 的 loss 数值可能显著偏离 `log(vocab_size)`，不应解释为模型质量；loss 仅作为 forward 链路诊断。decode routing stats 仅覆盖单 token，用于链路验证，不用于均衡性结论。
+当前随机初始化、极短训练 smoke 的 loss 数值不应解释为正式模型质量；loss 仅用于验证训练/validation 链路。decode routing stats 仅覆盖单 token，用于链路验证，不用于均衡性结论。
 
 ## 配置和入口
 
@@ -58,7 +59,8 @@ Dense/MoE 结果由 `schemas/n2_benchmark_result.schema.json` 校验，记录：
 - total / active parameters 和 active parameter definition；
 - tokenizer/cache hash binding、seed、batch、sequence、token budget；
 - optimizer、scheduler、AMP 配置；
-- train loss、aux loss、total loss；
+- train loss、validation loss、aux loss、total loss；
+
 - prefill/decode mean latency、throughput、peak memory；
 - `collect_stats=false` 和 MoE prefill/decode capacity factor。
 

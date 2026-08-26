@@ -279,6 +279,15 @@ N1 训练闭环已完成大阶段审查，审查结论为通过；正式阶段 c
   - latency benchmark 固定 collect_stats=false；routing stats 独立使用 collect_stats=true
   - formal benchmark、N3 元数据、多 seed 统计和严格性能结论仍不在 N2 范围
 
+**修复更新（2026-08-26）**
+
+```text
+状态：已解决（auditor objection 修复后复核）
+改动：N2 benchmark 现在实际加载并校验 train/validation token cache，记录两个 token-file hash；按 token_budget 执行 AdamW、scheduler、AMP/gradient accumulation 短训练，并在 validation cache 上计算 validation loss；新增端到端 shared-binding/capacity 测试。
+验证：`scripts/run_tests.py full` → 69 tests + 5 Stage 0 examples passed；四个 benchmark artifacts 与 routing artifact 均通过对应 schema。
+限制：该短训练 smoke 仍不代表正式模型质量、长训练曲线或多 seed 性能结论。
+```
+
 ---
 
 ### P0-04 MoE routing statistics 污染 latency benchmark

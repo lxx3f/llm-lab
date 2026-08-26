@@ -1,9 +1,11 @@
-# `metrics.train_lm_loss` is a one-batch forward diagnostic, not a trained-model quality result.
+# N2 runs a short configured training protocol before latency measurement.
+# The reported train/validation losses are from that executed protocol, not a
+# standalone random-initialization forward diagnostic.
 # The N2 smoke uses a deliberately short decode sample; routing values are linkage checks only.
 
 ## 固定条件
 
-N2 使用单 seed、单 batch/sequence 配置和 PyTorch eager 路径：
+N2 使用单 seed、单 batch/sequence 配置和 PyTorch eager 路径。每次 benchmark 先按 `token_budget` 执行短训练协议，再在训练后模型上测量 inference latency：
 
 ```text
 seed=42
@@ -15,7 +17,7 @@ measured_steps=2
 collect_stats=false（latency benchmark）
 ```
 
-Dense 与 MoE 必须绑定相同 tokenizer、train/validation cache、optimizer、scheduler、AMP 和 gradient accumulation。N2 result JSON 记录这些 binding，但完整环境/commit/config 元数据归 N3。
+Dense 与 MoE 必须绑定相同 tokenizer、train/validation token cache、optimizer、scheduler、AMP 和 gradient accumulation。benchmark 会实际加载并校验两个 token cache；N2 result JSON 记录 metadata hash 和 token-file hash。这些 binding 在结果中显式记录，完整环境/commit/config 元数据归 N3。
 
 ## 协议
 
@@ -33,6 +35,9 @@ Dense 与 MoE 必须绑定相同 tokenizer、train/validation cache、optimizer�
 
 ## 测量口径
 
+- train loss：短训练协议最后一个 optimizer update 的 LM loss；
+- validation loss：训练完成后从 validation cache 执行的 validation batch 平均 LM loss；
+- optimizer、scheduler、AMP 和 gradient accumulation 在该短训练协议中实际执行；
 - prefill：固定输入 token batch 的 forward mean latency 和 tokens/s；
 - decode：先建立同一 KV cache，再测一个 token 增量 forward 的 mean latency 和 tokens/s；
 - GPU 使用 `torch.cuda.max_memory_allocated` 记录 phase peak memory；CPU 环境显式记录 null；

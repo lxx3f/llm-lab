@@ -19,6 +19,7 @@ from architecture_lab.benchmarks.n2 import (  # noqa: E402
     aggregate_routing,
     benchmark_inputs,
     build_models,
+    cache_binding,
     load_settings,
     resolve_device,
     resolve_dtype,
@@ -36,6 +37,9 @@ def collect(config_path: Path, architecture: str, output: Path | None = None) ->
     dtype = resolve_dtype(str(settings["benchmark"].get("dtype", "float32")))
     d_ff = int(settings["model"]["d_ff"])
     tokenizer = BPETokenizer.load(settings["data"]["tokenizer"])
+    # Validate both train and validation bindings even though routing metrics use
+    # the train batch, keeping this analysis path on the same data contract.
+    cache_binding(settings, tokenizer)
     model, _ = build_models(settings, architecture, d_ff, device, dtype, vocab_size=tokenizer.vocab_size)
     input_ids = benchmark_inputs(settings, device)
     with torch.no_grad():
