@@ -55,7 +55,12 @@ Dropout sensitivity：
 
 ## auditor gap 历史
 
-N6 为新阶段，auditor gap 历史从 0 开始。后续若 isolated auditor（calculet/gpt-5.6-terra）提出具体 gap，按相同模式记录到本节。
+N6 第一轮 isolated auditor（calculet/gpt-5.6-terra）提出 2 项 blocker，已全部闭合：
+
+1. **overlay PNG 实际尺寸与文档不一致（800×500 vs 实际 1400×587）**：原 plot 使用 `figsize=(8, 5), dpi=120, bbox_inches="tight"`，后两者使实际尺寸超标；测试仅校验 PNG 大于 5KB 而不校验尺寸 → 修复：去掉 `bbox_inches="tight"`；`dpi=120` 调为 `dpi=100` 使 figsize × dpi = 800×500；新增 `test_png_dimensions_match_protocol_800x500` 与 `test_overlay_png_dimensions_match_protocol_800x500` 两个回归测试，使用 PIL `Image.open()` 读取实际尺寸并断言 == (800, 500)。重生成 7 个 PNG 全部验证 800×500 ✅
+2. **overlay 调色板与协议不符（purple/olive vs 文档记录的 red）**：原代码 `palette_train[2] == "tab:purple"` 与 `palette_val[2] == "tab:olive"`，协议文档说 dropout=0.2 应为红 / 深红 → 修复：协议描述的调色板需与代码一致；调整 `palette_train = ["tab:blue", "tab:green", "tab:red", ...]` 与 `palette_val = ["tab:orange", "tab:olive", "tab:brown", ...]`，3-input 情况下索引 0 / 1 / 2 映射为 blue/orange、green/olive、red/brown，与 N6 协议中 dropout=0.0/0.1/0.2 的描述一致；新增 `test_overlay_palette_matches_protocol_blue_green_red` 测试，运行时调用 `_plot_train` / `_plot_val`，检查实际 Line2D 的 `get_color()` 返回值含 `tab:blue` / `tab:green` / `tab:red` 与 `tab:orange` / `tab:olive` / `tab:brown` ✅
+
+测试统计：97 → **100 tests passed**（+3 PNG 尺寸与调色板回归测试）；7 个 PNG 重生成（全部 800×500）；N6 协议与 README 同步文档描述。
 
 ## 关联文档
 

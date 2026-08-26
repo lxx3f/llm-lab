@@ -114,7 +114,7 @@ def _plot_single(curve: dict[str, Any], output: Path, title_suffix: str = "") ->
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    fig, ax = plt.subplots(figsize=(8, 5), dpi=120)
+    fig, ax = plt.subplots(figsize=(8, 5), dpi=100)
     ax.set_xlabel("step")
     ax.set_ylabel("train_loss", color="tab:blue")
     ax.tick_params(axis="y", labelcolor="tab:blue")
@@ -151,7 +151,8 @@ def _plot_single(curve: dict[str, Any], output: Path, title_suffix: str = "") ->
 
     fig.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output, dpi=120, bbox_inches="tight")
+    # bbox_inches=None keeps exact figsize × dpi = 800×500.
+    fig.savefig(output, dpi=100)
     plt.close(fig)
     print(f"[plot_dense_curve] wrote {output}")
 
@@ -174,7 +175,7 @@ def _plot_overlay(curves: list[dict[str, Any]], output: Path) -> None:
     palette_val = ["tab:orange", "tab:red", "tab:olive", "tab:pink"]
     markers = ["o", "s", "^", "D"]
 
-    fig, ax = plt.subplots(figsize=(8, 5), dpi=120)
+    fig, ax = plt.subplots(figsize=(8, 5), dpi=100)
     ax.set_xlabel("step")
     ax.set_ylabel("train_loss")
     ax.grid(True, alpha=0.3)
@@ -220,7 +221,8 @@ def _plot_overlay(curves: list[dict[str, Any]], output: Path) -> None:
 
     fig.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output, dpi=120, bbox_inches="tight")
+    # bbox_inches=None keeps exact figsize × dpi = 800×500.
+    fig.savefig(output, dpi=100)
     plt.close(fig)
     print(f"[plot_dense_curve] wrote {output}")
 

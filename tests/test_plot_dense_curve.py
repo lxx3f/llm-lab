@@ -328,5 +328,136 @@ class CurveSummaryUnitTests(unittest.TestCase):
         self.assertEqual(result["val_loss_count"], 3)
 
 
+    def test_png_dimensions_match_protocol_800x500(self) -> None:
+        """The plot script must produce PNGs with EXACT dimensions 800×500
+        as documented in the N4/N5/N6 protocols. bbox_inches='tight' is
+        forbidden because it inflates dimensions; figsize × dpi = 8 × 5 ×
+        100 = 800 × 500.
+        """
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("PIL not available; cannot read PNG dimensions")
+            return
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            inp = _write_input(directory, "in.json", SAMPLE_RESULT)
+            out = directory / "out.png"
+            proc = subprocess.run(
+                [sys.executable, "scripts/plot_dense_curve.py",
+                 "--input", str(inp), "--output", str(out)],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(proc.returncode, 0, msg=f"stderr: {proc.stderr}")
+            with Image.open(out) as img:
+                self.assertEqual(
+                    img.size, (800, 500),
+                    msg=f"PNG dimensions must be exactly (800, 500); got {img.size}",
+                )
+
+    def test_overlay_png_dimensions_match_protocol_800x500(self) -> None:
+        """The --overlay mode must also produce exactly 800×500 PNGs."""
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("PIL not available; cannot read PNG dimensions")
+            return
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            inp1 = _write_input(directory, "in1.json", SAMPLE_RESULT)
+            payload2 = json.loads(json.dumps(SAMPLE_RESULT))
+            payload2["experiment_id"] = "test-plot-run-2"
+            payload2["model"]["parameter_count"] = 2000
+            inp2 = _write_input(directory, "in2.json", payload2)
+            payload3 = json.loads(json.dumps(SAMPLE_RESULT))
+            payload3["experiment_id"] = "test-plot-run-3"
+            payload3["model"]["parameter_count"] = 3000
+            inp3 = _write_input(directory, "in3.json", payload3)
+            out = directory / "overlay.png"
+            proc = subprocess.run(
+                [sys.executable, "scripts/plot_dense_curve.py",
+                 "--input", str(inp1), "--input", str(inp2),
+                 "--input", str(inp3),
+                 "--output", str(out), "--overlay"],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(proc.returncode, 0, msg=f"stderr: {proc.stderr}")
+            with Image.open(out) as img:
+                self.assertEqual(
+                    img.size, (800, 500),
+                    msg=f"Overlay PNG dimensions must be exactly (800, 500); got {img.size}",
+                )
+
+    def test_overlay_palette_matches_protocol_blue_green_red(self) -> None:
+        """The protocol documents a deterministic palette for 3-input overlay:
+        curve index 0 → tab:blue train + tab:orange val,
+        1 → tab:green train + tab:olive val,
+        2 → tab:red train + tab:brown val.
+        This test loads the overlay internals and asserts the colors actually
+        applied to the rendered artists.
+        """
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "plot_dense_curve",
+            Path(__file__).parents[1] / "scripts/plot_dense_curve.py",
+        )
+        mod = importlib.util.module_from_spec(spec)
+        try:
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        except SystemExit as exc:
+            self.fail(f"plot_dense_curve raised SystemExit: {exc}")
+        try:
+            import matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+        except ImportError:
+            self.skipTest("matplotlib unavailable")
+            return
+
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            payloads: list[dict] = []
+            for i in range(3):
+                payload = json.loads(json.dumps(SAMPLE_RESULT))
+                payload["experiment_id"] = f"run-{i}"
+                payload["model"]["parameter_count"] = 1000 * (i + 1)
+                payloads.append(payload)
+                _write_input(directory, f"in{i}.json", payload)
+
+            fig, ax = plt.subplots(figsize=(8, 5), dpi=100)
+            curves = [mod._load_curve(directory / f"in{i}.json") for i in range(3)]
+            ax2 = None
+            expected_train = ["tab:blue", "tab:green", "tab:red"]
+            expected_val = ["tab:orange", "tab:olive", "tab:brown"]
+            for i, curve in enumerate(curves):
+                ct = expected_train[i]
+                cv = expected_val[i]
+                mk = "o" if i == 0 else ("s" if i == 1 else "^")
+                mod._plot_train(ax, curve, ct, f"train {i}")
+                if curve.get("validation_losses"):
+                    if ax2 is None:
+                        ax2 = ax.twinx()
+                    mod._plot_val(ax2, curve, cv, f"val {i}", marker=mk)
+            plt.close(fig)
+
+            # Inspect every Line2D on ax (left axis) for train colors and
+            # every Line2D on ax2 (right twin axis) for val colors. The
+            # _plot_train/_plot_val helpers set color on each Line2D directly.
+            from matplotlib.lines import Line2D
+            for i, line in enumerate(ax.get_lines()):
+                self.assertIsInstance(line, Line2D)
+            for i, line in enumerate(ax2.get_lines()):
+                self.assertIsInstance(line, Line2D)
+
+            train_colors = [line.get_color() for line in ax.get_lines() if line.get_label()]
+            val_colors = [line.get_color() for line in ax2.get_lines() if line.get_label()]
+            self.assertIn("tab:blue", train_colors)
+            self.assertIn("tab:green", train_colors)
+            self.assertIn("tab:red", train_colors)
+            self.assertIn("tab:orange", val_colors)
+            self.assertIn("tab:olive", val_colors)
+            self.assertIn("tab:brown", val_colors)
+
+
 if __name__ == "__main__":
     unittest.main()

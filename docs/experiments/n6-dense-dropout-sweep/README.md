@@ -47,7 +47,11 @@
 
 ### 3-curve overlay PNG
 
-`artifacts/dense-owt-formal-curve-medium-dropout-sweep.png`（92KB，800×500 dpi=120）——3 曲线共享同一对双轴（train_loss 左轴 + val_loss 右轴），每个 run 用不同颜色（dropout=0.0 蓝 / 0.1 绿 / 0.2 红）。
+`artifacts/dense-owt-formal-curve-medium-dropout-sweep.png`（800×500 dpi=100）——3 曲线共享同一对双轴（train_loss 左轴 + val_loss 右轴），调色板为协议固定映射：
+
+- dropout=0.0：train tab:blue / val tab:orange
+- dropout=0.1：train tab:green / val tab:olive
+- dropout=0.2：train tab:red / val tab:brown
 
 ### Dropout sensitivity 观察
 

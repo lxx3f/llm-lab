@@ -94,9 +94,12 @@
 ```
 
 输出 PNG：
-- 800×500，dpi=120；
+- 800×500，dpi=100（figsize=8×5 英寸；去掉 bbox_inches='tight' 保证严格 800×500）
 - 双轴（ax.twinx()）：左轴 train_loss + 右轴 val_loss，共享同一对 axes；
-- 3 条曲线叠加，每个 run 用不同颜色（dropout=0.0 蓝 / 0.1 绿 / 0.2 红）；
+- 3 条曲线叠加，每条独立颜色；调色板为协议固定映射：
+  - 索引 0（dropout=0.0）：train tab:blue / val tab:orange
+  - 索引 1（dropout=0.1）：train tab:green / val tab:olive
+  - 索引 2（dropout=0.2）：train tab:red / val tab:brown
 - 标题 `Overlay: medium dropout=0.0 vs dropout=0.1 vs dropout=0.2`。
 
 ## 与 N5 规模 sweep 的关系
