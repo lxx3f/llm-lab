@@ -169,3 +169,9 @@ N4 第二轮 isolated auditor 提出 2 项新 blocker，已闭合：
 N4 第三轮 isolated auditor 提出 1 项 blocker，已闭合：
 
 6. **README “共同点”部分遗留旧句**：前轮只改了 Medium 部分，但 `docs/experiments/n4-dense-formal-curve/README.md` "共同点"中仍含 "val_loss 5000 步时仍在缓慢下降（不是 min）"，与 `val_loss_min_step: 5000 / delta_val_loss: 0.0` 矛盾 → 修复：删掉该错误句子，改写为 val_loss 5000 步时两实验均达到最小值（与 `curve_summary.val_loss_min_step` 字段一致）；同时 Baseline 部分补上“`val_loss_min_step: 5000`，与 last 一致”备注；新增回归测试 `test_experiment_readme_doc_consistency`：运行时检查 README 不含 "不是 min"/"5000 步时仍在缓慢下降" 与 artifacts 的 `val_loss_min_step == 5000` 一致。测试统计：96 → **97 tests passed**（+1 文档一致性检查 test）。
+
+---
+
+N4 第四轮 isolated auditor 提出 1 项 blocker，已闭合：
+
+7. **README 依然含与 artifact 冲突的错误描述（单调下降 vs 振荡下降）**：README 共同点部分说"两条曲线都看到明显的 train_loss 单调下降"，但实际 100 点采样序列里 baseline 有 42 次相邻上升、medium 有 44 次——总体趋势下降但伴振荡，非单调 → 修复：删掉"单调下降"；改为"总体上震荡下降（`delta_train_loss < 0`，符合协议 sanity check）"并明确说明 100 个采样点中相邻间隔的局部上升次数；同时 Baseline 与 Medium 部分补上实际首/末值与 Δ_train_loss 数字（baseline -54.76 / medium -98.13）；增强回归测试 `test_experiment_readme_doc_consistency`：断言 README 不含"train_loss 单调下降"/"单调下降"过期措辞，并验证 artifacts 中 train_losses 相邻间隔上升计数 > 0（振荡，而非单调）。测试统计：97 → **97 tests passed**（增强同一 doc-consistency test）。

@@ -171,14 +171,21 @@ class PlotDenseCurveTests(unittest.TestCase):
         """Sanity check on docs/experiments/n4-dense-formal-curve/README.md:
         the prose must agree with the artifacts it documents.
 
-        This guards against the regression caught by the isolated auditor:
-        README claimed "val_loss 5000 步时不是 min" while both artifacts have
-        ``val_loss_min_step == 5000``. Any future README edit that contradicts
-        the artifact's documented minima must be caught here.
+        Guards against regressions caught by the isolated auditor:
+          - README claimed "val_loss 5000 步时不是 min" while both artifacts
+            have ``val_loss_min_step == 5000``.
+          - README claimed "train_loss 单调下降" while both artifacts have
+            ~42/99 increases between adjacent train samples (oscillatory,
+            not monotonic).
         """
         readme = (Path(__file__).parents[1] / "docs/experiments/n4-dense-formal-curve/README.md").read_text(encoding="utf-8")
-        # The forbidden phrasings from previous auditor rejections:
-        for forbidden in ("不是 min", "5000 步时仍在缓慢下降"):
+        # Phrasings rejected by previous auditor rounds:
+        for forbidden in (
+            "不是 min",
+            "5000 步时仍在缓慢下降",
+            "train_loss 单调下降",
+            "单调下降",
+        ):
             self.assertNotIn(
                 forbidden,
                 readme,
@@ -186,15 +193,31 @@ class PlotDenseCurveTests(unittest.TestCase):
             )
         # The required confirmation that both runs reach their minimum at step 5000:
         self.assertIn("val_loss_min_step", readme)
-        # Both runs end at step 5000 in their artifacts:
+        # Both runs end at step 5000 in their artifacts; the curves are
+        # noisy / oscillatory but net-decreasing:
+        increases: dict[str, int] = {}
         for path in ("artifacts/dense-owt-formal-curve-result.json",
                      "artifacts/dense-owt-formal-curve-medium-result.json"):
             if not Path(path).exists():
                 continue  # artifacts are gitignored; skip if absent
-            summary = json.loads(Path(path).read_text(encoding="utf-8"))["metrics"]["curve_summary"]
+            metrics = json.loads(Path(path).read_text(encoding="utf-8"))["metrics"]
+            summary = metrics["curve_summary"]
             self.assertEqual(
                 summary["val_loss_min_step"], 5000,
                 msg=f"{path} should reach min val at step 5000 per README",
+            )
+            self.assertLess(
+                summary["delta_train_loss"], 0,
+                msg=f"{path} should have net-decreasing train_loss per README",
+            )
+            samples = metrics["train_losses"]
+            increases[path] = sum(
+                1 for i in range(1, len(samples))
+                if samples[i]["loss"] > samples[i - 1]["loss"]
+            )
+            self.assertGreater(
+                increases[path], 0,
+                msg=f"{path} train_loss is monotonic; README must reflect that it is oscillatory",
             )
 
     def test_plot_dense_curve_overlay_uses_exactly_two_axes(self) -> None:
