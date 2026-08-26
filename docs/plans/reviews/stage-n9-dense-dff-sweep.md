@@ -61,6 +61,10 @@ N9 为新阶段，auditor gap 历史从 0 开始。
 - N5-N8 审查：`docs/plans/reviews/stage-n{5,6,7,8}-dense-*.md`
 - Roadmap：`docs/plans/roadmap.md`（N9 已推进）
 
+## control artifact provenance
+
+d_ff=512 control 复用 N5 medium artifact（`dense-owt-formal-curve-medium-result.json`），是 N5/N7/N8/N9 共享 control，最后一次在夜间跑最终 commit `6786ca2` 重生成（metadata.git_commit == HEAD，val_min=7.0582）。同一 config + 同一 seed → 相同 val_min，跨阶段复用不改变曲线结论。
+
 ## 风险与遗留
 
 - 单 seed：3 个点都用 seed=42；

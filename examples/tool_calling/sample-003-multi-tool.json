@@ -20,10 +20,18 @@
         "parameters": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["date", "days"],
+          "required": [
+            "date",
+            "days"
+          ],
           "properties": {
-            "date": {"type": "string", "format": "date"},
-            "days": {"type": "integer"}
+            "date": {
+              "type": "string",
+              "format": "date"
+            },
+            "days": {
+              "type": "integer"
+            }
           }
         }
       }
@@ -36,10 +44,18 @@
         "parameters": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["city", "date"],
+          "required": [
+            "city",
+            "date"
+          ],
           "properties": {
-            "city": {"type": "string"},
-            "date": {"type": "string", "format": "date"}
+            "city": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string",
+              "format": "date"
+            }
           }
         }
       }
@@ -65,7 +81,9 @@
         "city": "北京",
         "date": "2025-08-28"
       },
-      "depends_on": ["expected-call-001"],
+      "depends_on": [
+        "expected-call-001"
+      ],
       "expected_result": {
         "city": "北京",
         "date": "2025-08-28",
@@ -76,7 +94,7 @@
   ],
   "expected_answer": "三天后是 2025 年 8 月 28 日，北京当天多云，气温约 27°C。",
   "metadata": {
-    "source": "llm-lab-manual-example",
+    "source": "synthetic",
     "license": "CC0-1.0",
     "original_sample_id": null,
     "task_type": "multi_tool",

@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "data_version": "D0",
+  "split": "none",
+  "samples": [
+    {
+      "path": "sample-001.json",
+      "sha256": "d53e371d6b6908e3543d8d90362fbce8f7861055ef38ceddbd27a0d0986b2717",
+      "task_type": "single_tool"
+    },
+    {
+      "path": "sample-002-no-tool.json",
+      "sha256": "ff0c376c5eeeb1dacec38fc1654cfff2ce136591f7b8f9ab43a235825a316806",
+      "task_type": "no_tool"
+    },
+    {
+      "path": "sample-003-multi-tool.json",
+      "sha256": "006a73310eae039560c3258f82ad2077c767511464d934b7cebdc63bfbb6d3d9",
+      "task_type": "multi_tool"
+    }
+  ],
+  "samples_sha256": "3d4950c0b786f30db3fc974d9ea2ad134b20d216ebed493c57b45e1ede841e23",
+  "created_at": "2026-08-26T15:45:45.676911Z"
+}

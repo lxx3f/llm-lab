@@ -16,10 +16,18 @@
         "parameters": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["city", "date"],
+          "required": [
+            "city",
+            "date"
+          ],
           "properties": {
-            "city": {"type": "string"},
-            "date": {"type": "string", "format": "date"}
+            "city": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string",
+              "format": "date"
+            }
           }
         }
       }
@@ -43,7 +51,7 @@
   ],
   "expected_answer": "北京明天晴，气温约 28°C。",
   "metadata": {
-    "source": "llm-lab-manual-example",
+    "source": "synthetic",
     "license": "CC0-1.0",
     "original_sample_id": null,
     "task_type": "single_tool",

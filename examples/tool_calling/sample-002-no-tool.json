@@ -16,10 +16,18 @@
         "parameters": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["city", "date"],
+          "required": [
+            "city",
+            "date"
+          ],
           "properties": {
-            "city": {"type": "string"},
-            "date": {"type": "string", "format": "date"}
+            "city": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string",
+              "format": "date"
+            }
           }
         }
       }
@@ -28,7 +36,7 @@
   "expected_tool_calls": [],
   "expected_answer": "模型结论应有可复现的实验作为支撑。",
   "metadata": {
-    "source": "llm-lab-manual-example",
+    "source": "synthetic",
     "license": "CC0-1.0",
     "original_sample_id": null,
     "task_type": "no_tool",

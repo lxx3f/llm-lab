@@ -74,9 +74,15 @@ examples/tool_calling/
 # schema 校验（已有 Stage 0 协议）
 .venv/python.exe scripts/validate_stage0.py
 
-# D0 清单生成 + hash 校验
-.venv/python.exe scripts/build_d0_manifest.py  # 若实现
+# D0 清单生成 + hash 校验（已实现）
+.venv/python.exe scripts/build_d0_manifest.py          # 只校验
+.venv/python.exe scripts/build_d0_manifest.py --write  # 生成 MANIFEST.json
 ```
+
+## 自动化验证
+
+- `tests/test_d0_manifest.py`（4 tests）：build_manifest 有效性 / MANIFEST hash 匹配文件 / source=synthetic / CLI 校验通过；
+- `tests/test_artifact_provenance.py`（2 tests）：夜间跑 artifact 存在且 git_commit 属于已知夜间 run commit 集合；共享 medium control == HEAD。
 
 ## 与评测链路关系
 
@@ -89,6 +95,6 @@ D0 样例 → schema 校验 → mock executor（P1-01）→ 执行结果
 
 ## 遗留
 
-- MANIFEST.json 生成脚本（build_d0_manifest.py）未实现——D0 手工维护 3 个样例 + 未来脚本化；
+- D0 样例 metadata.source 已统一为 `synthetic`（2026-08-26，auditor 复核后）；MANIFEST.json 已生成并提交；
 - D1/D2 的触发条件：进入 SFT/GRPO 阶段（P4）前必须完成 D1；
 - compositional split 设计留 D2。
