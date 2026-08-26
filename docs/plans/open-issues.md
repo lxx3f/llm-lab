@@ -476,12 +476,16 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 
 在这些规则固定前，不应把 smoke 数字写成正式性能结论。
 
-**决策（2026-08-26，更新于 N3 阶段完成）**
+**决策（2026-08-26，更新于 P1-03 阶段完成）**
 
 ```text
-状态：未解决
-决策：仍归 P1-03，不随 N3 交付。N3 只补齐单 seed 结果的元数据；多 seed sweep / mean / std / CI / p50-p95 / warmup / measured 规则 / torch.compile / AMP / CUDA Graph 默认状态 仍需后续阶段设计。
-进展：2026-08-26 N3 只完成字段落盘，不动多 seed 协议；之前阶段使用单 seed smoke 是合法的，不溯及既往。
+状态：已解决（2026-08-26）
+决策：P1-03 协议已落 docs/protocols/p1-03-multi-seed.md；N5+N6 已做 3-seed 实跑（42/123/7，18 个训练）并验证：
+  - 规模 sweep 结论多 seed 稳健（val_min mean 7.26→7.03）；
+  - N6 dropout=0.1 的单 seed 优势是噪声（多 seed 下 dropout 影响退化）；
+  - large std 最大（0.093），单 seed 低估其真实水平。
+默认：3 seeds={42,123,7}；mean/std；N≥5 时可报告 95% CI；torch.compile/CUDA Graph 默认关；AMP bf16 默认开。
+进展：2026-08-26 协议 + 3-seed 实跑完成；N1-N11 单 seed 文档不追溯改写，只在关键结论标注"单 seed"。
 ```
 
 ---
