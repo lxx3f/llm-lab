@@ -46,6 +46,8 @@ class Stage0SchemaTests(unittest.TestCase):
         }
         for schema_name, directory in groups.items():
             for path in sorted(directory.glob("*.json")):
+                if path.name == "MANIFEST.json":
+                    continue  # D0 manifest is not a sample document
                 with self.subTest(path=path.relative_to(ROOT)):
                     self.assertEqual([], errors_for(load_json(path), schema_name))
 

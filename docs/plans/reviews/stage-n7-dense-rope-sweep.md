@@ -66,7 +66,7 @@ N7 为新阶段，auditor gap 历史从 0 开始。后续若 isolated auditor（
 
 ## control artifact provenance
 
-rope_base=10000 control 复用 N5 medium artifact（`dense-owt-formal-curve-medium-result.json`，d_model=128/n_layers=4/d_ff=512）。该 artifact 是 N5/N7/N8/N9 的共享 control，最后一次在夜间跑最终 commit `6786ca2` 重生成（metadata.git_commit == HEAD，val_min=7.0582）。同一 config + 同一 seed → 相同 val_min，跨阶段复用不改变曲线结论；provenance 以最终重生成 commit 为准。
+rope_base=10000 control 复用 N5 medium artifact（`dense-owt-formal-curve-medium-result.json`，d_model=128/n_layers=4/d_ff=512）。该 artifact 是 N5/N7/N8/N9 的共享 control，在夜间跑最终 commit 重生成（`metadata.git_commit == HEAD`，val_min=7.0582）。同一 config + 同一 seed → 相同 val_min，跨阶段复用不改变曲线结论；provenance 以最终重生成 commit 为准。
 
 ## 风险与遗留
 
