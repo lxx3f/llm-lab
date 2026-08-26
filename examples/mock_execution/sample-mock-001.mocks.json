@@ -1,0 +1,35 @@
+{
+  "add": {
+    "function_path": "examples.mock_execution.mocks:add",
+    "arguments_schema": {
+      "type": "object",
+      "properties": {
+        "a": {"type": "number"},
+        "b": {"type": "number"}
+      },
+      "required": ["a", "b"]
+    }
+  },
+  "multiply": {
+    "function_path": "examples.mock_execution.mocks:multiply",
+    "arguments_schema": {
+      "type": "object",
+      "properties": {
+        "a": {"type": "number"},
+        "b": {"type": "number"}
+      },
+      "required": ["a", "b"]
+    }
+  },
+  "divide": {
+    "function_path": "examples.mock_execution.mocks:divide",
+    "arguments_schema": {
+      "type": "object",
+      "properties": {
+        "a": {"type": "number"},
+        "b": {"type": "number"}
+      },
+      "required": ["a", "b"]
+    }
+  }
+}

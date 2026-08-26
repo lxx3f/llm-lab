@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llm-lab.local/schemas/tool_execution_result.schema.json",
+  "title": "LLM Lab Tool Execution Result",
+  "description": "一次 mock 工具调用的结构化执行结果。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tool_name",
+    "call_id",
+    "outcome",
+    "arguments",
+    "result",
+    "error",
+    "execution_time_ms",
+    "mock_metadata"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "tool_name": {"type": "string", "minLength": 1},
+    "call_id": {"type": "string", "minLength": 1},
+    "outcome": {
+      "enum": ["success", "mock_not_found", "argument_invalid", "mock_exception", "execution_timeout"]
+    },
+    "arguments": {"type": "object"},
+    "result": {"type": ["object", "array", "number", "string", "boolean", "null"]},
+    "error": {"type": ["string", "null"]},
+    "execution_time_ms": {"type": "number", "minimum": 0},
+    "mock_metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "mock_id": {"type": "string", "minLength": 1},
+        "registered_at": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}

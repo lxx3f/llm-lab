@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "id": "sample-mock-001",
+  "messages": [
+    {"role": "system", "content": "You are a calculator assistant."},
+    {"role": "user", "content": "What is (2 + 3) * 4?"}
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "add",
+        "description": "Add two numbers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "a": {"type": "number"},
+            "b": {"type": "number"}
+          },
+          "required": ["a", "b"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "multiply",
+        "description": "Multiply two numbers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "a": {"type": "number"},
+            "b": {"type": "number"}
+          },
+          "required": ["a", "b"]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {"call_id": "call-1", "name": "add", "arguments": {"a": 2, "b": 3}},
+    {"call_id": "call-2", "name": "multiply", "arguments": {"a": 5, "b": 4}, "depends_on": ["call-1"], "expected_result": 20}
+  ],
+  "expected_answer": "20",
+  "metadata": {
+    "source": "synthetic",
+    "license": "project-internal",
+    "task_type": "multi_tool",
+    "data_version": "D0-example",
+    "pipeline_version": "p1-01-example",
+    "created_at": "2026-08-26T00:00:00Z"
+  }
+}

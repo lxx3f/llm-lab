@@ -120,6 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             ("tests", "test_dense_result_schema.py"),
             ("tests", "test_plot_dense_curve.py"),
             ("tests", "test_dense_training.py"),
+            ("tests", "test_mock_executor.py"),
             ("tests", "test_moe_training.py"),
             ("tests", "test_stage0_schemas.py"),
             ("tests", "test_token_cache.py"),
