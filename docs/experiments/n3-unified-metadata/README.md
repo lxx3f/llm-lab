@@ -58,7 +58,7 @@ README.md                                   # 同步
 ## 验证
 
 ```text
-.venv/python.exe scripts/run_tests.py full → 85 tests passed
+.venv/python.exe scripts/run_tests.py full → 86 tests passed
 Stage 0 examples → 5/5 PASS
 N3 单元测试 → 14/14 PASS
 ```

@@ -64,4 +64,4 @@ CLI 不会把 metadata 注入委托给 result builder；这避免了 N3 合同�
 .venv/python.exe scripts/run_tests.py full
 ```
 
-预期：85 tests passed；Stage 0 examples 5/5 PASS。
+预期：86 tests passed；Stage 0 examples 5/5 PASS。

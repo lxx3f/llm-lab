@@ -130,6 +130,21 @@ class CollectMetadataTests(unittest.TestCase):
             metadata = collect_metadata(seed=0)
             self.assertEqual(metadata["gpu_compute_capability"], "12.0")
 
+    def test_gpu_compute_capability_sm_format_not_emitted(self) -> None:
+        # Negative test: the implementation must not emit "sm_<digits>".
+        # The collector is hard-coded to emit the contract-preferred dotted
+        # "major.minor" form when CUDA is available; any "sm_X" emission
+        # would indicate the format regressed.
+        with mock.patch(
+            "architecture_lab.experiment_metadata._safe_gpu_fields",
+            return_value=("RTX 5070 Ti", "12.0"),
+        ):
+            metadata = collect_metadata(seed=0)
+            self.assertFalse(
+                (metadata["gpu_compute_capability"] or "").startswith("sm_"),
+                "gpu_compute_capability must not be in 'sm_<digits>' form",
+            )
+
     def test_seed_negative_clamped_to_zero(self) -> None:
         metadata = collect_metadata(seed=-7)
         self.assertEqual(metadata["seed"], 0)
