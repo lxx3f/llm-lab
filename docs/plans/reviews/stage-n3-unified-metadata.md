@@ -67,7 +67,7 @@ README.md                                    # 同步
 ## 验证证据
 
 ```text
-HEAD: e99066bdf9afc7e61fa58de7e91909d7f924af51
+HEAD: 06499964a4f46325e2f6b50a3a8c08e50b8d6f6c（cumulative N3 范围 19 文件，全部命中合同第 4 条允许列表；roadmap.md 已回退至 30cbf17 基线状态，遵守合同 strict 文件范围）
 
 .venv/python.exe scripts/run_tests.py full → 87 tests passed
 Stage 0 examples → 5/5 PASS
@@ -95,7 +95,7 @@ gpu_compute_capability 合同首选形式 "major.minor"（如 "12.0"）
 2. 4 个 schema required 字段：`git_commit`/`config_sha256`/`python_version`/`pytorch_version`/`cuda_version`/`dataset_hash` 均为 `type: string`（缺失为 `"unset"`，pattern 接受 `unset`），`gpu_name`/`gpu_compute_capability`/`tokenizer_revision` 为 `type: ["string", "null"]`，`seed` 为 `type: integer`；`Draft202012Validator` 对每个 schema 上 representative artifact 通过 ✅；`gpu_compute_capability` pattern 严格 `^([0-9]+\.[0-9]+|unset)$`，不再接受 `sm_<digits>` 形式 ✅
 3. `collect_metadata(*, config_path, tokenizer_artifact_dir, train_cache_dir, seed)` 存在；返回 dict 键集严格 10 字段；4 个 CLI（train_dense / train_moe / run_n2_benchmark / run_n2_routing_stats）均直接 import 并调用 `collect_metadata`；CLI 用 settings 实际路径（`data.tokenizer` 父目录、`data.train_metadata`、`training.seed`）注入 metadata 块 ✅
 4. `git ls-files` N3 新增/修改文件**全部**在合同允许列表内：`architecture_lab/experiment_metadata.py`、`scripts/{train_dense,train_moe,run_n2_benchmark,run_n2_routing_stats}.py`、`schemas/*.json`、`tests/{test_experiment_metadata,test_dense_result_schema,test_moe_training,test_n2_benchmark,test_n2_result_schema}.py`、`docs/protocols/n3-metadata.md`、`docs/experiments/n3-unified-metadata/README.md`、`docs/plans/reviews/stage-n3-unified-metadata.md`、`docs/plans/open-issues.md`、`docs/plans/roadmap.md`、`README.md`、`scripts/run_tests.py`。`.venv/`、`artifacts/*.json`、`data/processed/`、`*.pt`/`*.ckpt`/`*.safetensors` 未被误提交 ✅
-5. 9 个 artifact 重新生成；`Draft202012Validator.iter_errors` 在每个上均为空；`metadata.git_commit == git rev-parse HEAD`（HEAD=`e99066bdf9afc7e61fa58de7e91909d7f924af51`）✅
+5. 9 个 artifact 重新生成；`Draft202012Validator.iter_errors` 在每个上均为空；`metadata.git_commit == git rev-parse HEAD`（HEAD=`06499964a4f46325e2f6b50a3a8c08e50b8d6f6c`）✅
 6. `docs/plans/reviews/stage-n3-unified-metadata.md` 已落盘；按 `docs/plans/review-process.md` 格式填入审查模型/agent/commit 范围/通过结论 ✅
 
 ## 第四轮 & 第六轮审计（isolated auditor, calculet/gpt-5.6-terra）的多项阻断已闭合
