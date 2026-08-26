@@ -20,7 +20,9 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 **层语义规则**：
 
 - `no_tool` 样例（expected_tool_calls 为空）：正确输出 = 空 tool_calls；parse/schema/execution/grounding 平凡通过（result_grounded = True，无结果可验证）；
-- `tool_error` 样例：模型应**检测到无效调用并报告**，不应执行——expected_tool_calls 为空，正确 transcript 也无调用；
+- `tool_error` 样例分两种：
+  - `tool_not_available`：用户请求的工具不在 available tools 列表中 → 模型不应调用任何工具，应报告工具不可用（expected_tool_calls = []）；
+  - `tool_error_response`：模型调用一个始终返回 ERROR 响应的工具 → 模型应观察到错误响应并报告，不应传播错误结果（expected_tool_calls 含 1 个调用 + expected_result 为 ERROR 串）；
 - `expected_answer: null`：task_success = None（不可判定），不计入失败；
 - 有 expected calls 但未声明 `expected_result`：result_grounded = None（不可判定），不计入失败；
 - **首次失败层**（None 跳过）= 模型失败的具体位置。
@@ -76,13 +78,14 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 | single_calc | 单一计算工具 |
 | single_weather | 单一天气工具 |
 | multi_calc_search | 计算 + 搜索依赖序 |
-| tool_missing_arg | 工具缺必要参数 → 应报错 |
+| tool_not_available | 可用工具中不含所需工具 → 报告不可用（不应调用） |
+| tool_error_response | 调用返回 ERROR 响应的工具 → 报告错误（真实工具错误场景） |
 | insufficient_search | 结果不足 → 追问用户 |
 | req_change_city | 中途改要求 → 以最新为准 |
 
 ## 校验
 
-- `scripts/run_tests.py full`：tests/test_d1_failure.py（31 tests：manifest / schema / task_type 覆盖 / 确定性 / 六层分类各一 / 全 task_type 集成 / D1 端到端 mock 执行 / expected_result 一致性 / depends_on 可达性 / result_grounded 实际激活 / MalformedTranscriptRegressionTests 8 个反向断言）；
+- `scripts/run_tests.py full`：tests/test_d1_failure.py（33 tests：manifest / schema / task_type 覆盖 / 确定性 / 六层分类各一 / 全 task_type 集成 / D1 端到端 mock 执行 / expected_result 一致性 / depends_on 可达性 / result_grounded 实际激活 / MalformedTranscriptRegressionTests 8 个反向断言 / call_id 不匹配 位置配对回归 2 个）；
 - 生成器退出码 0 且 0 schema errors。
 
 ## 应用范围

@@ -46,3 +46,34 @@ def d1_web_search(query: str, limit: int | None = None) -> str:
         raise ValueError("query must be a non-empty string")
     n = limit if isinstance(limit, int) and limit > 0 else 3
     return f"关于「{query}」找到 {n} 条结果。"
+
+
+# Tools that always return an error response, used to exercise the
+# ``tool_error_response`` task_type (model should call the tool but detect
+# that the response itself is an error and report it, not use the bad result).
+TRANSLATE_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "d1_translate",
+        "description": "Translate text from one language to another.",
+        "parameters": {
+            "type": "object",
+            "properties": {"text": {"type": "string"}, "target_lang": {"type": "string"}},
+            "required": ["text", "target_lang"],
+        },
+    },
+}
+
+
+def d1_translate(text: str, target_lang: str) -> str:
+    """Always returns an error response (simulates an unavailable service).
+
+    The tool is registered with valid arguments and parses correctly; the
+    correct model behaviour is to call it, observe the error response, and
+    report the failure rather than propagate the bad result.
+    """
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("text must be a non-empty string")
+    if not isinstance(target_lang, str) or not target_lang.strip():
+        raise ValueError("target_lang must be a non-empty string")
+    return f"ERROR: translation service unavailable (text={text!r}, target_lang={target_lang!r})"

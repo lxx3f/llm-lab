@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 9 * 11，再搜索一下 LLM 评测 2026。"
+      "content": "先计算 12 + 87，再搜索一下 GRPO 强化学习。"
     }
   ],
   "tools": [
@@ -58,7 +58,7 @@
       "call_id": "call-d1-0052-a",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "9 * 11"
+        "expression": "12 + 87"
       },
       "expected_result": 99
     },
@@ -66,15 +66,15 @@
       "call_id": "call-d1-0052-b",
       "name": "d1_web_search",
       "arguments": {
-        "query": "LLM 评测 2026"
+        "query": "GRPO 强化学习"
       },
       "depends_on": [
         "call-d1-0052-a"
       ],
-      "expected_result": "关于「LLM 评测 2026」找到 3 条结果。"
+      "expected_result": "关于「GRPO 强化学习」找到 3 条结果。"
     }
   ],
-  "expected_answer": "计算结果：99；搜索结果：关于「LLM 评测 2026」找到 3 条结果。",
+  "expected_answer": "计算结果：99；搜索结果：关于「GRPO 强化学习」找到 3 条结果。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

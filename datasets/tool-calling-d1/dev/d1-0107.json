@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下北京现在的天气。"
+      "content": "帮我查一下西安现在的天气。"
     }
   ],
   "tools": [
@@ -36,12 +36,12 @@
       "call_id": "call-d1-0107",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "北京"
+        "city": "西安"
       },
-      "expected_result": "北京 当前天气：晴，22°C，微风。"
+      "expected_result": "西安 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "北京 当前天气：晴，22°C，微风。",
+  "expected_answer": "西安 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

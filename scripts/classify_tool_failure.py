@@ -152,21 +152,26 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
         )
 
     # Layer 5: result_grounded — actual results match expected results where
-    # expected_result is declared. For no_tool (zero expected and zero actual
-    # calls) grounding trivially passes (True). None only when there ARE
-    # expected calls but none declares expected_result.
+    # expected_result is declared. Pairs with expected calls by POSITION
+    # (same as call_plan_matches) so a transcript that passes call_plan_matches
+    # is always paired with the corresponding expected result. Falling back
+    # to call_id matching alone would silently produce a false pass when the
+    # transcript call_id differs from the expected call_id (auditor round 10).
+    # For no_tool (zero expected and zero actual calls) grounding trivially
+    # passes (True). None only when there ARE expected calls but none declares
+    # expected_result.
     grounded: bool | None = True
     grounded_declared = False
     if len(expected_calls) == 0 and isinstance(transcript_calls, list) and len(transcript_calls) == 0:
         # no_tool: nothing to ground — trivially passes.
         grounded = True
     elif isinstance(transcript_calls, list):
-        for call in transcript_calls:
-            exp = next(
-                (e for e in expected_calls if e.get("call_id") == call.get("call_id")),
-                None,
-            )
-            if exp is None or "expected_result" not in exp:
+        # Position-based pairing: i-th transcript call ↔ i-th expected call.
+        for i, call in enumerate(transcript_calls):
+            if i >= len(expected_calls):
+                break
+            exp = expected_calls[i]
+            if "expected_result" not in exp:
                 continue
             grounded_declared = True
             if call.get("result") != exp["expected_result"]:

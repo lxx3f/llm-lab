@@ -6,7 +6,11 @@ deterministic pseudo-randomness (fixed seed), covering all six task_types:
 - no_tool: answer without calling a tool
 - single_tool: exactly one tool call (with computed ``expected_result``)
 - multi_tool: >=2 dependent/independent calls (with computed results)
-- tool_error: the model should detect a tool error (bad input, missing arg)
+- tool_error: split into two real error conditions — ``tool_not_available``
+  (tool not in available list → model should not call, report unavailability)
+  and ``tool_error_response`` (tool returns an ERROR string → model should
+  call, observe the error response, and report the failure without
+  propagating the bad result)
 - insufficient_result: tool result is insufficient → ask follow-up
 - requirement_change: user changes the requirement mid-conversation
 
@@ -88,6 +92,19 @@ SEARCH_TOOL = {
     },
 }
 
+TRANSLATE_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "d1_translate",
+        "description": "Translate text from one language to another.",
+        "parameters": {
+            "type": "object",
+            "properties": {"text": {"type": "string"}, "target_lang": {"type": "string"}},
+            "required": ["text", "target_lang"],
+        },
+    },
+}
+
 
 def _tool(name: str) -> dict[str, Any]:
     for tool in (CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL):
@@ -138,7 +155,7 @@ def _messages(user_text: str, tool_outputs: list[tuple[str, str]] | None = None)
 
 
 def build_samples(count: int, rng: random.Random) -> list[dict[str, Any]]:
-    from examples.d1_mocks import d1_calculate, d1_get_weather, d1_web_search
+    from examples.d1_mocks import d1_calculate, d1_get_weather, d1_translate, d1_web_search
 
     samples: list[dict[str, Any]] = []
     cities = ["北京", "上海", "深圳", "广州", "杭州", "成都", "武汉", "西安", "重庆", "南京"]
@@ -197,16 +214,39 @@ def build_samples(count: int, rng: random.Random) -> list[dict[str, Any]]:
                 f"计算结果：{calc_result}；搜索结果：{search_result}",
                 "multi_tool", "multi_calc_search",
             ))
-        elif kind == 4:  # tool_error (missing required argument)
-            expr = rng.choice(expressions)
-            samples.append(_sample(
-                sid,
-                _messages(f"请计算 {expr}，如果工具缺少必要参数就说明。", []),
-                [CALC_TOOL],
-                [],  # Model must NOT call with invalid args; it should report the error.
-                "工具缺少必要参数 expression，应报告错误。",
-                "tool_error", "tool_missing_arg",
-            ))
+        elif kind == 4:  # tool_error — split between two real error conditions
+            from examples.d1_mocks import d1_translate
+            if len(samples) % 2 == 0:
+                # Subcase A: tool_not_available — user asks for a tool that is
+                # not in the available tool list. The correct model behaviour
+                # is to NOT call any tool and report that the tool is missing.
+                samples.append(_sample(
+                    sid,
+                    _messages("请把这段话翻译成英文。", []),
+                    [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],  # no translate tool
+                    [],  # no call: the required tool is unavailable
+                    "当前可用工具中没有翻译工具，应报告工具不可用。",
+                    "tool_error", "tool_not_available",
+                ))
+            else:
+                # Subcase B: tool_error_response — model calls a registered tool
+                # that always returns an ERROR response. The correct model
+                # behaviour is to call the tool, observe the error result, and
+                # report the failure (not propagate the bad result to the user).
+                translate_result = d1_translate("Hello, world.", "zh")
+                samples.append(_sample(
+                    sid,
+                    _messages("请把 'Hello, world.' 翻译成中文。", []),
+                    [TRANSLATE_TOOL],
+                    [{
+                        "call_id": f"call-{sid}",
+                        "name": "d1_translate",
+                        "arguments": {"text": "Hello, world.", "target_lang": "zh"},
+                        "expected_result": translate_result,
+                    }],
+                    f"翻译工具返回错误：{translate_result} 应报告工具调用失败。",
+                    "tool_error", "tool_error_response",
+                ))
         elif kind == 5:  # insufficient_result
             query = rng.choice(queries)
             search_result = d1_web_search(query, limit=1)
@@ -270,6 +310,7 @@ def main() -> int:
         "d1_calculate": d1_mocks.d1_calculate,
         "d1_get_weather": d1_mocks.d1_get_weather,
         "d1_web_search": d1_mocks.d1_web_search,
+        "d1_translate": d1_mocks.d1_translate,
     }
     semantic_failures: list[str] = []
     call_ids_seen: set[str] = set()

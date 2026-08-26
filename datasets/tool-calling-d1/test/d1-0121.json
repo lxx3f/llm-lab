@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下成都现在的天气。"
+      "content": "帮我查一下深圳现在的天气。"
     }
   ],
   "tools": [
@@ -36,12 +36,12 @@
       "call_id": "call-d1-0121",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "成都"
+        "city": "深圳"
       },
-      "expected_result": "成都 当前天气：晴，22°C，微风。"
+      "expected_result": "深圳 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "成都 当前天气：晴，22°C，微风。",
+  "expected_answer": "深圳 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

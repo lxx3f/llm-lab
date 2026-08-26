@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请计算 9 * 11 的结果。"
+      "content": "请计算 3 ** 4 的结果。"
     }
   ],
   "tools": [
@@ -36,12 +36,12 @@
       "call_id": "call-d1-0071",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "9 * 11"
+        "expression": "3 ** 4"
       },
-      "expected_result": 99
+      "expected_result": 81
     }
   ],
-  "expected_answer": "9 * 11 = 99",
+  "expected_answer": "3 ** 4 = 81",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

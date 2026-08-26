@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下南京现在的天气。"
+      "content": "帮我查一下武汉现在的天气。"
     }
   ],
   "tools": [
@@ -36,12 +36,12 @@
       "call_id": "call-d1-0009",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "南京"
+        "city": "武汉"
       },
-      "expected_result": "南京 当前天气：晴，22°C，微风。"
+      "expected_result": "武汉 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "南京 当前天气：晴，22°C，微风。",
+  "expected_answer": "武汉 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

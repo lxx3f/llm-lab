@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请计算 (8 - 3) * 6 的结果。"
+      "content": "请计算 12 + 87 的结果。"
     }
   ],
   "tools": [
@@ -36,12 +36,12 @@
       "call_id": "call-d1-0029",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "(8 - 3) * 6"
+        "expression": "12 + 87"
       },
-      "expected_result": 30
+      "expected_result": 99
     }
   ],
-  "expected_answer": "(8 - 3) * 6 = 30",
+  "expected_answer": "12 + 87 = 99",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

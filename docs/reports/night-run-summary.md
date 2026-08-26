@@ -69,7 +69,7 @@
 
 ## 7. 测试与提交
 
-- `scripts/run_tests.py full`：**149 tests passing**（夜间跑开始前 100 → 149）；
+- `scripts/run_tests.py full`：**151 tests passing**（夜间跑开始前 100 → 151）；
 - Git：main 从夜间跑起点 `43260e3` 推进到最终 commit（+12 commits：multi-seed 39-run / provenance fix / moe-long / n11-multi-seed / n11-large / p1-05 / d1-manifest-repro / report / p1-05 auditor fixes ×2）；当前 HEAD 即最终 commit，provenance 由 tests/test_artifact_provenance.py 动态验证。
 
 ## 8. 完成状态与遗留
@@ -82,7 +82,7 @@
 | MoE 50000 步长训练 | ✅ | moe-owt-formal-curve-long-result.json (6.0434 @ 50000) |
 | N11 长训练多 seed | ✅ | baseline/medium × 3 seeds (std < 0.01) |
 | N11 large 50000 步 | ✅ | 5.2639 @ 50000，3-scale overlay |
-| D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，六层分类器，31 测试（test_d1_failure.py）|
+| D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，六层分类器，33 测试（test_d1_failure.py）|
 | 夜间跑总结报告 | ✅ | 本文档 |
 
 ### 未解决（objective 外，单 seed 局限）

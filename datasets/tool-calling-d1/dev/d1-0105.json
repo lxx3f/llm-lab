@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "今天深圳的天气怎么样？（不需要工具）"
+      "content": "今天西安的天气怎么样？（不需要工具）"
     }
   ],
   "tools": [
@@ -32,7 +32,7 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "直接回答深圳天气，不调用工具。",
+  "expected_answer": "直接回答西安天气，不调用工具。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

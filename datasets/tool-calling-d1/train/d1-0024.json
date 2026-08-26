@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 12 + 87，再搜索一下 RTX 5070 Ti 规格。"
+      "content": "先计算 3 ** 4，再搜索一下 vLLM 部署。"
     }
   ],
   "tools": [
@@ -58,23 +58,23 @@
       "call_id": "call-d1-0024-a",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "12 + 87"
+        "expression": "3 ** 4"
       },
-      "expected_result": 99
+      "expected_result": 81
     },
     {
       "call_id": "call-d1-0024-b",
       "name": "d1_web_search",
       "arguments": {
-        "query": "RTX 5070 Ti 规格"
+        "query": "vLLM 部署"
       },
       "depends_on": [
         "call-d1-0024-a"
       ],
-      "expected_result": "关于「RTX 5070 Ti 规格」找到 3 条结果。"
+      "expected_result": "关于「vLLM 部署」找到 3 条结果。"
     }
   ],
-  "expected_answer": "计算结果：99；搜索结果：关于「RTX 5070 Ti 规格」找到 3 条结果。",
+  "expected_answer": "计算结果：81；搜索结果：关于「vLLM 部署」找到 3 条结果。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

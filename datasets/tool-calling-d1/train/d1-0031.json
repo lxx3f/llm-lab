@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 56 / 7，再搜索一下 RoPE 旋转位置编码。"
+      "content": "先计算 17 * 4，再搜索一下 LoRA 微调原理。"
     }
   ],
   "tools": [
@@ -58,23 +58,23 @@
       "call_id": "call-d1-0031-a",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "56 / 7"
+        "expression": "17 * 4"
       },
-      "expected_result": 8
+      "expected_result": 68
     },
     {
       "call_id": "call-d1-0031-b",
       "name": "d1_web_search",
       "arguments": {
-        "query": "RoPE 旋转位置编码"
+        "query": "LoRA 微调原理"
       },
       "depends_on": [
         "call-d1-0031-a"
       ],
-      "expected_result": "关于「RoPE 旋转位置编码」找到 3 条结果。"
+      "expected_result": "关于「LoRA 微调原理」找到 3 条结果。"
     }
   ],
-  "expected_answer": "计算结果：8；搜索结果：关于「RoPE 旋转位置编码」找到 3 条结果。",
+  "expected_answer": "计算结果：68；搜索结果：关于「LoRA 微调原理」找到 3 条结果。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

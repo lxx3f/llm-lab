@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请计算 17 * 4 的结果。"
+      "content": "请计算 250 / 25 的结果。"
     }
   ],
   "tools": [
@@ -36,12 +36,12 @@
       "call_id": "call-d1-0015",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "17 * 4"
+        "expression": "250 / 25"
       },
-      "expected_result": 68
+      "expected_result": 10
     }
   ],
-  "expected_answer": "17 * 4 = 68",
+  "expected_answer": "250 / 25 = 10",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 56 / 7，再搜索一下 PyTorch 2.x 新特性。"
+      "content": "先计算 99 - 45，再搜索一下 MoE 稀疏专家模型。"
     }
   ],
   "tools": [
@@ -58,23 +58,23 @@
       "call_id": "call-d1-0094-a",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "56 / 7"
+        "expression": "99 - 45"
       },
-      "expected_result": 8
+      "expected_result": 54
     },
     {
       "call_id": "call-d1-0094-b",
       "name": "d1_web_search",
       "arguments": {
-        "query": "PyTorch 2.x 新特性"
+        "query": "MoE 稀疏专家模型"
       },
       "depends_on": [
         "call-d1-0094-a"
       ],
-      "expected_result": "关于「PyTorch 2.x 新特性」找到 3 条结果。"
+      "expected_result": "关于「MoE 稀疏专家模型」找到 3 条结果。"
     }
   ],
-  "expected_answer": "计算结果：8；搜索结果：关于「PyTorch 2.x 新特性」找到 3 条结果。",
+  "expected_answer": "计算结果：54；搜索结果：关于「MoE 稀疏专家模型」找到 3 条结果。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

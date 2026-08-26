@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 'vLLM 部署'，如果结果不足就追问用户补充。"
+      "content": "搜索 'MoE 稀疏专家模型'，如果结果不足就追问用户补充。"
     }
   ],
   "tools": [
@@ -40,13 +40,13 @@
       "call_id": "call-d1-0005",
       "name": "d1_web_search",
       "arguments": {
-        "query": "vLLM 部署",
+        "query": "MoE 稀疏专家模型",
         "limit": 1
       },
-      "expected_result": "关于「vLLM 部署」找到 1 条结果。"
+      "expected_result": "关于「MoE 稀疏专家模型」找到 1 条结果。"
     }
   ],
-  "expected_answer": "仅找到 1 条结果，可能不足，需追问用户补充。原始结果：关于「vLLM 部署」找到 1 条结果。",
+  "expected_answer": "仅找到 1 条结果，可能不足，需追问用户补充。原始结果：关于「MoE 稀疏专家模型」找到 1 条结果。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

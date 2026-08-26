@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 56 / 7，再搜索一下 MoE 稀疏专家模型。"
+      "content": "先计算 250 / 25，再搜索一下 GRPO 强化学习。"
     }
   ],
   "tools": [
@@ -58,23 +58,23 @@
       "call_id": "call-d1-0010-a",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "56 / 7"
+        "expression": "250 / 25"
       },
-      "expected_result": 8
+      "expected_result": 10
     },
     {
       "call_id": "call-d1-0010-b",
       "name": "d1_web_search",
       "arguments": {
-        "query": "MoE 稀疏专家模型"
+        "query": "GRPO 强化学习"
       },
       "depends_on": [
         "call-d1-0010-a"
       ],
-      "expected_result": "关于「MoE 稀疏专家模型」找到 3 条结果。"
+      "expected_result": "关于「GRPO 强化学习」找到 3 条结果。"
     }
   ],
-  "expected_answer": "计算结果：8；搜索结果：关于「MoE 稀疏专家模型」找到 3 条结果。",
+  "expected_answer": "计算结果：10；搜索结果：关于「GRPO 强化学习」找到 3 条结果。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

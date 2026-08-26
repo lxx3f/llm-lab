@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请计算 9 * 11 的结果。"
+      "content": "请计算 99 - 45 的结果。"
     }
   ],
   "tools": [
@@ -36,12 +36,12 @@
       "call_id": "call-d1-0043",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "9 * 11"
+        "expression": "99 - 45"
       },
-      "expected_result": 99
+      "expected_result": 54
     }
   ],
-  "expected_answer": "9 * 11 = 99",
+  "expected_answer": "99 - 45 = 54",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

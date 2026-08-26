@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 'vLLM 部署'，如果结果不足就追问用户补充。"
+      "content": "搜索 'GRPO 强化学习'，如果结果不足就追问用户补充。"
     }
   ],
   "tools": [
@@ -40,13 +40,13 @@
       "call_id": "call-d1-0068",
       "name": "d1_web_search",
       "arguments": {
-        "query": "vLLM 部署",
+        "query": "GRPO 强化学习",
         "limit": 1
       },
-      "expected_result": "关于「vLLM 部署」找到 1 条结果。"
+      "expected_result": "关于「GRPO 强化学习」找到 1 条结果。"
     }
   ],
-  "expected_answer": "仅找到 1 条结果，可能不足，需追问用户补充。原始结果：关于「vLLM 部署」找到 1 条结果。",
+  "expected_answer": "仅找到 1 条结果，可能不足，需追问用户补充。原始结果：关于「GRPO 强化学习」找到 1 条结果。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

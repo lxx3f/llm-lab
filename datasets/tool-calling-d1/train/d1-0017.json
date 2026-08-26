@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 2 + 3，再搜索一下 GRPO 强化学习。"
+      "content": "先计算 17 * 4，再搜索一下 PyTorch 2.x 新特性。"
     }
   ],
   "tools": [
@@ -58,23 +58,23 @@
       "call_id": "call-d1-0017-a",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "2 + 3"
+        "expression": "17 * 4"
       },
-      "expected_result": 5
+      "expected_result": 68
     },
     {
       "call_id": "call-d1-0017-b",
       "name": "d1_web_search",
       "arguments": {
-        "query": "GRPO 强化学习"
+        "query": "PyTorch 2.x 新特性"
       },
       "depends_on": [
         "call-d1-0017-a"
       ],
-      "expected_result": "关于「GRPO 强化学习」找到 3 条结果。"
+      "expected_result": "关于「PyTorch 2.x 新特性」找到 3 条结果。"
     }
   ],
-  "expected_answer": "计算结果：5；搜索结果：关于「GRPO 强化学习」找到 3 条结果。",
+  "expected_answer": "计算结果：68；搜索结果：关于「PyTorch 2.x 新特性」找到 3 条结果。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

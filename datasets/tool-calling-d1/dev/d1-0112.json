@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "今天广州的天气怎么样？（不需要工具）"
+      "content": "今天武汉的天气怎么样？（不需要工具）"
     }
   ],
   "tools": [
@@ -32,7 +32,7 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "直接回答广州天气，不调用工具。",
+  "expected_answer": "直接回答武汉天气，不调用工具。",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

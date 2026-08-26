@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请计算 99 - 45 的结果。"
+      "content": "请计算 (8 - 3) * 6 的结果。"
     }
   ],
   "tools": [
@@ -36,12 +36,12 @@
       "call_id": "call-d1-0036",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "99 - 45"
+        "expression": "(8 - 3) * 6"
       },
-      "expected_result": 54
+      "expected_result": 30
     }
   ],
-  "expected_answer": "99 - 45 = 54",
+  "expected_answer": "(8 - 3) * 6 = 30",
   "metadata": {
     "source": "d1-synthetic-template",
     "license": "project-internal",

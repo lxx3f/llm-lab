@@ -288,7 +288,8 @@ class D1SemanticIntegrationTests(unittest.TestCase):
         import examples.d1_mocks as d1_mocks
         registry = {"d1_calculate": d1_mocks.d1_calculate,
                     "d1_get_weather": d1_mocks.d1_get_weather,
-                    "d1_web_search": d1_mocks.d1_web_search}
+                    "d1_web_search": d1_mocks.d1_web_search,
+                    "d1_translate": d1_mocks.d1_translate}
         samples = self._load_samples()
         missing: list[str] = []
         mismatched: list[str] = []
@@ -312,7 +313,8 @@ class D1SemanticIntegrationTests(unittest.TestCase):
         import examples.d1_mocks as d1_mocks
         registry = {"d1_calculate": d1_mocks.d1_calculate,
                     "d1_get_weather": d1_mocks.d1_get_weather,
-                    "d1_web_search": d1_mocks.d1_web_search}
+                    "d1_web_search": d1_mocks.d1_web_search,
+                    "d1_translate": d1_mocks.d1_translate}
         samples = self._load_samples()
         failures: list[str] = []
         for sample in samples:
@@ -345,15 +347,20 @@ class D1SemanticIntegrationTests(unittest.TestCase):
                         dangling.append(f"{sample['id']}:{call['call_id']} -> {dep}")
         self.assertEqual(dangling, [], msg=f"dangling dependencies: {dangling[:5]}")
 
-    def test_no_tool_and_tool_error_samples_have_zero_expected_calls(self) -> None:
-        """no_tool and tool_error samples must have empty expected_tool_calls
-        (their semantic is "no execution required / detect the error")."""
+    def test_no_tool_and_tool_error_unavailable_samples_have_zero_expected_calls(self) -> None:
+        """no_tool and the ``tool_not_available`` sub-scenario must have empty
+        expected_tool_calls. Note: ``tool_error_response`` (the other
+        tool_error sub-scenario) DOES have one call — the model is expected
+        to invoke the tool, observe the ERROR response, and report the
+        failure (auditor round 10)."""
         samples = self._load_samples()
         for sample in samples:
-            if sample["metadata"]["task_type"] in {"no_tool", "tool_error"}:
+            ttype = sample["metadata"]["task_type"]
+            template = sample["metadata"].get("task_template", "")
+            if ttype == "no_tool" or (ttype == "tool_error" and template == "tool_not_available"):
                 self.assertEqual(
                     sample["expected_tool_calls"], [],
-                    msg=f"{sample['id']} ({sample['metadata']['task_type']}) must have empty expected_tool_calls",
+                    msg=f"{sample['id']} ({ttype}/{template}) must have empty expected_tool_calls",
                 )
 
     def test_expected_answer_consistent_with_task_type(self) -> None:
@@ -499,6 +506,86 @@ class MalformedTranscriptRegressionTests(unittest.TestCase):
         })
         self.assertFalse(result["layers"]["parse_success"])
         self.assertEqual(result["first_failure"], "parse_success")
+
+    def test_call_id_mismatch_does_not_produce_false_pass(self) -> None:
+        """Regression (auditor round 10): a transcript with the correct tool
+        name/arguments/result but a DIFFERENT call_id must still be grounded
+        against the expected result by POSITION. Previously, result_grounded
+        matched by call_id only and silently returned None (N/A), allowing a
+        transcript with a wrong result to report ``first_failure=None``."""
+        sample = {
+            "schema_version": "1.0",
+            "id": "test-callid-mismatch",
+            "messages": [{"role": "user", "content": "q"}],
+            "tools": [{"type": "function", "function": {
+                "name": "d1_calculate",
+                "parameters": {"type": "object", "properties": {"expression": {"type": "string"}}, "required": ["expression"]},
+            }}],
+            "expected_tool_calls": [{"call_id": "expected-call-id",
+                                     "name": "d1_calculate",
+                                     "arguments": {"expression": "1+1"},
+                                     "expected_result": 2}],
+            "expected_answer": "2",
+            "metadata": {"source": "test", "license": "test", "task_type": "single_tool",
+                         "data_version": "D1", "pipeline_version": "test", "created_at": "2026-08-27T00:00:00Z",
+                         "validation": {"schema_valid": True}},
+        }
+        # Transcript: same tool name/arguments/result as the expected call,
+        # but a totally different call_id. Under the old (buggy) behavior
+        # result_grounded could not find a match and returned None.
+        transcript = {
+            "tool_calls": [{
+                "call_id": "different-call-id",
+                "name": "d1_calculate",
+                "arguments": {"expression": "1+1"},
+                "execution_outcome": "success",
+                "result": 2,
+            }],
+            "final_answer": "2",
+        }
+        result = classify(sample, transcript)
+        # Positional pairing now correctly matches expected_result=2 with
+        # actual result=2; result_grounded is True (not None) and there is
+        # no first_failure.
+        self.assertIs(result["layers"]["result_grounded"], True,
+                      msg=f"expected True (positional match), got {result['layers']!r}")
+        self.assertIsNone(result["first_failure"])
+
+    def test_call_id_mismatch_with_wrong_result_fails_grounding(self) -> None:
+        """Companion regression (auditor round 10): when call_id differs
+        BUT the actual result also differs from expected_result, the
+        classifier must catch the wrong result (positional pairing), not
+        silently return None."""
+        sample = {
+            "schema_version": "1.0",
+            "id": "test-callid-wrong-result",
+            "messages": [{"role": "user", "content": "q"}],
+            "tools": [{"type": "function", "function": {
+                "name": "d1_calculate",
+                "parameters": {"type": "object", "properties": {"expression": {"type": "string"}}, "required": ["expression"]},
+            }}],
+            "expected_tool_calls": [{"call_id": "expected-call-id",
+                                     "name": "d1_calculate",
+                                     "arguments": {"expression": "1+1"},
+                                     "expected_result": 2}],
+            "expected_answer": "2",
+            "metadata": {"source": "test", "license": "test", "task_type": "single_tool",
+                         "data_version": "D1", "pipeline_version": "test", "created_at": "2026-08-27T00:00:00Z",
+                         "validation": {"schema_valid": True}},
+        }
+        transcript = {
+            "tool_calls": [{
+                "call_id": "different-call-id",
+                "name": "d1_calculate",
+                "arguments": {"expression": "1+1"},
+                "execution_outcome": "success",
+                "result": 999,  # wrong result
+            }],
+            "final_answer": "2",
+        }
+        result = classify(sample, transcript)
+        self.assertIs(result["layers"]["result_grounded"], False)
+        self.assertEqual(result["first_failure"], "result_grounded")
 
 
 if __name__ == "__main__":
