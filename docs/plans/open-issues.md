@@ -505,6 +505,17 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 
 建议同时设计 IID split 和 compositional split，避免工具调用准确率主要来自模板记忆。
 
+**决策（2026-08-26，更新于 P1-04 阶段完成）**
+
+```text
+状态：部分解决
+决策：D0/D1/D2 定义已落 docs/protocols/p1-04-data-version-d0.md：
+  - D0：手工样例集（≥3 样例覆盖 no_tool/single_tool/multi_tool），单集合无 split，样例 hash + MANIFEST 清单；
+  - D1：模型生成集（≥100 样例，80/10/10 split，质量门槛）；
+  - D2：规模化生产集（≥1000 样例，IID + compositional split）。
+遗留：MANIFEST 生成脚本未实现；D1/D2 触发条件 = 进入 P4 SFT/GRPO 前；compositional split 设计留 D2。
+```
+
 ---
 
 ### P1-05 工具执行成功不等于任务完成
