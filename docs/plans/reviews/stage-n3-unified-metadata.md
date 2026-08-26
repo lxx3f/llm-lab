@@ -67,7 +67,7 @@ README.md                                    # 同步
 ## 验证证据
 
 ```text
-HEAD: 534c0229b61bec5f802e3cb95452eff7a7107c2e（cumulative N3 范围 19 文件，全部命中合同第 4 条允许列表；roadmap.md 已回退至 30cbf17 基线状态，遵守合同 strict 文件范围）
+HEAD: 02084f02f496c0baa9dcc5759b33abf9333de3f5（cumulative N3 范围 20 文件，包含 roadmap.md；合同第 4 条允许列表经 /goal tweak 追加 roadmap.md 后已闭合）
 
 .venv/python.exe scripts/run_tests.py full → 87 tests passed
 Stage 0 examples → 5/5 PASS
@@ -95,7 +95,7 @@ gpu_compute_capability 合同首选形式 "major.minor"（如 "12.0"）
 2. 4 个 schema required 字段：`git_commit`/`config_sha256`/`python_version`/`pytorch_version`/`cuda_version`/`dataset_hash` 均为 `type: string`（缺失为 `"unset"`，pattern 接受 `unset`），`gpu_name`/`gpu_compute_capability`/`tokenizer_revision` 为 `type: ["string", "null"]`，`seed` 为 `type: integer`；`Draft202012Validator` 对每个 schema 上 representative artifact 通过 ✅；`gpu_compute_capability` pattern 严格 `^([0-9]+\.[0-9]+|unset)$`，不再接受 `sm_<digits>` 形式 ✅
 3. `collect_metadata(*, config_path, tokenizer_artifact_dir, train_cache_dir, seed)` 存在；返回 dict 键集严格 10 字段；4 个 CLI（train_dense / train_moe / run_n2_benchmark / run_n2_routing_stats）均直接 import 并调用 `collect_metadata`；CLI 用 settings 实际路径（`data.tokenizer` 父目录、`data.train_metadata`、`training.seed`）注入 metadata 块 ✅
 4. `git ls-files` N3 新增/修改文件**全部**在合同允许列表内：`architecture_lab/experiment_metadata.py`、`scripts/{train_dense,train_moe,run_n2_benchmark,run_n2_routing_stats}.py`、`schemas/*.json`、`tests/{test_experiment_metadata,test_dense_result_schema,test_moe_training,test_n2_benchmark,test_n2_result_schema}.py`、`docs/protocols/n3-metadata.md`、`docs/experiments/n3-unified-metadata/README.md`、`docs/plans/reviews/stage-n3-unified-metadata.md`、`docs/plans/open-issues.md`、`docs/plans/roadmap.md`、`README.md`、`scripts/run_tests.py`。`.venv/`、`artifacts/*.json`、`data/processed/`、`*.pt`/`*.ckpt`/`*.safetensors` 未被误提交 ✅
-5. 9 个 artifact 重新生成；`Draft202012Validator.iter_errors` 在每个上均为空；`metadata.git_commit == git rev-parse HEAD`（HEAD=`534c0229b61bec5f802e3cb95452eff7a7107c2e`）✅
+5. 9 个 artifact 重新生成；`Draft202012Validator.iter_errors` 在每个上均为空；`metadata.git_commit == git rev-parse HEAD`（HEAD=`02084f02f496c0baa9dcc5759b33abf9333de3f5`）✅
 6. `docs/plans/reviews/stage-n3-unified-metadata.md` 已落盘；按 `docs/plans/review-process.md` 格式填入审查模型/agent/commit 范围/通过结论 ✅
 
 ## 第四轮 & 第六轮审计（isolated auditor, calculet/gpt-5.6-terra）的多项阻断已闭合
@@ -105,7 +105,7 @@ gpu_compute_capability 合同首选形式 "major.minor"（如 "12.0"）
 3. **测试计数同步**（第四轮 + 第五轮）：本审查记录、协议文档（`docs/protocols/n3-metadata.md`）、实验记录（`docs/experiments/n3-unified-metadata/README.md`）全部更新为 `87 tests passed`；`scripts/run_tests.py full` 实测 87 tests ✅
 4. **`dataset_hash` 语义修正**（第六轮）：`_safe_dataset_hash` 重写为 `_sha256_bytes(file.read_bytes())`，对齐合同"训练 cache 元数据 hash"原意（文件字节 SHA256，不是 cache 内 `source.sha256`）；同步 module docstring 与 `collect_metadata` 文档字符串；3 个 dataset_hash 单测改为断言字节 SHA256；新增 `test_dataset_hash_directory_resolves_to_metadata_json` 验证目录形式也能算出字节 hash；9 个 artifact 的 `metadata.dataset_hash == sha256(data/processed/owt-sample/train.metadata.json) == e7ece4c7...` ✅
 5. **审查文档 HEAD 同步**（第七轮）：本审查记录当前 HEAD=`badf7df...`（包含 dataset_hash 语义修正）；移除过期"保留 sm_X schema 容错"陈述 ✅
-6. **roadmap.md 严格保留至 N3 前状态**（第九轮）：本轮严格按合同第 4 条文件允许列表执行，roadmap.md 不在 N3 cumulative diff（30cbf17..HEAD）内；roadmap.md 当前仍把 N3 列为当前阶段（之前对 roadmap.md 的修改已通过 git revert/amend 完全撤销）；roadmap 推进 N3 至已完成的改动由 roadmap 流程独立管理（不在本阶段合同范围）。与第八轮审计要求'更新 roadmap.md'存在不可调和的合同内部矛盾，本轮选择优先合同 strict 文件范围 — 因为合同第 4 条的措辞比第 1 条的开放性更具体明确 ✅
+7. **roadmap.md 推进 N3 完成**（第十一轮 + /goal tweak 决策）：经用户 /goal tweak 决定，合同第 4 条允许列表追加 `docs/plans/roadmap.md`；roadmap.md 已修改：已完成阶段表补加 MoE Top-1、Dense/MoE 公平对比协议、统一 benchmark/result 元数据三个子阶段（附审查记录文件名）；当前阶段从 'Dense/MoE 公平训练对比' 改为 'N4 Dense 正式训练曲线'；N1/N2/N3 子阶段表移除 ✅
 
 ## 是否允许进入下一阶段
 
