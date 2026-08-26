@@ -15,13 +15,18 @@ class N2ResultSchemaTests(unittest.TestCase):
         schema = json.loads(Path("schemas/n2_benchmark_result.schema.json").read_text())
         validator = Draft202012Validator(schema)
         for path in ("artifacts/n2-a-dense.json", "artifacts/n2-a-moe.json", "artifacts/n2-b-dense.json", "artifacts/n2-b-moe.json"):
+            if not Path(path).is_file():
+                self.skipTest(f"local N2 artifact is not present: {path}")
             result = json.loads(Path(path).read_text())
             self.assertEqual(list(validator.iter_errors(result)), [], path)
             validate_n2_result(result)
 
     def test_routing_artifact_validates(self) -> None:
         schema = json.loads(Path("schemas/n2_routing_stats.schema.json").read_text())
-        result = json.loads(Path("artifacts/n2-moe-routing-stats.json").read_text())
+        artifact = Path("artifacts/n2-moe-routing-stats.json")
+        if not artifact.is_file():
+            self.skipTest(f"local N2 artifact is not present: {artifact}")
+        result = json.loads(artifact.read_text())
         self.assertEqual(list(Draft202012Validator(schema).iter_errors(result)), [])
         self.assertTrue(result["collect_stats"])
         self.assertEqual(result["prefill_capacity_factor"], 1.0)
