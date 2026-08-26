@@ -78,6 +78,26 @@ class N2BenchmarkTests(unittest.TestCase):
         self.assertEqual(moe["routing"]["prefill_capacity_factor"], 1.0)
         self.assertEqual(moe["routing"]["decode_capacity_factor"], 2.0)
 
+    def test_benchmark_result_includes_unified_metadata_block(self) -> None:
+        config = Path("configs/n2_benchmark.example.yaml")
+        result = benchmark(config, "A", "DenseTransformer")
+        metadata = result["metadata"]
+        expected_fields = {
+            "git_commit", "config_sha256", "python_version", "pytorch_version",
+            "cuda_version", "gpu_name", "gpu_compute_capability",
+            "tokenizer_revision", "dataset_hash", "seed",
+        }
+        self.assertEqual(set(metadata), expected_fields)
+        self.assertIsInstance(metadata["python_version"], str)
+        self.assertEqual(metadata["seed"], int(metadata["seed"]))
+        # git_commit may be null in environments without git available; otherwise
+        # it must match the standard short or long sha pattern.
+        import re
+        self.assertRegex(
+            metadata["git_commit"] or "0" * 40,
+            r"^([0-9a-f]{40}|\d{14}-[a-z0-9]{6})$",
+        )
+
     def test_schema_rejects_missing_capacity_metrics(self) -> None:
         with self.assertRaises(ValueError):
             validate_n2_result({"schema_version": "1.0"})

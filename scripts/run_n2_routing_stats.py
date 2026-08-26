@@ -26,6 +26,7 @@ from architecture_lab.benchmarks.n2 import (  # noqa: E402
     set_seed,
 )
 from architecture_lab.benchmarks.results import write_routing_result  # noqa: E402
+from architecture_lab.experiment_metadata import collect_metadata  # noqa: E402
 from architecture_lab.tokenization import BPETokenizer  # noqa: E402
 
 
@@ -62,6 +63,12 @@ def collect(config_path: Path, architecture: str, output: Path | None = None) ->
         "collect_stats": True,
         "prefill_capacity_factor": PREFILL_CAPACITY_FACTOR,
         "decode_capacity_factor": DECODE_CAPACITY_FACTOR,
+        "metadata": collect_metadata(
+            config_path=config_path,
+            tokenizer_artifact_dir=Path(settings["data"]["tokenizer"]).parent,
+            train_cache_dir=settings["data"]["train_metadata"],
+            seed=seed,
+        ),
         "stats": stats,
     }
     if output is not None:

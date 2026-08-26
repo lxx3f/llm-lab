@@ -29,6 +29,7 @@ from architecture_lab.benchmarks.n2 import (  # noqa: E402
     set_seed,
     train_for_benchmark,
 )
+from architecture_lab.experiment_metadata import collect_metadata  # noqa: E402
 from architecture_lab.tokenization import BPETokenizer  # noqa: E402
 from architecture_lab.benchmarks.results import write_n2_result  # noqa: E402
 
@@ -54,6 +55,12 @@ def benchmark(config_path: Path, protocol: str, architecture: str, output: Path 
         "result_type": "architecture_benchmark",
         "experiment_id": f"n2-{protocol.lower()}-{architecture.lower()}",
         "status": "completed",
+        "metadata": collect_metadata(
+            config_path=config_path,
+            tokenizer_artifact_dir=Path(settings["data"]["tokenizer"]).parent,
+            train_cache_dir=settings["data"]["train_metadata"],
+            seed=seed,
+        ),
         "protocol": protocol,
         "model": {
             "name": settings["model"]["name"],

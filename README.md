@@ -590,6 +590,8 @@ class InferenceBackend:
 - [x] 确定工具调用任务和数据 schema；
 - [x] 确定评测指标和结果格式；
 - [x] 实现 MoE Top-1 MVP；
+- [x] 实现 N2 Dense/MoE 公平对比协议（A/B）；
+- [x] 实现 N3 统一 benchmark/result 元数据；
 - [ ] 实现 Transformers/vLLM 统一推理接口；
 - [ ] 实现最小数据管线；
 - [ ] 实现最小评测器；

@@ -11,6 +11,7 @@
     "experiment_id",
     "timestamp",
     "status",
+    "metadata",
     "model",
     "data",
     "training",
@@ -24,6 +25,7 @@
     "experiment_id": {"type": "string", "minLength": 1},
     "timestamp": {"type": "string", "format": "date-time"},
     "status": {"enum": ["completed"]},
+    "metadata": {"$ref": "#/$defs/metadata"},
     "model": {
       "type": "object",
       "additionalProperties": false,
@@ -103,6 +105,27 @@
     }
   },
   "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "git_commit", "config_sha256", "python_version", "pytorch_version",
+        "cuda_version", "gpu_name", "gpu_compute_capability",
+        "tokenizer_revision", "dataset_hash", "seed"
+      ],
+      "properties": {
+        "git_commit": {"type": "string", "pattern": "^([0-9a-f]{40}|\\d{14}-[a-z0-9]{6}|unset)$", "minLength": 1},
+        "config_sha256": {"type": "string", "pattern": "^([a-f0-9]{64}|unset)$", "minLength": 1},
+        "python_version": {"type": "string", "minLength": 1},
+        "pytorch_version": {"type": "string", "pattern": "^([0-9]+\\.[0-9]+\\.[0-9]+.*|unset)$", "minLength": 1},
+        "cuda_version": {"type": "string", "pattern": "^([0-9]+\\.[0-9]+.*|unset)$", "minLength": 1},
+        "gpu_name": {"type": ["string", "null"], "minLength": 1},
+        "gpu_compute_capability": {"type": ["string", "null"], "pattern": "^(sm_[0-9]+|[0-9]+\\.[0-9]+|unset)$"},
+        "tokenizer_revision": {"type": ["string", "null"], "minLength": 1},
+        "dataset_hash": {"type": "string", "pattern": "^([a-f0-9]{64}|unset)$", "minLength": 1},
+        "seed": {"type": "integer", "minimum": 0}
+      }
+    },
     "tokenizer": {
       "type": "object",
       "additionalProperties": false,

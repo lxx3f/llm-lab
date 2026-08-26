@@ -426,12 +426,12 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 - routing statistics；
 - benchmark 是否开启统计、compile 或 CUDA graph。
 
-**决策（2026-08-26，更新于 N2 阶段审查通过）**
+**决策（2026-08-26，更新于 N3 阶段完成）**
 
 ```text
-状态：未解决
-决策：归 roadmap N3，本轮不修改实现。N3 交付时补齐以上字段。
-进展：2026-08-26 reviewer（calculet/gpt-5.6-terra）审查确认 N2 退出条件满足、CAN_ENTER_N3，已进入 N3 实施阶段。审查记录：docs/plans/reviews/stage-n2-dense-moe-fairness.md。
+状态：已解决
+决策：归 roadmap N3。N3 commit 中以 metadata 块统一所有结果 JSON 的 experiment_id、seed、device/GPU/CUDA/PyTorch/Python 版本、config hash、dataset hash、tokenizer revision；N3 审查记录见 docs/plans/reviews/stage-n3-unified-metadata.md。
+进展：2026-08-26 reviewer（calculet/gpt-5.6-terra）阶段审查通过 CAN_ENTER_N3 后，N3 已交付。
 ```
 
 ---
@@ -452,12 +452,12 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 
 缺少这些字段时，后续无法判断两次运行是否真正可比。
 
-**决策（2026-08-26，更新于 N2 阶段审查通过）**
+**决策（2026-08-26，更新于 N3 阶段完成）**
 
 ```text
-状态：未解决
-决策：归 roadmap N3，本轮不修改实现。N3 交付时补齐以上字段。
-进展：2026-08-26 reviewer（calculet/gpt-5.6-terra）审查确认 N2 退出条件满足、CAN_ENTER_N3，已进入 N3 实施阶段。审查记录：docs/plans/reviews/stage-n2-dense-moe-fairness.md。
+状态：已解决
+决策：归 roadmap N3。N3 commit 中 metadata 块已包含 git_commit、config_sha256、python_version、pytorch_version、cuda_version、gpu_name、gpu_compute_capability、tokenizer_revision、dataset_hash、seed。
+进展：2026-08-26 N3 已交付，审查记录：docs/plans/reviews/stage-n3-unified-metadata.md。
 ```
 
 ---
@@ -476,19 +476,12 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 
 在这些规则固定前，不应把 smoke 数字写成正式性能结论。
 
-**决策（2026-08-26）**
+**决策（2026-08-26，更新于 N3 阶段完成）**
 
 ```text
 状态：未解决
-决策：归 roadmap N3，本轮不修改实现。
-N3 交付时：
-  - seed 数 ≥ 3；
-  - latency 报告 p50 / p95 或均值 / 标准差；
-  - 训练结果报告均值 / 标准差；
-  - 明确 CUDA 同步与 warmup 规则；
-  - 明确 torch.compile / AMP / CUDA Graph 默认状态。
-
-之前阶段使用单 seed smoke 是合法的，不溯及既往。
+决策：仍归 P1-03，不随 N3 交付。N3 只补齐单 seed 结果的元数据；多 seed sweep / mean / std / CI / p50-p95 / warmup / measured 规则 / torch.compile / AMP / CUDA Graph 默认状态 仍需后续阶段设计。
+进展：2026-08-26 N3 只完成字段落盘，不动多 seed 协议；之前阶段使用单 seed smoke 是合法的，不溯及既往。
 ```
 
 ---

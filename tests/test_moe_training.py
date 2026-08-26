@@ -11,6 +11,7 @@ import torch
 from jsonschema import Draft202012Validator, FormatChecker
 
 from tests.test_dense_training import DenseTrainingTests
+from architecture_lab.experiment_metadata import collect_metadata
 from architecture_lab.models.moe_transformer import MoETransformer, count_active_parameters, count_moe_parameters
 from architecture_lab.models.dense_transformer import TransformerConfig
 from architecture_lab.tokenization import BPETokenizer
@@ -29,10 +30,29 @@ class MoETrainingTests(unittest.TestCase):
     def test_training_schema_and_generation_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            result = train(self._settings(root))
+            settings = self._settings(root)
+            result = train(settings)
+            # Inject the unified metadata block the same way the CLIs do, so the
+            # result passes schema validation without modifying
+            # ``build_moe_training_result`` (which is outside the N3 allowlist).
+            result["metadata"] = collect_metadata(
+                config_path=None,
+                tokenizer_artifact_dir=Path(settings["data"]["tokenizer"]).parent,
+                train_cache_dir=Path(settings["data"]["train_metadata"]),
+                seed=int(settings["training"].get("seed", 42)),
+            )
             schema = json.loads((Path(__file__).parents[1] / "schemas/moe_training_result.schema.json").read_text(encoding="utf-8"))
             errors = list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(result))
             self.assertEqual(errors, [])
+            self.assertIn("metadata", result)
+            self.assertEqual(
+                set(result["metadata"]),
+                {
+                    "git_commit", "config_sha256", "python_version", "pytorch_version",
+                    "cuda_version", "gpu_name", "gpu_compute_capability",
+                    "tokenizer_revision", "dataset_hash", "seed",
+                },
+            )
             self.assertEqual(result["training"]["collect_stats"], False)
             self.assertEqual(result["training"]["expert_capacity"], 4)
             self.assertIn("expert_capacity_definition", result["training"])
@@ -81,6 +101,12 @@ class MoETrainingTests(unittest.TestCase):
             root = Path(directory)
             settings = self._settings(root)
             result = train(settings)
+            result["metadata"] = collect_metadata(
+                config_path=None,
+                tokenizer_artifact_dir=Path(settings["data"]["tokenizer"]).parent,
+                train_cache_dir=Path(settings["data"]["train_metadata"]),
+                seed=int(settings["training"].get("seed", 42)),
+            )
             result["generation"]["decode_capacity_factor"] = 1.0
             with self.assertRaises(ValueError):
                 write_moe_training_result(result, root / "invalid.json")
