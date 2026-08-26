@@ -426,11 +426,12 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 - routing statistics；
 - benchmark 是否开启统计、compile 或 CUDA graph。
 
-**决策（2026-08-26）**
+**决策（2026-08-26，更新于 N2 阶段审查通过）**
 
 ```text
 状态：未解决
 决策：归 roadmap N3，本轮不修改实现。N3 交付时补齐以上字段。
+进展：2026-08-26 reviewer（calculet/gpt-5.6-terra）审查确认 N2 退出条件满足、CAN_ENTER_N3，已进入 N3 实施阶段。审查记录：docs/plans/reviews/stage-n2-dense-moe-fairness.md。
 ```
 
 ---
@@ -451,11 +452,12 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 
 缺少这些字段时，后续无法判断两次运行是否真正可比。
 
-**决策（2026-08-26）**
+**决策（2026-08-26，更新于 N2 阶段审查通过）**
 
 ```text
 状态：未解决
 决策：归 roadmap N3，本轮不修改实现。N3 交付时补齐以上字段。
+进展：2026-08-26 reviewer（calculet/gpt-5.6-terra）审查确认 N2 退出条件满足、CAN_ENTER_N3，已进入 N3 实施阶段。审查记录：docs/plans/reviews/stage-n2-dense-moe-fairness.md。
 ```
 
 ---
