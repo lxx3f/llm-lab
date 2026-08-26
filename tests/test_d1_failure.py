@@ -118,7 +118,7 @@ class FailureClassifierTests(unittest.TestCase):
         self.assertTrue(result["layers"]["schema_valid"])
         self.assertTrue(result["layers"]["call_plan_matches"])
         self.assertTrue(result["layers"]["execution_success"])
-        self.assertEqual(result["layers"]["result_grounded"], None)  # no expected_result declared
+        self.assertTrue(result["layers"]["result_grounded"])  # trivially passes (nothing to ground)
         self.assertTrue(result["layers"]["task_success"])
         self.assertIsNone(result["first_failure"])
 
@@ -174,6 +174,38 @@ class FailureClassifierTests(unittest.TestCase):
         result = classify(sample, transcript)
         self.assertTrue(result["layers"]["parse_success"])
         self.assertTrue(result["layers"]["schema_valid"])
+        self.assertFalse(result["layers"]["call_plan_matches"])
+        self.assertEqual(result["first_failure"], "call_plan_matches")
+
+    def test_dangling_dependency_reference_fails_plan(self) -> None:
+        """A depends_on id that does not exist in the call sequence is a
+        dangling reference and must fail call_plan_matches."""
+        expected = [
+            {"call_id": "a", "name": "calculate", "arguments": {"expression": "1+1"}},
+            {"call_id": "b", "name": "get_weather", "arguments": {"city": "北京"}, "depends_on": ["missing-id"]},
+        ]
+        sample = self._base_sample("multi_tool", expected, None)
+        # The transcript faithfully reproduces the dangling reference.
+        transcript = {"tool_calls": [
+            {"call_id": "a", "name": "calculate", "arguments": {"expression": "1+1"}, "execution_outcome": "success"},
+            {"call_id": "b", "name": "get_weather", "arguments": {"city": "北京"}, "depends_on": ["missing-id"], "execution_outcome": "success"},
+        ], "final_answer": ""}
+        result = classify(sample, transcript)
+        self.assertTrue(result["layers"]["parse_success"])
+        self.assertTrue(result["layers"]["schema_valid"])
+        self.assertFalse(result["layers"]["call_plan_matches"])
+        self.assertEqual(result["first_failure"], "call_plan_matches")
+
+    def test_self_dependency_reference_fails_plan(self) -> None:
+        """A call depending on itself is invalid."""
+        expected = [
+            {"call_id": "a", "name": "calculate", "arguments": {"expression": "1+1"}},
+        ]
+        sample = self._base_sample("multi_tool", expected, None)
+        transcript = {"tool_calls": [
+            {"call_id": "a", "name": "calculate", "arguments": {"expression": "1+1"}, "depends_on": ["a"], "execution_outcome": "success"},
+        ], "final_answer": ""}
+        result = classify(sample, transcript)
         self.assertFalse(result["layers"]["call_plan_matches"])
         self.assertEqual(result["first_failure"], "call_plan_matches")
 

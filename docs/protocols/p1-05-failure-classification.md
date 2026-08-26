@@ -1,10 +1,10 @@
 # P1-05 工具执行失败层级分类协议
 
-> 状态：已解决（2026-08-27，D1 数据集 + 五层分类器落地）。
+> 状态：已解决（2026-08-27，D1 数据集 + 六层分类器落地）。
 
 ## 背景
 
-工具调用评测如果只记录"工具执行成功率"和"任务完成率"，无法定位模型失败发生在哪一步。P1-05 固定五层错误分类。
+工具调用评测如果只记录"工具执行成功率"和"任务完成率"，无法定位模型失败发生在哪一步。P1-05 固定六层错误分类。
 
 ## 六层失败层级（v2，2026-08-27 修订）
 
@@ -19,10 +19,10 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 
 **层语义规则**：
 
-- `no_tool` 样例（expected_tool_calls 为空）：正确输出 = 空 tool_calls；parse/schema/execution/grounding 平凡通过；
+- `no_tool` 样例（expected_tool_calls 为空）：正确输出 = 空 tool_calls；parse/schema/execution/grounding 平凡通过（result_grounded = True，无结果可验证）；
 - `tool_error` 样例：模型应**检测到无效调用并报告**，不应执行——expected_tool_calls 为空，正确 transcript 也无调用；
 - `expected_answer: null`：task_success = None（不可判定），不计入失败；
-- 未声明 `expected_result` 的调用：result_grounded = None（不可判定），不计入失败；
+- 有 expected calls 但未声明 `expected_result`：result_grounded = None（不可判定），不计入失败；
 - **首次失败层**（None 跳过）= 模型失败的具体位置。
 
 > 完整八级（open-issue P1-05 原文含 tool_name_correct / argument_value_correct / final_answer_correct）在需要更细粒度时扩展；当前六层覆盖 parse→plan→execute→ground→answer 的评测闭环。
@@ -80,7 +80,7 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 
 ## 校验
 
-- `scripts/run_tests.py full`：tests/test_d1_failure.py（10 tests：manifest / schema / task_type 覆盖 / 确定性 / 五层分类各一）；
+- `scripts/run_tests.py full`：tests/test_d1_failure.py（15 tests：manifest / schema / task_type 覆盖 / 确定性 / 六层分类各一 / 全 task_type 集成）；
 - 生成器退出码 0 且 0 schema errors。
 
 ## 应用范围
@@ -91,6 +91,6 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 
 ## 遗留
 
-- 完整八级分类（tool_name_correct / argument_value_correct / final_answer_correct）未实现——当前五层够用，扩展留到正式评测；
+- 完整八级分类（tool_name_correct / argument_value_correct / final_answer_correct）未实现——当前六层够用，扩展留到正式评测；
 - D1 的 `expected_result` 字段大多为空（模板未固化结果），`result_grounded` 层在真实 mock 执行时启用；
 - D1 样例未用真实 LLM 生成（mock-only 约束下用确定性模板），`source` 标注为 d1-synthetic-template。

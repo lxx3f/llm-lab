@@ -10,7 +10,7 @@ deterministic pseudo-randomness (fixed seed), covering all six task_types:
 - insufficient_result: tool result is insufficient → ask follow-up
 - requirement_change: user changes the requirement mid-conversation
 
-Output layout (data_version=D1, split=train/dev/test 80/10/10):
+Output layout (data_version=D1, split=train/dev/test 100/13/13):
 
     datasets/tool-calling-d1/
         train/*.json  dev/*.json  test/*.json
@@ -244,7 +244,7 @@ def main() -> int:
         if errs:
             errors.append(f"{sample['id']}: {errs}")
 
-    # Deterministic split: sort by id, then 80/10/10.
+    # Deterministic split: sort by id, then 100/13/13 (126 samples).
     samples.sort(key=lambda s: s["id"])
     n = len(samples)
     train, dev, test = samples[: int(n * 0.8)], samples[int(n * 0.8): int(n * 0.9)], samples[int(n * 0.9):]

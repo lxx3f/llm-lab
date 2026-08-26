@@ -69,13 +69,31 @@
 
 ## 7. 测试与提交
 
-- `scripts/run_tests.py full`：**127 tests passing**（夜间跑开始前 100 → 127）；
-- Git：main 从 `43260e3` 推进到 `e9c8702`（+9 commits：multi-seed 39-run / provenance fix / moe-long / n11-multi-seed / n11-large / p1-05 / d1-manifest-repro / report）。
+- `scripts/run_tests.py full`：**132 tests passing**（夜间跑开始前 100 → 132）；
+- Git：main 从 `43260e3` 推进到 `76bdfc6`（+10 commits：multi-seed 39-run / provenance fix / moe-long / n11-multi-seed / n11-large / p1-05 / d1-manifest-repro / report / p1-05-auditor-fixes）。
 
-## 8. 遗留与下一步
+## 8. 完成状态与遗留
 
-- MoE 多 seed（5000/50000 步 × 3 seeds）未跑——MoE vs Dense 的差距是单 seed 观察；
-- N11 large 多 seed 未跑（只跑了单 seed 42）；
+### 已完成（objective 内）
+
+| 交付 | 状态 | 证据 |
+|---|---|---|
+| N7/N8/N9 多 seed 实跑 | ✅ | 13 configs × 3 seeds，multi-seed-overview.json |
+| MoE 50000 步长训练 | ✅ | moe-owt-formal-curve-long-result.json (6.0434 @ 50000) |
+| N11 长训练多 seed | ✅ | baseline/medium × 3 seeds (std < 0.01) |
+| N11 large 50000 步 | ✅ | 5.2639 @ 50000，3-scale overlay |
+| D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，六层分类器，15 测试 |
+| 夜间跑总结报告 | ✅ | 本文档 |
+
+### 未解决（objective 外，单 seed 局限）
+
+- **MoE 多 seed（5000/50000 步 × 3 seeds）未跑**——MoE vs Dense 的差距是单 seed 观察；
+- **N11 large 多 seed 未跑**（只跑了单 seed 42）；
 - 100000 步训练上限未测试（50000 步仍未触底，更长步数是否有天花板未知）；
-- D1 的 result_grounded 层需要真实 mock 执行流（当前样例 expected_result 大多为空）；
-- 下一步建议：MoE 多 seed → 真实推理后端（Transformers/vLLM）接入 → P2 评测闭环。
+- D1 的 result_grounded 层需要真实 mock 执行流（当前样例 expected_result 大多为空）。
+
+> 上述未解决项不影响本报告对已完成阶段的结论；单 seed 的 MoE/large 对比已明确标注为观察值。
+
+### 下一步建议
+
+MoE 多 seed → 真实推理后端（Transformers/vLLM）接入 → P2 评测闭环。

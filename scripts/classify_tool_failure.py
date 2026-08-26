@@ -72,7 +72,8 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
     layers["schema_valid"] = schema_valid
 
     # Layer 3: call_plan_matches — transcript calls match the expected plan:
-    # same names, same arguments, same order, and same depends_on edges.
+    # same names, same arguments, same order, same depends_on edges, no
+    # dangling dependency references, and execution order respects deps.
     plan_matches: bool | None = True
     if len(expected_calls) == 0:
         # no_tool: expect no calls.
@@ -83,6 +84,7 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
         if len(transcript_calls) != len(expected_calls):
             plan_matches = False
         else:
+            all_ids = {c.get("call_id") for c in transcript_calls if c.get("call_id")}
             for exp, act in zip(expected_calls, transcript_calls):
                 if exp.get("name") != act.get("name"):
                     plan_matches = False
@@ -94,6 +96,23 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
                 act_deps = sorted(act.get("depends_on") or [])
                 if exp_deps != act_deps:
                     plan_matches = False
+                    break
+                # Dangling dependency references: every depends_on id must
+                # exist in the call sequence.
+                for dep in act_deps:
+                    if dep not in all_ids or dep == act.get("call_id"):
+                        plan_matches = False
+                        break
+                # Execution must respect dependency order: a dependency must
+                # appear earlier in the transcript than the dependent call.
+                act_id = act.get("call_id")
+                act_pos = next(i for i, c in enumerate(transcript_calls) if c.get("call_id") == act_id)
+                for dep in act_deps:
+                    dep_pos = next((i for i, c in enumerate(transcript_calls) if c.get("call_id") == dep), None)
+                    if dep_pos is None or dep_pos >= act_pos:
+                        plan_matches = False
+                        break
+                if plan_matches is False:
                     break
     layers["call_plan_matches"] = plan_matches
 
@@ -107,10 +126,15 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
         )
 
     # Layer 5: result_grounded — actual results match expected results where
-    # expected_result is declared. None when no expected_result is declared.
+    # expected_result is declared. For no_tool (zero expected and zero actual
+    # calls) grounding trivially passes (True). None only when there ARE
+    # expected calls but none declares expected_result.
     grounded: bool | None = True
     grounded_declared = False
-    if isinstance(transcript_calls, list):
+    if len(expected_calls) == 0 and isinstance(transcript_calls, list) and len(transcript_calls) == 0:
+        # no_tool: nothing to ground — trivially passes.
+        grounded = True
+    elif isinstance(transcript_calls, list):
         for call in transcript_calls:
             exp = next(
                 (e for e in expected_calls if e.get("call_id") == call.get("call_id")),
@@ -122,7 +146,9 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
             if call.get("result") != exp["expected_result"]:
                 grounded = False
                 break
-    layers["result_grounded"] = grounded if grounded_declared else None
+        if not grounded_declared and len(expected_calls) > 0:
+            grounded = None
+    layers["result_grounded"] = grounded
 
     # Layer 6: task_success — final answer contains expected_answer where
     # declared. None when expected_answer is null (unverifiable).
