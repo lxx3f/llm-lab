@@ -265,7 +265,7 @@ def main() -> int:
         "count": len(samples),
         "samples": manifest_samples,
         "samples_sha256": hashlib.sha256("".join(s["sha256"] for s in manifest_samples).encode("ascii")).hexdigest(),
-        "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "created_at": datetime.fromtimestamp(1785000000 + args.seed, tz=timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     (OUT_DIR / "MANIFEST.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
