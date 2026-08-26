@@ -19,6 +19,8 @@ KNOWN_NIGHT_RUN_COMMITS = {
     "02863f0b5b848170305ec0d281de05a5c3fec595",  # MoE curve
     "0e4e6e134aee8a00f8fb3ec957c9f406564da598",  # N11 long curve
     "43260e3c41a0ac9041535cfe5d488ceb7f226776",  # multi-seed 39-run training
+    "d8d05128269395c8367b1272ab8bad4539618a63",  # MoE long curve
+    "b55db7b2227c83e5759c8728af8d9456d14e0043",  # MoE long commit (HEAD)
 }
 
 # Artifacts that must exist. The medium control is shared across N5/N7/N8/N9
