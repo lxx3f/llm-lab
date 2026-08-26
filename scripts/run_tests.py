@@ -25,6 +25,7 @@ FAST_MODULES = (
     ("tests", "test_n2_benchmark.py"),
     ("tests", "test_n2_result_schema.py"),
     ("tests", "test_dense_result_schema.py"),
+    ("tests", "test_plot_dense_curve.py"),
     ("tests", "test_stage0_schemas.py"),
     ("tests", "test_token_cache.py"),
     ("architecture_lab/tests", "test_dense_transformer.py"),
@@ -44,6 +45,7 @@ MODULES = {
         ("tests", "test_n2_benchmark.py"),
         ("tests", "test_n2_result_schema.py"),
         ("tests", "test_dense_result_schema.py"),
+        ("tests", "test_plot_dense_curve.py"),
         ("tests", "test_experiment_metadata.py"),
     ),
     "architecture": (
@@ -116,6 +118,7 @@ def main(argv: list[str] | None = None) -> int:
             ("tests", "test_n2_benchmark.py"),
             ("tests", "test_n2_result_schema.py"),
             ("tests", "test_dense_result_schema.py"),
+            ("tests", "test_plot_dense_curve.py"),
             ("tests", "test_dense_training.py"),
             ("tests", "test_moe_training.py"),
             ("tests", "test_stage0_schemas.py"),

@@ -32,10 +32,13 @@
 | MoE Top-1 训练闭环 | MoE 配置加载、active loss + aux loss、checkpoint/resume、result schema | `stage-moe-top1-training.md` |
 | Dense/MoE 公平对比协议 | 相同 total params / 相同 active params 两套协议、统一 benchmark/routing stats schema、实际 A/B smoke | `stage-n2-dense-moe-fairness.md` |
 | 统一 benchmark/result 元数据 | git commit / config hash / CUDA/PyTorch/GPU compute capability / seed；4 个 schema metadata 块 + 4 个 CLI 注入 | `stage-n3-unified-metadata.md` |
+| Dense 正式训练曲线 | baseline 0.66M + medium 2.10M 各 5000 步；train_losses + validation_losses 序列 + curve_summary；matplotlib PNG 曲线 | `stage-n4-dense-formal-curve.md` |
 
 这些阶段都已通过阶段审查（`minimax-cn/MiniMax-M3` reviewer），不允许回退。
 
-## 当前阶段：N4 Dense 正式训练曲线
+## 当前阶段：N5+ 规模敏感性 / 消融（候选）
+
+目标：在 N4 baseline + medium 的基础上进一步消融（更大模型 / 不同 d_ff / RoPE base / dropout），或跳到 P1 评测器/工具执行器。
 
 目标：在同一 token budget、同一 tokenizer、同一 cache 上对比 Dense 和 MoE Top-1，得到可解释的训练/参数量/吞吐指标。
 
@@ -43,7 +46,7 @@
 
 | 子阶段 | 范围 | 退出条件 |
 |---|---|---|
-| N4 Dense 正式训练曲线 | 更长 max_steps、formal cache、train/val loss 序列 | 曲线记录和 experiment record 落盘 |
+| N5 规模消融（候选） | 在 N4 baseline + medium 之上扩展更大模型 / dropout / RoPE base sensitivity | 曲线记录和 experiment record 落盘 |
 
 每个子阶段完成后再进入下一子阶段；任一子阶段失败必须先更新本路线图和 `open-issues.md`。
 

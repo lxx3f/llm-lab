@@ -277,6 +277,65 @@ def evaluate(
         model.train(was_training)
 
 
+def compute_curve_summary(
+    train_loss_samples: list[dict[str, Any]],
+    validation_losses: dict[str, float],
+) -> dict[str, Any]:
+    """Compute a one-shot summary of a Dense training curve.
+
+    Args:
+        train_loss_samples: list of dicts with at least ``{"step", "loss", "lr"}``;
+            typically the JSON-shaped samples emitted by ``train()`` at each
+            ``log_interval`` boundary. Sampled, not per-step.
+        validation_losses: mapping from step (int-like str) to validation loss.
+
+    Returns:
+        Dict matching ``schemas/dense_training_result.schema.json#$defs/metrics/properties/curve_summary``.
+        ``None`` entries are emitted for first/last/min when the corresponding
+        series is empty.
+    """
+    train_loss_first: float | None = train_loss_samples[0]["loss"] if train_loss_samples else None
+    train_loss_last: float | None = train_loss_samples[-1]["loss"] if train_loss_samples else None
+    delta_train_loss: float | None = (
+        (train_loss_last - train_loss_first) if (train_loss_first is not None and train_loss_last is not None) else None
+    )
+
+    parsed_val: list[tuple[int, float]] = []
+    for step_key, loss in validation_losses.items():
+        try:
+            step_int = int(step_key)
+        except (TypeError, ValueError):
+            continue
+        try:
+            loss_f = float(loss)
+        except (TypeError, ValueError):
+            continue
+        parsed_val.append((step_int, loss_f))
+
+    if parsed_val:
+        val_loss_min = min(loss for _, loss in parsed_val)
+        val_loss_min_step = next(step for step, loss in parsed_val if loss == val_loss_min)
+        val_loss_last = parsed_val[-1][1]
+        delta_val_loss = val_loss_last - val_loss_min
+    else:
+        val_loss_min = None
+        val_loss_min_step = None
+        val_loss_last = None
+        delta_val_loss = None
+
+    return {
+        "train_loss_first": train_loss_first,
+        "train_loss_last": train_loss_last,
+        "val_loss_min": val_loss_min,
+        "val_loss_min_step": val_loss_min_step,
+        "val_loss_last": val_loss_last,
+        "delta_train_loss": delta_train_loss,
+        "delta_val_loss": delta_val_loss,
+        "train_loss_sample_count": len(train_loss_samples),
+        "val_loss_count": len(parsed_val),
+    }
+
+
 def generate_text(
     model: DenseTransformer,
     tokenizer: BPETokenizer,
@@ -388,6 +447,7 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
     checkpoint_path = Path(training["checkpoint"])
     validation_batches = int(training.get("validation_batches", 1))
     losses: list[float] = []
+    train_loss_samples: list[dict[str, Any]] = []
     validation_losses: dict[str, float] = {}
     epoch = state.epoch
     batch_iterator = iter(train_batcher.iter_epoch(device=device))
@@ -420,9 +480,14 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
         scaler.update()
         scheduler.step()
         state = TrainingState(step=state.step + 1, epoch=epoch)
-        losses.append(accumulated_loss / gradient_accumulation_steps)
+        step_loss = accumulated_loss / gradient_accumulation_steps
+        losses.append(step_loss)
         if state.step % log_interval == 0:
-            print(f"step={state.step} train_loss={losses[-1]:.6f} lr={optimizer.param_groups[0]['lr']:.8f}")
+            current_lr = float(optimizer.param_groups[0]["lr"])
+            train_loss_samples.append(
+                {"step": int(state.step), "loss": step_loss, "lr": current_lr}
+            )
+            print(f"step={state.step} train_loss={step_loss:.6f} lr={current_lr:.8f}")
         if state.step % validation_interval == 0 or state.step == max_steps:
             validation_loss = evaluate(
                 model, validation_batcher, batches=validation_batches, device=device
@@ -451,6 +516,7 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
         max_new_tokens=max_new_tokens,
         device=device,
     ) if prompt and max_new_tokens > 0 else None
+    curve_summary = compute_curve_summary(train_loss_samples, validation_losses)
     return build_training_result(
         settings=settings,
         model=model,
@@ -465,6 +531,8 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
         epoch=state.epoch,
         last_train_loss=losses[-1] if losses else None,
         validation_losses=validation_losses,
+        train_loss_samples=train_loss_samples,
+        curve_summary=curve_summary,
         checkpoint_path=checkpoint_path,
         prompt=prompt,
         max_new_tokens=max_new_tokens,

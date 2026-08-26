@@ -20,7 +20,7 @@
     "generation"
   ],
   "properties": {
-    "schema_version": {"const": "1.0"},
+    "schema_version": {"const": "1.1"},
     "result_type": {"const": "dense_training"},
     "experiment_id": {"type": "string", "minLength": 1},
     "timestamp": {"type": "string", "format": "date-time"},
@@ -74,13 +74,46 @@
     "metrics": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["last_train_loss", "validation_losses"],
+      "required": ["last_train_loss", "validation_losses", "train_losses", "curve_summary"],
       "properties": {
         "last_train_loss": {"type": ["number", "null"]},
         "validation_losses": {
           "type": "object",
           "propertyNames": {"pattern": "^[0-9]+$"},
           "additionalProperties": {"type": "number"}
+        },
+        "train_losses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["step", "loss", "lr"],
+            "properties": {
+              "step": {"type": "integer", "minimum": 1},
+              "loss": {"type": "number"},
+              "lr": {"type": "number"}
+            }
+          }
+        },
+        "curve_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "train_loss_first", "train_loss_last", "val_loss_min",
+            "val_loss_min_step", "val_loss_last", "delta_train_loss", "delta_val_loss",
+            "train_loss_sample_count", "val_loss_count"
+          ],
+          "properties": {
+            "train_loss_first": {"type": ["number", "null"]},
+            "train_loss_last": {"type": ["number", "null"]},
+            "val_loss_min": {"type": ["number", "null"]},
+            "val_loss_min_step": {"type": ["integer", "null"]},
+            "val_loss_last": {"type": ["number", "null"]},
+            "delta_train_loss": {"type": ["number", "null"]},
+            "delta_val_loss": {"type": ["number", "null"]},
+            "train_loss_sample_count": {"type": "integer", "minimum": 0},
+            "val_loss_count": {"type": "integer", "minimum": 0}
+          }
         }
       }
     },

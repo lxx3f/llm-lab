@@ -51,6 +51,21 @@ class DenseResultSchemaTests(unittest.TestCase):
                 epoch=0,
                 last_train_loss=1.0,
                 validation_losses={"1": 1.2, "2": 1.1},
+                train_loss_samples=[
+                    {"step": 1, "loss": 1.5, "lr": 0.0003},
+                    {"step": 2, "loss": 1.0, "lr": 0.0002},
+                ],
+                curve_summary={
+                    "train_loss_first": 1.5,
+                    "train_loss_last": 1.0,
+                    "val_loss_min": 1.1,
+                    "val_loss_min_step": 2,
+                    "val_loss_last": 1.1,
+                    "delta_train_loss": -0.5,
+                    "delta_val_loss": 0.0,
+                    "train_loss_sample_count": 2,
+                    "val_loss_count": 2,
+                },
                 checkpoint_path=root / "missing.pt",
                 prompt="alpha",
                 max_new_tokens=2,
@@ -76,8 +91,14 @@ class DenseResultSchemaTests(unittest.TestCase):
             output = root / "result.json"
             write_training_result(result, output)
             self.assertEqual(
-                json.loads(output.read_text(encoding="utf-8"))["schema_version"], "1.0"
+                json.loads(output.read_text(encoding="utf-8"))["schema_version"], "1.1"
             )
+            metrics = result["metrics"]
+            self.assertIn("train_losses", metrics)
+            self.assertIn("curve_summary", metrics)
+            self.assertEqual(len(metrics["train_losses"]), 2)
+            self.assertEqual(metrics["train_losses"][0]["step"], 1)
+            self.assertEqual(metrics["curve_summary"]["val_loss_min_step"], 2)
 
     def test_invalid_result_is_rejected_before_write(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -96,7 +117,20 @@ class DenseResultSchemaTests(unittest.TestCase):
                 validation_metadata_path=Path(settings["data"]["validation_metadata"]),
                 device=torch.device("cpu"), model_dtype=torch.float32,
                 optimizer_steps=1, epoch=0, last_train_loss=1.0,
-                validation_losses={"1": 1.0}, checkpoint_path=root / "missing.pt",
+                validation_losses={"1": 1.0},
+                train_loss_samples=[{"step": 1, "loss": 1.0, "lr": 0.0003}],
+                curve_summary={
+                    "train_loss_first": 1.0,
+                    "train_loss_last": 1.0,
+                    "val_loss_min": 1.0,
+                    "val_loss_min_step": 1,
+                    "val_loss_last": 1.0,
+                    "delta_train_loss": 0.0,
+                    "delta_val_loss": 0.0,
+                    "train_loss_sample_count": 1,
+                    "val_loss_count": 1,
+                },
+                checkpoint_path=root / "missing.pt",
                 prompt="", max_new_tokens=0, generated_text=None,
                 gradient_accumulation_steps=1,
                 scheduler_config={"name": "warmup_cosine", "warmup_steps": 0, "total_steps": 1, "min_lr_ratio": 0.0},

@@ -13,7 +13,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from architecture_lab.models.dense_transformer import DenseTransformer, count_parameters
 from architecture_lab.tokenization import BPETokenizer
 
-DENSE_RESULT_SCHEMA_VERSION = "1.0"
+DENSE_RESULT_SCHEMA_VERSION = "1.1"
 
 
 def _sha256_file(path: str | Path) -> str:
@@ -58,6 +58,8 @@ def build_training_result(
     epoch: int,
     last_train_loss: float | None,
     validation_losses: dict[str, float],
+    train_loss_samples: list[dict[str, Any]] | None = None,
+    curve_summary: dict[str, Any] | None = None,
     checkpoint_path: Path,
     prompt: str,
     max_new_tokens: int,
@@ -113,6 +115,18 @@ def build_training_result(
         "metrics": {
             "last_train_loss": last_train_loss,
             "validation_losses": validation_losses,
+            "train_losses": list(train_loss_samples) if train_loss_samples is not None else [],
+            "curve_summary": dict(curve_summary) if curve_summary is not None else {
+                "train_loss_first": None,
+                "train_loss_last": None,
+                "val_loss_min": None,
+                "val_loss_min_step": None,
+                "val_loss_last": None,
+                "delta_train_loss": None,
+                "delta_val_loss": None,
+                "train_loss_sample_count": 0,
+                "val_loss_count": 0,
+            },
         },
         "artifacts": {
             "checkpoint_path": str(checkpoint_path),
