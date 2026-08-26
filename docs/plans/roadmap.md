@@ -29,10 +29,13 @@
 | OWT 正式 cache | 512 MiB train / 64 MiB validation cache | `stage-owt-formal-cache.md` |
 | Dense 优化与 schema | scheduler / AMP / 梯度累积 / 结果 schema | `stage-dense-optimization-schema.md` |
 | 测试分层 | fast / module / full 三档入口 | review 不需要（工程改进） |
+| MoE Top-1 训练闭环 | MoE 配置加载、active loss + aux loss、checkpoint/resume、result schema | `stage-moe-top1-training.md` |
+| Dense/MoE 公平对比协议 | 相同 total params / 相同 active params 两套协议、统一 benchmark/routing stats schema、实际 A/B smoke | `stage-n2-dense-moe-fairness.md` |
+| 统一 benchmark/result 元数据 | git commit / config hash / CUDA/PyTorch/GPU compute capability / seed；4 个 schema metadata 块 + 4 个 CLI 注入 | `stage-n3-unified-metadata.md` |
 
 这些阶段都已通过阶段审查（`minimax-cn/MiniMax-M3` reviewer），不允许回退。
 
-## 当前阶段：Dense/MoE 公平训练对比
+## 当前阶段：N4 Dense 正式训练曲线
 
 目标：在同一 token budget、同一 tokenizer、同一 cache 上对比 Dense 和 MoE Top-1，得到可解释的训练/参数量/吞吐指标。
 
@@ -40,9 +43,6 @@
 
 | 子阶段 | 范围 | 退出条件 |
 |---|---|---|
-| N1 MoE Top-1 训练闭环 | MoE 配置加载、active loss + aux loss、checkpoint/resume、result schema | MoE 1MiB smoke 与 formal cache 100-step smoke 通过 |
-| N2 Dense/MoE 公平对比协议 | 相同 total params / 相同 active params 两套协议、统一 benchmark/routing stats schema、实际 A/B smoke | A/B 四个 Dense/MoE result JSON 与 routing stats JSON 通过 schema 校验并落盘 |
-| N3 统一 benchmark/result 元数据 | git commit / config hash / CUDA/PyTorch/GPU compute capability / seed | fast/full 测试与 schema 校验通过 |
 | N4 Dense 正式训练曲线 | 更长 max_steps、formal cache、train/val loss 序列 | 曲线记录和 experiment record 落盘 |
 
 每个子阶段完成后再进入下一子阶段；任一子阶段失败必须先更新本路线图和 `open-issues.md`。
