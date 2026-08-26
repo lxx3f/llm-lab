@@ -98,11 +98,13 @@ gpu_compute_capability 合同首选形式 "major.minor"（如 "12.0"）
 5. 9 个 artifact 重新生成；`Draft202012Validator.iter_errors` 在每个上均为空；`metadata.git_commit == git rev-parse HEAD`（HEAD=`638153f750c20c91be38dd29f8c6d42f8670b70f`）✅
 6. `docs/plans/reviews/stage-n3-unified-metadata.md` 已落盘；按 `docs/plans/review-process.md` 格式填入审查模型/agent/commit 范围/通过结论 ✅
 
-## 第四轮审计（isolated auditor, calculet/gpt-5.6-terra）的三项阻断已闭合
+## 第四轮 & 第六轮审计（isolated auditor, calculet/gpt-5.6-terra）的多项阻断已闭合
 
-1. **`gpu_compute_capability` schema 严格化**：4 个 schema 的 pattern 改为 `^([0-9]+\.[0-9]+|unset)$`，移除 `sm_[0-9]+`；新增 `tests/test_experiment_metadata.py::test_gpu_compute_capability_sm_format_not_emitted` 阴性测试，断言 collect_metadata 不再以 `sm_` 开头输出；9 个 artifact 的 `metadata.gpu_compute_capability` 仍为 `"12.0"` ✅
-2. **审查文档按 review-process.md 格式**：本审查记录已使用 `minimax-cn/MiniMax-M3` 字段填入"审查模型"与"实际 provider/model"；声明 isolated auditor 进程使用 `calculet/gpt-5.6-terra`（用户项目级 `.pi-glla/settings.json::auditorModel` 配置例外）✅
-3. **测试计数同步**：本审查记录、协议文档（`docs/protocols/n3-metadata.md`）、实验记录（`docs/experiments/n3-unified-metadata/README.md`）全部更新为 `87 tests passed`；`scripts/run_tests.py full` 实测 87 tests ✅
+1. **`gpu_compute_capability` schema 严格化**（第四轮）：4 个 schema 的 pattern 改为 `^([0-9]+\.[0-9]+|unset)$`，移除 `sm_[0-9]+`；新增 `tests/test_experiment_metadata.py::test_gpu_compute_capability_sm_format_not_emitted` 反向断言测试，断言 collect_metadata 不再以 `sm_` 开头输出；9 个 artifact 的 `metadata.gpu_compute_capability` 仍为 `"12.0"` ✅
+2. **审查文档按 review-process.md 格式**（第四轮）：本审查记录已使用 `minimax-cn/MiniMax-M3` 字段填入"审查模型"与"实际 provider/model"；声明 isolated auditor 进程使用 `calculet/gpt-5.6-terra`（用户项目级 `.pi-glla/settings.json::auditorModel` 配置例外）✅
+3. **测试计数同步**（第四轮 + 第五轮）：本审查记录、协议文档（`docs/protocols/n3-metadata.md`）、实验记录（`docs/experiments/n3-unified-metadata/README.md`）全部更新为 `87 tests passed`；`scripts/run_tests.py full` 实测 87 tests ✅
+4. **`dataset_hash` 语义修正**（第六轮）：`_safe_dataset_hash` 重写为 `_sha256_bytes(file.read_bytes())`，对齐合同"训练 cache 元数据 hash"原意（文件字节 SHA256，不是 cache 内 `source.sha256`）；同步 module docstring 与 `collect_metadata` 文档字符串；3 个 dataset_hash 单测改为断言字节 SHA256；新增 `test_dataset_hash_directory_resolves_to_metadata_json` 验证目录形式也能算出字节 hash；9 个 artifact 的 `metadata.dataset_hash == sha256(data/processed/owt-sample/train.metadata.json) == e7ece4c7...` ✅
+5. **审查文档 HEAD 同步**（第七轮）：本审查记录当前 HEAD=`badf7df...`（包含 dataset_hash 语义修正）；移除过期"保留 sm_X schema 容错"陈述 ✅
 
 ## 是否允许进入下一阶段
 

@@ -191,8 +191,8 @@ def collect_metadata(
         train_cache_dir: Filesystem path to the **train** token cache's
             ``metadata.json`` (or its parent directory — the function reads
             ``<train_cache_dir>/metadata.json`` when the path is a directory).
-            The implementation uses the contained ``metadata.json`` to read
-            the source SHA256 (the dataset hash).
+            The implementation hashes the bytes of this file to produce
+            ``dataset_hash`` (the contract's "训练 cache 元数据 hash").
         seed: Integer seed used to initialize RNGs for the run. ``None`` is
             coerced to ``0`` so the contract-required ``integer`` type is
             preserved.
