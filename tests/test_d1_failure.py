@@ -446,6 +446,49 @@ class FailureClassifierTests(unittest.TestCase):
             self.assertIsInstance(result["layers"]["argument_value_correct"], bool,
                                   msg=f"args={args!r}")
 
+    def test_mixed_dependency_id_types_do_not_crash(self) -> None:
+        """Regression (auditor round 2 for this stage): ``depends_on``
+        values with mixed types (str + int) previously crashed sorted(). The
+        plan layer must normalize ids and report call_plan_matches=False."""
+        sample = self._base_sample(
+            "multi_tool",
+            [{"call_id": "a", "name": "d1_calculate", "arguments": {"expression": "1+1"}},
+             {"call_id": "b", "name": "d1_get_weather", "arguments": {"city": "北京"}, "depends_on": ["a"]}],
+            None,
+        )
+        transcript = {"tool_calls": [
+            {"call_id": "a", "name": "d1_calculate", "arguments": {"expression": "1+1"},
+             "depends_on": ["x", 1], "execution_outcome": "success"},
+            {"call_id": "b", "name": "d1_get_weather", "arguments": {"city": "北京"},
+             "depends_on": ["a"], "execution_outcome": "success"},
+        ], "final_answer": ""}
+        result = classify(sample, transcript)
+        self.assertTrue(result["layers"]["tool_name_correct"])
+        self.assertTrue(result["layers"]["argument_value_correct"])
+        self.assertFalse(result["layers"]["call_plan_matches"])
+        self.assertEqual(result["first_failure"], "call_plan_matches")
+
+    def test_unhashable_call_id_does_not_crash(self) -> None:
+        """Regression (auditor round 2 for this stage): a dict ``call_id``
+        is unhashable and previously crashed set construction in
+        call_plan_matches. The id must be normalized to a string and the
+        plan mismatch reported without raising."""
+        sample = self._base_sample(
+            "multi_tool",
+            [{"call_id": "a", "name": "d1_calculate", "arguments": {"expression": "1+1"}},
+             {"call_id": "b", "name": "d1_get_weather", "arguments": {"city": "北京"}, "depends_on": ["a"]}],
+            None,
+        )
+        transcript = {"tool_calls": [
+            {"call_id": {"k": 1}, "name": "d1_calculate", "arguments": {"expression": "1+1"},
+             "execution_outcome": "success"},
+            {"call_id": "b", "name": "d1_get_weather", "arguments": {"city": "北京"},
+             "depends_on": ["a"], "execution_outcome": "success"},
+        ], "final_answer": ""}
+        result = classify(sample, transcript)
+        self.assertFalse(result["layers"]["call_plan_matches"])
+        self.assertEqual(result["first_failure"], "call_plan_matches")
+
     def test_all_eight_layers_present_in_ok_transcript(self) -> None:
         """8-level extension: a fully-correct transcript populates all eight
         layers with booleans (no None for an answer-declared sample)."""

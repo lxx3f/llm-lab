@@ -186,7 +186,10 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
         if len(transcript_calls) != len(expected_calls):
             plan_matches = False
         else:
-            all_ids = {c.get("call_id") for c in transcript_calls if c.get("call_id")}
+            # Normalize call_ids (may be non-string / unhashable dicts) so
+            # set/sorted operations never crash (auditor round 2). Expected
+            # call_ids are strings, so any non-string actual id mismatches.
+            all_ids = {_norm_name(c.get("call_id")) for c in transcript_calls}
             for exp, act in zip(expected_calls, transcript_calls):
                 if exp.get("name") != act.get("name"):
                     plan_matches = False
@@ -194,23 +197,27 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
                 if exp.get("arguments") != act.get("arguments"):
                     plan_matches = False
                     break
-                exp_deps = sorted(exp.get("depends_on") or [])
-                act_deps = sorted(act.get("depends_on") or [])
+                # Normalize depends_on values (may be mixed str/int/unhashable)
+                # so sorted() never crashes.
+                exp_deps = sorted(_norm_name(d) for d in (exp.get("depends_on") or []))
+                act_deps = sorted(_norm_name(d) for d in (act.get("depends_on") or []))
                 if exp_deps != act_deps:
                     plan_matches = False
                     break
                 # Dangling dependency references: every depends_on id must
                 # exist in the call sequence.
+                act_id = _norm_name(act.get("call_id"))
                 for dep in act_deps:
-                    if dep not in all_ids or dep == act.get("call_id"):
+                    if dep not in all_ids or dep == act_id:
                         plan_matches = False
                         break
                 # Execution must respect dependency order: a dependency must
                 # appear earlier in the transcript than the dependent call.
-                act_id = act.get("call_id")
-                act_pos = next(i for i, c in enumerate(transcript_calls) if c.get("call_id") == act_id)
+                act_pos = next(i for i, c in enumerate(transcript_calls)
+                               if _norm_name(c.get("call_id")) == act_id)
                 for dep in act_deps:
-                    dep_pos = next((i for i, c in enumerate(transcript_calls) if c.get("call_id") == dep), None)
+                    dep_pos = next((i for i, c in enumerate(transcript_calls)
+                                    if _norm_name(c.get("call_id")) == dep), None)
                     if dep_pos is None or dep_pos >= act_pos:
                         plan_matches = False
                         break
