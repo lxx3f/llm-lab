@@ -155,11 +155,15 @@ def main() -> int:
     tokenizer = BPETokenizer.load(args.tokenizer)
     device = resolve_device("cuda" if torch.cuda.is_available() else "cpu")
     ckpt = torch.load(args.checkpoint, map_location="cpu")
-    cfg = build_model_config(
-        {"model": {"max_seq_len": 256, "d_model": 128, "n_heads": 4,
-                   "n_layers": 4, "d_ff": 512, "vocab_size": tokenizer.vocab_size}},
-        tokenizer.vocab_size,
-    )
+    # Read model_config from checkpoint (saved by train_sft.py).
+    if "model_config" in ckpt:
+        cfg = build_model_config({"model": ckpt["model_config"]}, tokenizer.vocab_size)
+    else:
+        cfg = build_model_config(
+            {"model": {"max_seq_len": 256, "d_model": 128, "n_heads": 4,
+                       "n_layers": 4, "d_ff": 512, "vocab_size": tokenizer.vocab_size}},
+            tokenizer.vocab_size,
+        )
     model = DenseTransformer(cfg).to(device=device)
     model.load_state_dict(ckpt["model_state"])
     model.eval()

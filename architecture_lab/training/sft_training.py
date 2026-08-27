@@ -323,6 +323,16 @@ def train_sft(
         "model_state": model.state_dict(),
         "optimizer_state": optimizer.state_dict(),
         "training_state": {"step": step, "epoch": 1},
+        "model_config": {
+            "vocab_size": model_config.vocab_size,
+            "max_seq_len": model_config.max_seq_len,
+            "d_model": model_config.d_model,
+            "n_heads": model_config.n_heads,
+            "n_layers": model_config.n_layers,
+            "d_ff": model_config.d_ff,
+            "dropout": model_config.dropout,
+            "rope_base": model_config.rope_base,
+        },
     }, checkpoint_out)
 
     # Build the curve summary (mirror Dense schema).

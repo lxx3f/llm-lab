@@ -82,13 +82,15 @@ def main() -> int:
     device = resolve_device("cuda" if torch.cuda.is_available() else "cpu")
     dtype = resolve_dtype("float32")
 
-    # Model config: try the checkpoint's saved config keys, else defaults.
     ckpt = torch.load(args.checkpoint, map_location="cpu")
-    model_config = build_model_config(
-        {"model": {"max_seq_len": 256, "d_model": 128, "n_heads": 4,
-                   "n_layers": 4, "d_ff": 512, "vocab_size": tokenizer.vocab_size}},
-        tokenizer.vocab_size,
-    )
+    if "model_config" in ckpt:
+        model_config = build_model_config({"model": ckpt["model_config"]}, tokenizer.vocab_size)
+    else:
+        model_config = build_model_config(
+            {"model": {"max_seq_len": 256, "d_model": 128, "n_heads": 4,
+                       "n_layers": 4, "d_ff": 512, "vocab_size": tokenizer.vocab_size}},
+            tokenizer.vocab_size,
+        )
     model = DenseTransformer(model_config).to(device=device, dtype=dtype)
     model.load_state_dict(ckpt["model_state"])
     model.eval()
