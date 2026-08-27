@@ -45,6 +45,26 @@ if str(ROOT) not in sys.path:
 from jsonschema import Draft202012Validator  # noqa: E402
 
 
+def _norm_name(name: Any) -> str:
+    """Normalize a tool-call name for multiset comparison. Non-string names
+    (None, int, dict, ...) are mapped to a stable, sortable placeholder so
+    mixed-type lists never crash sorted(). Expected names are always strings,
+    so a non-string actual name always mismatches the expected plan."""
+    if isinstance(name, str):
+        return name
+    return f"<non-str:{type(name).__name__}>"
+
+
+def _norm_args(arguments: Any) -> str:
+    """Serialize tool-call arguments to a stable string for comparison.
+    Handles non-dict arguments (None, str, int, list, ...) and dicts with
+    non-string keys without crashing."""
+    try:
+        return json.dumps(arguments, sort_keys=True, ensure_ascii=False, default=repr)
+    except (TypeError, ValueError):
+        return repr(arguments)
+
+
 def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, Any]:
     """Classify a model transcript against the sample through the layers.
 
@@ -91,8 +111,12 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
         return {"layers": layers, "first_failure": "parse_success"}
 
     # Layer 2: schema_valid — every transcript call's arguments satisfy the
-    # named tool's declared parameters schema.
+    # named tool's declared parameters schema. A call whose tool name does
+    # not exist in the declared tool registry cannot be schema-checked; the
+    # layer reports None (not False) so the wrong-name case is localized to
+    # tool_name_correct (auditor round 1 for this stage).
     schema_valid: bool | None = True
+    schema_checkable = True
     if layers["parse_success"]:
         for call in transcript_calls:
             tool = next(
@@ -100,25 +124,31 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
                 None,
             )
             if tool is None:
-                schema_valid = False
-                break
+                # Unknown tool name: schema layer is N/A for this call; the
+                # name mismatch is handled by tool_name_correct below.
+                schema_checkable = False
+                continue
             validator = Draft202012Validator(tool["function"]["parameters"])
             if list(validator.iter_errors(call.get("arguments", {}))):
                 schema_valid = False
                 break
+    if not schema_checkable:
+        schema_valid = None
     layers["schema_valid"] = schema_valid
 
     # Layer 3: tool_name_correct — the transcript's tool names, as a
     # multiset, match the expected names. Order is NOT considered here (a
     # wrong-order transcript still has the right names → tool_name_correct
-    # stays True and the failure is localized to call_plan_matches).
+    # stays True and the failure is localized to call_plan_matches). Names
+    # are normalized for comparison so mixed/missing/non-string names never
+    # crash sorted() (auditor round 1 for this stage).
     name_ok: bool | None = True
     if len(expected_calls) == 0:
         # no_tool: no calls expected; any transcript call is a wrong name.
         name_ok = len(transcript_calls) == 0
     elif isinstance(transcript_calls, list):
-        exp_names = sorted(e.get("name") for e in expected_calls)
-        act_names = sorted(c.get("name") for c in transcript_calls)
+        exp_names = sorted(_norm_name(e.get("name")) for e in expected_calls)
+        act_names = sorted(_norm_name(c.get("name")) for c in transcript_calls)
         name_ok = exp_names == act_names
     else:
         name_ok = None
@@ -126,13 +156,15 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
 
     # Layer 4: argument_value_correct — the transcript's (name, arguments)
     # pairs, as a multiset, match the expected pairs. Order not considered.
+    # Names are normalized (see _norm_name) and arguments are serialized
+    # safely so mixed/missing names or non-dict arguments never crash.
     args_ok: bool | None = True
     if len(expected_calls) == 0:
         args_ok = len(transcript_calls) == 0
     elif isinstance(transcript_calls, list):
-        exp_pairs = sorted((e.get("name"), json.dumps(e.get("arguments"), sort_keys=True, ensure_ascii=False))
+        exp_pairs = sorted((_norm_name(e.get("name")), _norm_args(e.get("arguments")))
                           for e in expected_calls)
-        act_pairs = sorted((c.get("name"), json.dumps(c.get("arguments"), sort_keys=True, ensure_ascii=False))
+        act_pairs = sorted((_norm_name(c.get("name")), _norm_args(c.get("arguments")))
                           for c in transcript_calls)
         args_ok = exp_pairs == act_pairs
     else:

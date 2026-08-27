@@ -7,6 +7,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 
@@ -373,6 +374,78 @@ class FailureClassifierTests(unittest.TestCase):
         self.assertIs(bad["layers"]["task_success"], False)
         self.assertEqual(bad["first_failure"], "final_answer_correct")
 
+    def test_unknown_tool_name_localized_to_tool_name_correct(self) -> None:
+        """Regression (auditor round 1 for this stage): a transcript call
+        whose tool name does NOT exist in the declared tool registry (or in
+        the expected plan) must be classified first as ``tool_name_correct``,
+        NOT ``schema_valid``. Previously the schema layer set
+        schema_valid=False for an unknown tool, masking the name error."""
+        sample = self._base_sample(
+            "single_tool",
+            [{"call_id": "c1", "name": "d1_calculate",
+              "arguments": {"expression": "1+1"}, "expected_result": 2}],
+            "2",
+        )
+        transcript = {"tool_calls": [{
+            "call_id": "c1", "name": "unknown_tool",
+            "arguments": {"x": 1},
+            "execution_outcome": "success",
+        }], "final_answer": "2"}
+        result = classify(sample, transcript)
+        self.assertTrue(result["layers"]["parse_success"])
+        self.assertIsNone(result["layers"]["schema_valid"])  # not checkable
+        self.assertFalse(result["layers"]["tool_name_correct"])  # unknown name
+        self.assertEqual(result["first_failure"], "tool_name_correct")
+
+    def test_mixed_nonstring_names_do_not_crash(self) -> None:
+        """Regression (auditor round 1 for this stage): a structurally valid
+        list of dicts with mixed/missing/non-string ``name`` values must
+        classify without crashing sorted() — non-string names are normalized
+        to a stable placeholder and always mismatch the expected plan."""
+        sample = self._base_sample(
+            "single_tool",
+            [{"call_id": "c1", "name": "d1_calculate",
+              "arguments": {"expression": "1+1"}, "expected_result": 2}],
+            "2",
+        )
+        for names in ([None], [123], ["d1_calculate", None], [None, 1, "x"], [{}]):
+            calls = []
+            for i, n in enumerate(names):
+                call: dict[str, Any] = {"call_id": f"c{i}"}
+                if n == "d1_calculate":
+                    # Valid name with schema-valid arguments so any failure
+                    # must come from the name layer, not the schema layer.
+                    call["name"] = n
+                    call["arguments"] = {"expression": "1+1"}
+                elif n == {}:
+                    pass  # empty dict: no name, no arguments
+                else:
+                    call["name"] = n
+                calls.append(call)
+            result = classify(sample, {"tool_calls": calls, "final_answer": "2"})
+            self.assertIn("tool_name_correct", result["layers"], msg=f"names={names!r}")
+            self.assertFalse(result["layers"]["tool_name_correct"], msg=f"names={names!r}")
+            self.assertEqual(result["first_failure"], "tool_name_correct", msg=f"names={names!r}")
+
+    def test_mixed_nonstring_arguments_do_not_crash(self) -> None:
+        """Regression (auditor round 1 for this stage): arguments that are
+        not plain JSON dicts (None, str, list, dict with non-string keys)
+        must not crash argument_value_correct serialization."""
+        sample = self._base_sample(
+            "single_tool",
+            [{"call_id": "c1", "name": "d1_calculate",
+              "arguments": {"expression": "1+1"}, "expected_result": 2}],
+            "2",
+        )
+        for args in (None, "x", 1, [1, 2], {1: "a"}):
+            result = classify(sample, {"tool_calls": [{
+                "call_id": "c1", "name": "d1_calculate", "arguments": args,
+            }], "final_answer": "2"})
+            self.assertIn("argument_value_correct", result["layers"],
+                          msg=f"args={args!r}")
+            self.assertIsInstance(result["layers"]["argument_value_correct"], bool,
+                                  msg=f"args={args!r}")
+
     def test_all_eight_layers_present_in_ok_transcript(self) -> None:
         """8-level extension: a fully-correct transcript populates all eight
         layers with booleans (no None for an answer-declared sample)."""
@@ -615,15 +688,17 @@ class MalformedTranscriptRegressionTests(unittest.TestCase):
                          "call_plan_matches", "execution_success", "result_grounded"):
                 self.assertIsNone(result["layers"][name], msg=f"{name} for {bad!r}")
 
-    def test_empty_dict_member_parses_but_fails_schema(self) -> None:
+    def test_empty_dict_member_parses_but_fails_name(self) -> None:
         """``[{}]`` is technically a list of dicts, so parse_success is True,
-        but the empty mapping has no ``name`` and no ``arguments``, so
-        schema_valid correctly reports False (downstream catch)."""
+        but the empty mapping has no ``name`` — it cannot be matched to any
+        declared tool, so schema_valid is N/A (None) and tool_name_correct
+        reports the name mismatch (auditor round 1 for this stage)."""
         sample = self._sample()
         result = classify(sample, {"tool_calls": [{}], "final_answer": "2"})
         self.assertTrue(result["layers"]["parse_success"])
-        self.assertFalse(result["layers"]["schema_valid"])
-        self.assertEqual(result["first_failure"], "schema_valid")
+        self.assertIsNone(result["layers"]["schema_valid"])
+        self.assertFalse(result["layers"]["tool_name_correct"])
+        self.assertEqual(result["first_failure"], "tool_name_correct")
 
     def test_mixed_list_with_malformed_member_fails_parse(self) -> None:
         """If even one member is non-dict, parse fails entirely — never
