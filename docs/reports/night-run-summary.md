@@ -82,18 +82,22 @@
 | MoE 50000 步长训练 | ✅ | moe-owt-formal-curve-long-result.json (6.0434 @ 50000) |
 | N11 长训练多 seed | ✅ | baseline/medium × 3 seeds (std < 0.01) |
 | N11 large 50000 步 | ✅ | 5.258 ± 0.009（3-seed mean），3-scale overlay |
+| MoE 多 seed | ✅ | 5000+50000 步 × 3 seeds → 7.2651±0.033 / 6.1179±0.058 |
 | D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，六层分类器，34 测试（test_d1_failure.py）|
 | 夜间跑总结报告 | ✅ | 本文档 |
 
+### 已解决（后续实跑补齐，不再遗留）
+
+- ~~MoE 多 seed（5000/50000 步 × 3 seeds）未跑~~ → 已跑（见 `docs/experiments/moe-multi-seed/README.md`，MoE vs Dense 差距 0.187/0.574 nats，P1-03 判定满足）；
+- ~~N11 large 多 seed 未跑（只跑了单 seed 42）~~ → 已跑（见 `docs/experiments/n11-long-multi-seed/README.md`，large 3-seed mean 5.258 ± 0.009）。
+
 ### 未解决（objective 外，单 seed 局限）
 
-- **MoE 多 seed（5000/50000 步 × 3 seeds）未跑**——MoE vs Dense 的差距是单 seed 观察；
-- **N11 large 多 seed 未跑**（只跑了单 seed 42）；
-- 100000 步训练上限未测试（50000 步仍未触底，更长步数是否有天花板未知）；
+- 100000 步训练上限未测试（50000 步仍未触底，更长步数是否有天花板未知）——后已由 N12 补齐（见 `docs/experiments/n12-dense-ultra-curve/README.md`）；
 - D1 的 result_grounded 层已通过 MockExecutor 端到端验证（117/117 expected calls 全部可执行）；真实推理后端接入后该层会接收真实 LLM 输出。
 
 > 上述未解决项不影响本报告对已完成阶段的结论；单 seed 的 MoE/large 对比已明确标注为观察值。
 
 ### 下一步建议
 
-MoE 多 seed → 真实推理后端（Transformers/vLLM）接入 → P2 评测闭环。
+真实推理后端（Transformers/vLLM）接入 → P2 评测闭环。
