@@ -44,6 +44,7 @@ KNOWN_NIGHT_RUN_COMMITS = {
     "cb44a8bd7a97c22eecbeb4d099aeeeccaa4aed02", # N12 ultra 100000-step training
     "3f0cbe695854e9e5208595c6519d29fc6cca2c2c", # N12 ultra feat (saturation test)
     "f99910ace136293ca0159cd3a4e45ef70c0f3f8a", # MoE multi-seed (5000+50000 steps)
+    "540ace4a74f8bf6eec8bd946522211cf8a200e55", # N11 large multi-seed (50000 steps)
 }
 
 # Every objective artifact: relative path, expected seed, expected
@@ -95,6 +96,13 @@ EXPECTED_ARTIFACTS: list[dict[str, object]] = [
     # ---- N11 large (50000 steps) -----------------------------------------
     {"path": "artifacts/dense-owt-formal-curve-long-large-result.json",
      "seed": 42, "optimizer_steps": 50000, "status": "completed"},
+    # ---- N11 large multi-seed (3 seeds, 50000 steps) ----------------------
+    {"path": "artifacts/dense-owt-formal-curve-long-large-seed42-result.json",
+     "seed": 42, "optimizer_steps": 50000, "status": "completed"},
+    {"path": "artifacts/dense-owt-formal-curve-long-large-seed123-result.json",
+     "seed": 123, "optimizer_steps": 50000, "status": "completed"},
+    {"path": "artifacts/dense-owt-formal-curve-long-large-seed7-result.json",
+     "seed": 7, "optimizer_steps": 50000, "status": "completed"},
     # ---- MoE 50000-step curve --------------------------------------------
     {"path": "artifacts/moe-owt-formal-curve-long-result.json",
      "seed": 42, "optimizer_steps": 50000, "status": "completed"},
@@ -202,15 +210,15 @@ class ArtifactProvenanceTests(unittest.TestCase):
         self.assertIn("config_summary", data)
         self.assertGreaterEqual(len(data["config_summary"]), 13)
 
-    def test_moe_overview_stats_use_population_std(self) -> None:
+    def test_multi_seed_overview_stats_use_population_std(self) -> None:
         """P1-03 protocol contract (auditor round 1 for this stage): ``std``
         must be the POPULATION standard deviation (divide by N). Independently
-        recompute the MoE multi-seed overview statistics from the six
-        artifact files and assert they match the overview exactly (which the
-        README now mirrors):
+        recompute the multi-seed overview statistics from the artifact files
+        and assert they match the overview exactly (which the READMEs mirror):
 
-        - MoE 5000 steps:  mean = 7.2651, pop-std = 0.0325
-        - MoE 50000 steps: mean = 6.1179, pop-std = 0.0578
+        - MoE 5000 steps:   mean = 7.2651, pop-std = 0.0325
+        - MoE 50000 steps:  mean = 6.1179, pop-std = 0.0578
+        - large 50000 steps: mean = 5.2578, pop-std = 0.0090
 
         Using the sample std (stdev, divide by N-1) would give 0.0398 /
         0.0708 and must NOT be what the overview reports.
@@ -228,12 +236,15 @@ class ArtifactProvenanceTests(unittest.TestCase):
                   for s in (42, 123, 7)]
         moe_50k = [load_min(f"artifacts/moe-owt-formal-curve-long-seed{s}-result.json")
                    for s in (42, 123, 7)]
+        large_50k = [load_min(f"artifacts/dense-owt-formal-curve-long-large-seed{s}-result.json")
+                     for s in (42, 123, 7)]
         overview = json.loads((ROOT / "artifacts" / "multi-seed-overview.json")
                               .read_text(encoding="utf-8"))
         cs = overview["config_summary"]
         for rel, vals, expected_mean, expected_std in (
             ("configs/moe_training.owt-formal-curve.example.yaml", moe_5k, 7.2651, 0.0325),
             ("configs/moe_training.owt-formal-curve-long.example.yaml", moe_50k, 6.1179, 0.0578),
+            ("configs/dense_training.owt-formal-curve-long-large.example.yaml", large_50k, 5.2578, 0.0090),
         ):
             entry = cs[rel]
             recomputed_mean = sum(vals) / len(vals)

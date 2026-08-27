@@ -61,7 +61,7 @@
 5. **规模优势随训练拉长扩大**：
    - 5000 步：baseline 7.23 / medium 7.06 / large 6.93（区间 0.30 nats）；
    - 50000 步：baseline 6.08 / medium 5.55 / large 5.26（区间 **0.82 nats**）；
-   - 多 seed 确认（N11 多 seed：baseline 6.078±0.006 / medium 5.544±0.007，large 单 seed 5.264）。
+   - 多 seed 确认（N11 多 seed：baseline 6.078±0.006 / medium 5.544±0.007 / large 5.258±0.009，三规模 3-seed 全部单调下降）。
 7. **train_loss 末值**：baseline 6.00 / medium 5.54 / large 5.24——全规模单调下降。
 9. **token 消耗**：50000 步 × 8 batch × 64 seq = 25.6M tokens/规模，约 OWT train cache 的 17.8%（143.9M tokens）。
 11. **训练耗时**（RTX 5070 Ti bf16）：baseline ~17 min、medium ~22 min、large ~70 min，总 ~2 h。
