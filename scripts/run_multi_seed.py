@@ -42,6 +42,10 @@ RUNS = [
     # multi-seed variant writes -seed{42,123,7}-result.json).
     ("configs/dense_training.owt-formal-curve-long-baseline.example.yaml", "dense-owt-formal-curve-long-baseline"),
     ("configs/dense_training.owt-formal-curve-long-medium.example.yaml", "dense-owt-formal-curve-long-medium"),
+    # MoE curve (5000 step + 50000 step) — multi-seed validation against
+    # the existing single-seed observations (val_min 7.22 @ 4600 / 6.04 @ 50000).
+    ("configs/moe_training.owt-formal-curve.example.yaml", "moe-owt-formal-curve"),
+    ("configs/moe_training.owt-formal-curve-long.example.yaml", "moe-owt-formal-curve-long"),
 ]
 SEEDS = [42, 123, 7]
 SEED_SUFFIX = {42: "seed42", 123: "seed123", 7: "seed7"}
@@ -80,8 +84,14 @@ def main() -> int:
             tmp_cfg = tmpdir / f"{stem}-{SEED_SUFFIX[seed]}.yaml"
             tmp_cfg.write_text(yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False), encoding="utf-8")
             print(f"[run_multi_seed] {stem} seed={seed} -> {out_json}", flush=True)
+            # Dispatch to MoE or Dense trainer based on config architecture.
+            architecture = cfg.get("model", {}).get("architecture", "DenseTransformer")
+            if architecture == "MoETransformer":
+                train_script = "train_moe.py"
+            else:
+                train_script = "train_dense.py"
             proc = subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / "train_dense.py"),
+                [sys.executable, "-u", str(ROOT / "scripts" / train_script),
                  "--config", str(tmp_cfg), "--output", str(ROOT / out_json)],
                 capture_output=True,
                 text=True,
