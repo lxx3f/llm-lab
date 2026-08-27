@@ -25,6 +25,7 @@ if str(ROOT) not in sys.path:
 import torch  # noqa: E402
 
 from architecture_lab.models.dense_transformer import DenseTransformer  # noqa: E402
+from architecture_lab.models.moe_transformer import MoEConfig, MoETransformer  # noqa: E402
 from architecture_lab.tokenization import BPETokenizer  # noqa: E402
 from architecture_lab.training.dense_training import (  # noqa: E402
     build_model_config,
@@ -52,10 +53,14 @@ def generate(
     if input_ids.size(1) > model.config.max_seq_len:
         input_ids = input_ids[:, -model.config.max_seq_len :]
     generated = list(input_ids[0].tolist())
+    def _forward(window):
+        out = model(window)
+        return out[0] if isinstance(out, tuple) else out
+
     for _ in range(max_new_tokens):
-        window = torch.tensor([generated[-model.config.max_seq_len :]],
+        window = torch.tensor([generated[-model.config.max_seq_len:]],
                               dtype=torch.long, device=device)
-        logits, _ = model(window)
+        logits = _forward(window)
         next_logits = logits[0, -1, :]
         if temperature <= 0:
             next_id = int(next_logits.argmax())
@@ -91,7 +96,15 @@ def main() -> int:
                        "n_layers": 4, "d_ff": 512, "vocab_size": tokenizer.vocab_size}},
             tokenizer.vocab_size,
         )
-    model = DenseTransformer(model_config).to(device=device, dtype=dtype)
+    arch = ckpt.get("architecture") or ckpt.get("model_config", {}).get("architecture")
+    moe_cfg = ckpt.get("moe_config")
+    if arch == "MoETransformer" or moe_cfg is not None:
+        mc = moe_cfg or {"num_experts": 4, "aux_loss_weight": 0.01}
+        model = MoETransformer(model_config, MoEConfig(**mc)).to(
+            device=device, dtype=dtype,
+        )
+    else:
+        model = DenseTransformer(model_config).to(device=device, dtype=dtype)
     model.load_state_dict(ckpt["model_state"])
     model.eval()
 

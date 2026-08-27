@@ -35,6 +35,7 @@ if str(ROOT) not in sys.path:
 import torch  # noqa: E402
 
 from architecture_lab.models.dense_transformer import DenseTransformer  # noqa: E402
+from architecture_lab.models.moe_transformer import MoEConfig, MoETransformer  # noqa: E402
 from architecture_lab.tokenization import BPETokenizer  # noqa: E402
 from architecture_lab.training.dense_training import (  # noqa: E402
     build_model_config,
@@ -128,13 +129,19 @@ def generate(
     max_new_tokens: int,
     device: torch.device,
 ) -> str:
+    """Greedy generate. Supports both Dense (2-tuple) and MoE (3-tuple) forwards."""
     model.eval()
     eot = tokenizer.encode("<|endoftext|>")[0]
     gen = list(prompt_ids)
+
+    def _forward(window):
+        out = model(window)
+        return out[0] if isinstance(out, tuple) else out
+
     for _ in range(max_new_tokens):
-        window = torch.tensor([gen[-model.config.max_seq_len :]],
+        window = torch.tensor([gen[-model.config.max_seq_len:]],
                               dtype=torch.long, device=device)
-        logits, _ = model(window)
+        logits = _forward(window)
         nxt = int(logits[0, -1].argmax())
         gen.append(nxt)
         if nxt == eot:
@@ -155,7 +162,11 @@ def main() -> int:
     tokenizer = BPETokenizer.load(args.tokenizer)
     device = resolve_device("cuda" if torch.cuda.is_available() else "cpu")
     ckpt = torch.load(args.checkpoint, map_location="cpu")
-    # Read model_config from checkpoint (saved by train_sft.py).
+    # Read model_config from checkpoint (saved by train_sft.py /
+    # train_sft_moe.py). Detect MoE vs Dense from the architecture marker
+    # and (re)construct the matching model.
+    arch = ckpt.get("architecture") or ckpt.get("model_config", {}).get("architecture")
+    moe_cfg = ckpt.get("moe_config")
     if "model_config" in ckpt:
         cfg = build_model_config({"model": ckpt["model_config"]}, tokenizer.vocab_size)
     else:
@@ -164,7 +175,11 @@ def main() -> int:
                        "n_layers": 4, "d_ff": 512, "vocab_size": tokenizer.vocab_size}},
             tokenizer.vocab_size,
         )
-    model = DenseTransformer(cfg).to(device=device)
+    if arch == "MoETransformer" or moe_cfg is not None:
+        mc = moe_cfg or {"num_experts": 4, "aux_loss_weight": 0.01}
+        model = MoETransformer(cfg, MoEConfig(**mc)).to(device=device)
+    else:
+        model = DenseTransformer(cfg).to(device=device)
     model.load_state_dict(ckpt["model_state"])
     model.eval()
 

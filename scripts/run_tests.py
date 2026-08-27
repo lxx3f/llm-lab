@@ -36,6 +36,7 @@ FAST_MODULES = (
     ("architecture_lab/tests", "test_dense_transformer.py"),
     ("architecture_lab/tokenization/tests", "test_bpe.py"),
     ("architecture_lab/training/tests", "test_sft_training.py"),
+    ("architecture_lab/training/tests", "test_sft_moe_training.py"),
 )
 
 MODULES = {
@@ -66,6 +67,7 @@ MODULES = {
     "tokenization": (
         ("architecture_lab/tokenization/tests", "test_bpe.py"),
     ("architecture_lab/training/tests", "test_sft_training.py"),
+    ("architecture_lab/training/tests", "test_sft_moe_training.py"),
         ("tests", "test_tokenizer_artifact_cli.py"),
     ),
 }
@@ -147,6 +149,7 @@ def main(argv: list[str] | None = None) -> int:
             ("architecture_lab/tests", "test_moe_transformer.py"),
             ("architecture_lab/tokenization/tests", "test_bpe.py"),
     ("architecture_lab/training/tests", "test_sft_training.py"),
+    ("architecture_lab/training/tests", "test_sft_moe_training.py"),
         )
 
     if not run_modules(modules):
