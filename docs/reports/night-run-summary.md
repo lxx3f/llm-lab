@@ -30,7 +30,7 @@
 |---|---|---|---|---|---|
 | baseline | 0.66M | 7.23 | **6.08** | 1.15 nats | 0.006 |
 | medium | 2.10M | 7.06 | **5.55** | 1.51 nats | 0.007 |
-| **large** | 5.11M | 6.93 | **5.26** | 1.67 nats | — |
+| **large** | 5.11M | 6.93 | **5.26** | 1.67 nats | 0.009 |
 
 - **全部未触底**（val_min_step == 50000）：50000 步对 ≤5.11M 模型仍不是充分训练；
 - **规模优势随训练拉长扩大**：5000 步区间 0.30 → 50000 步区间 0.82 nats；
@@ -80,7 +80,7 @@
 |---|---|---|
 | N7/N8/N9 多 seed 实跑 | ✅ | 13 configs × 3 seeds，multi-seed-overview.json |
 | MoE 50000 步长训练 | ✅ | moe-owt-formal-curve-long-result.json (6.0434 @ 50000) |
-| N11 长训练多 seed | ✅ | baseline/medium × 3 seeds (std < 0.01) |
+| N11 长训练多 seed | ✅ | baseline/medium/large × 3 seeds (std < 0.01) |
 | N11 large 50000 步 | ✅ | 5.258 ± 0.009（3-seed mean），3-scale overlay |
 | MoE 多 seed | ✅ | 5000+50000 步 × 3 seeds → 7.2651±0.033 / 6.1179±0.058 |
 | D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，六层分类器，34 测试（test_d1_failure.py）|

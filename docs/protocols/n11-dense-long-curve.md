@@ -112,7 +112,7 @@ N11 长训练观察严格限定于：
 
 ## 退出条件
 
-- 单 seed 3 个 + 多 seed 9 个 result JSON schema v1.1 valid + metadata 对齐 HEAD；
+- 单 seed 3 个 + 多 seed 9 个 result JSON schema v1.1 valid，`metadata.git_commit` 指向 `tests/test_artifact_provenance.py::KNOWN_NIGHT_RUN_COMMITS` 中的已知 commit（artifact 可指向其训练启动时的 commit，不要求等于审查时 HEAD）；
 - 1 个 3-curve scale-sweep overlay PNG 800×500（+ 多 seed overview JSON）；
 - 协议/实验/审查三类文档落盘；
 - `scripts/run_tests.py full` 通过；

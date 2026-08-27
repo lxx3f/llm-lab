@@ -8,7 +8,7 @@
 >
 > **扩展更新（2026-08-27）**：本文档为 2026-08-26 的单 seed（42）审查记录；后续已将 large 纳入并扩展为 3 seeds {42, 123, 7}（baseline/medium/large 各 50000 步，9 个多 seed artifacts + 3-curve overlay）。多 seed 结果见 `docs/experiments/n11-long-multi-seed/README.md`；规模点/产物/退出条件以 `docs/experiments/n11-dense-long-curve/README.md` 与 `docs/protocols/n11-dense-long-curve.md` 的最新版为准。
 
-## 阶段范围
+## 阶段范围（2026-08-26 单 seed 审查时的验收标准——已由多 seed 扩展 supersede，见下）
 
 - ✅ baseline + medium 各 50000 步训练（log_interval=500, validation_interval=2000）；
 - ✅ 2 个 result JSON schema v1.1 valid + metadata 对齐 HEAD（train_losses 100 点 + curve_summary）；
@@ -29,7 +29,7 @@
 - medium 改善幅度大于 baseline（规模优势随训练拉长更显著）；
 - 50000 步仍未触底（val_min_step == 50000），与 5000 步观察一致。
 
-## contract 逐项复核
+## contract 逐项复核（2026-08-26 单 seed 审查时的验收项）
 
 1. **schema v1.1 metrics.required** = [last_train_loss, validation_losses, train_losses, curve_summary] ✅
 2. **Draft202012Validator iter_errors** = 0 对 2 个 artifact ✅
@@ -37,9 +37,18 @@
 4. **scripts/train_dense.py** 注入 metadata ✅
 5. **scripts/plot_dense_curve.py::_plot_overlay** 只调用一次 `ax.twinx()`（行为测试覆盖）✅
 6. **scripts/plot_dense_curve.py::PALETTE_TRAIN / PALETTE_VAL** 模块顶层常量 ✅
-7. **scripts/run_tests.py full** = 100 tests passing ✅
+7. **scripts/run_tests.py full** = 100 tests passing ✅（2026-08-26 时点）
 8. **stage review doc 按 review-process.md 模板**（含 minimax-cn/MiniMax-M3 字段） ✅
 9. **configs/* 与 docs/* 在允许文件列表内** ✅
+
+## 多 seed 扩展复核（2026-08-27 最终验收，supersede 上述单 seed 验收项）
+
+- ✅ baseline + medium + large 各 50000 步 × 3 seeds {42, 123, 7} = 9 个多 seed artifacts（+ 3 个单 seed）全部 schema v1.1 valid；
+- ✅ 独立重算：baseline 6.078±0.006 / medium 5.544±0.007 / large 5.258±0.009（总体 std，P1-03）；
+- ✅ 3-curve scale-sweep overlay PNG 800×500（`artifacts/dense-owt-formal-curve-long-scale-sweep.png`）；
+- ✅ `metadata.git_commit` 指向 KNOWN_NIGHT_RUN_COMMITS 已知 commit（provenance 测试 5/5）；
+- ✅ `scripts/run_tests.py full` = 154 tests passing（2026-08-27 时点）；
+- ✅ stage review 记录最终验收状态。
 
 ## auditor gap 历史
 
