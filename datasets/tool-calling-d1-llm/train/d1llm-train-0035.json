@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0035",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我想查一下最近有哪些适合夏天去、且人不太多的国内旅游城市，能帮我看看相关推荐吗？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "s1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "夏天适合去的国内冷门人少旅游城市推荐",
+        "limit": 1
+      },
+      "depends_on": [],
+      "expected_result": "关于「夏天适合去的国内冷门人少旅游城市推荐」找到 1 条结果。"
+    }
+  ],
+  "expected_answer": "搜索结果仅返回一条，可能不足以全面推荐。模型应向用户追问更多信息，例如：希望去哪个区域（南方/北方/沿海/山区）？偏好什么类型的景点（海滨、避暑、古镇、自然风光）？是否有出行时间或预算限制？以便进一步精准推荐。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

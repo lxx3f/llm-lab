@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0069",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我看看明天去杭州西湖玩会不会下雨，如果下雨的话告诉我雨有多大。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "杭州"
+      },
+      "depends_on": [],
+      "expected_result": "杭州 当前天气：晴，22°C，微风。"
+    }
+  ],
+  "expected_answer": "明天的天气信息（是否下雨及雨量大小）需要通过天气工具查询。请提供明天的具体日期以获取准确预报。西湖景点本身不影响天气数据获取。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "multi_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

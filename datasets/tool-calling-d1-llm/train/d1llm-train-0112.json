@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0112",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下明天上海会不会下雨，我想提前知道好安排出行。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "用户想查询明天上海的天气情况，但目前可用的工具中只有 d1_calculate（计算器）、d1_get_weather（天气查询）、d1_web_search（网页搜索）。虽然 d1_get_weather 可用于天气查询，但其仅支持当前/实时天气，不支持指定未来日期的天气预报。需要向用户说明该工具不支持查询指定未来日期的天气，建议用户通过其他渠道（如天气预报 App 或网站）获取明天的上海天气信息。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "tool_error",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

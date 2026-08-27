@@ -546,7 +546,7 @@ parse_success
   scripts/classify_tool_failure.py 实现分类器（--sample / --transcript / --output）；
   D1 数据集已生成（126 样例，6 种 task_type 全覆盖，train/dev/test 100/13/13，所有 single/multi-tool 样例含 expected_result）；
   tests/test_d1_failure.py 44 单测（含集成验证：MockExecutor 执行 expected_tool_calls、expected_result 一致性、depends_on 可达性、D1SemanticIntegrationTests 6 测试、MalformedTranscriptRegressionTests 8 个反向断言、call_id 不一致位置配对回归 2 个、八级扩展 4 个、未知工具名+非字符串 name/arguments 鲁棒性 3 个、混合 depends_on+不可哈希 call_id 回归 2 个、single-call call_id 不匹配 1 个）。
-遗留：D1 用确定性模板生成（mock-only 约束），真实 LLM 生成留 D1.1；八级在 canonical D1 上的失败分布统计需真实模型 transcript（P2 评测）。
+遗留：模板版 D1 保留为确定性基线；D1.1（MiniMax-M3 真实 LLM 生成，126 样例）已交付（2026-08-27）；八级在 canonical D1 上的失败分布统计需真实模型 transcript（P2 评测）。
 ```
 
 ---

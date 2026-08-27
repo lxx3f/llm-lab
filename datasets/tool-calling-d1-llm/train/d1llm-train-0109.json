@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0109",
+  "messages": [
+    {
+      "role": "user",
+      "content": "最近想换工作，帮我分析一下当前互联网行业的就业前景怎么样？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "当前互联网行业整体处于调整与转型期，就业前景呈现出以下特点：\n\n1. **行业增速放缓**：经过多年的高速扩张，互联网行业进入存量竞争阶段，大厂裁员消息频出，岗位竞争加剧。\n\n2. **新兴方向机会增多**：AI大模型、短视频直播出海、SaaS、智能硬件、新能源互联网等细分赛道仍有较大人才缺口，特别是算法工程师、AI产品经理、海外市场等岗位需求旺盛。\n\n3. **传统岗位内卷严重**：普通前端、后端、运营、产品等岗位竞争激烈，求职者需要在项目经验、技术深度上有明显优势。\n\n4. **薪资两极分化**：核心技术岗和高阶管理岗薪资依然可观，但初级岗位薪资普遍下调，性价比需要重新评估。\n\n5. **建议**：\n   - 关注AI、出海、新能源等增量赛道\n   - 提升不可替代的核心技能（如AI应用、跨领域复合能力）\n   - 考虑向传统行业+互联网的融合方向转型\n   - 跳槽时优先选择业务增长明确的团队，避免盲目跳槽\n\n总体来说，互联网行业不再是普涨的红利期，但优质人才依然有较好的发展空间，关键是找准细分赛道并持续提升竞争力。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

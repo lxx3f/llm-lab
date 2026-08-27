@@ -17,11 +17,13 @@
 - **hash**：每个样例文件 sha256 + 集合清单 hash；
 - **生成**：手工编辑 + `validate_stage0.py` schema 校验。
 
-### D1：模型生成样例集（当前以模板 MVP 交付，D1.1 需 LLM API）
+### D1：模型生成样例集（模板版 + D1.1 LLM 生成版）
 
 - **用途**：SFT 训练 + 评测数据；
-- **规模**：≥100 样例（canonical 126）；
-- **来源**：**当前 MVP（mock-only）**：`scripts/generate_d1_dataset.py` 确定性模板生成（标注 `source: d1-synthetic-template`），配合 `examples/d1_mocks.py` 产生 deterministic `expected_result`，并由 `MockExecutor` 端到端验证 117/117 expected calls 可执行；**D1.1**：需 LLM API 凭证，使用真实 LLM 生成 + 人工过滤（标注 `source: <model-name>@<version>`）；
+- **规模**：模板版 126 样例（canonical）+ D1.1 126 样例；
+- **来源**：
+  - **模板版**：`scripts/generate_d1_dataset.py` 确定性模板生成（标注 `source: d1-synthetic-template`），配合 `examples/d1_mocks.py` 产生 deterministic `expected_result`，并由 `MockExecutor` 端到端验证 117/117 expected calls 可执行；
+  - **D1.1（2026-08-27 交付）**：`scripts/generate_d1_llm.py` + MiniMax-M3 API 真实 LLM 生成（标注 `source: MiniMax-M3@2026-08-27`），MockExecutor 端到端验证 130/130 expected calls 可执行；详见 `docs/experiments/d1-llm/README.md`；
 - **split**：train/dev/test = 100/13/13；
 - **hash**：每个样例 + 分片 + 全集合 hash；
 - **质量检查**：schema valid 100%、parse_success 100%、tool_execution_valid ≥ 95%。

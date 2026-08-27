@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0006",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下今天上海天气怎么样，如果下雨的话，算一下我打车从家到公司大概多少钱。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "上海"
+      },
+      "depends_on": [],
+      "expected_result": "上海 当前天气：晴，22°C，微风。"
+    }
+  ],
+  "expected_answer": "先调用 d1_get_weather 查询上海今天的天气。根据返回结果：\n1. 如果今天下雨，则进一步调用 d1_calculate，根据家到公司的距离和打车单价计算费用（需要用户提供距离信息或基于搜索结果估算）。\n2. 如果今天不下雨，则只需告诉用户天气情况，无需计算打车费用。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "requirement_change",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0013",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我推荐几本适合初学者阅读的科幻小说吧。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "推荐几本适合初学者阅读的科幻小说：1.《三体》（刘慈欣）：中国科幻的里程碑作品，以宏大的宇宙观和深刻的思想著称，入门门槛较低。2.《安德的游戏》（奥森·斯科特·卡德）：讲述一个天才少年在太空战争中的成长故事，情节引人入胜。3.《银河系漫游指南》（道格拉斯·亚当斯）：英式幽默风格，轻松有趣，适合初次接触科幻的读者。4.《你一生的故事》（特德·姜）：短篇集，文笔精妙，构思奇特，每篇都能带来惊喜。5.《海伯利安》（丹·西蒙斯）：融合了多种科幻元素的史诗级作品，适合有一定阅读基础后阅读。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0075",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下北京今天的天气怎么样，然后根据天气情况算一下如果每小时下雨概率是15%，连续6小时下雨的总概率是多少？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "北京"
+      },
+      "depends_on": [],
+      "expected_result": "北京 当前天气：晴，22°C，微风。"
+    },
+    {
+      "call_id": "c2",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "1-(1-0.15)^6"
+      },
+      "depends_on": [
+        "c1"
+      ],
+      "expected_result": 1
+    }
+  ],
+  "expected_answer": "北京今天的天气情况（由天气工具返回），然后给出连续6小时每小时15%下雨概率的总概率约为 0.6229（即约62.29%）。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "multi_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

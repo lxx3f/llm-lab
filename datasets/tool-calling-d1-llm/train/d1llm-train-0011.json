@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0011",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我搜一下最近有什么新出的好看的科幻电影推荐给我看看呗"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "最近新出的好看科幻电影推荐"
+      },
+      "depends_on": [],
+      "expected_result": "关于「最近新出的好看科幻电影推荐」找到 3 条结果。"
+    }
+  ],
+  "expected_answer": "搜索结果有限（仅返回1条），无法满足用户对多个科幻电影推荐的需求。模型应向用户追问：比如对科幻电影的子类型偏好（硬科幻/太空歌剧/赛博朋克等）、想看经典还是新作、是否需要附带评分等信息，以便进一步精准推荐。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

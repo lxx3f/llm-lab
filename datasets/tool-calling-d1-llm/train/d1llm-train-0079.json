@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0079",
+  "messages": [
+    {
+      "role": "user",
+      "content": "你能帮我推荐几部最近值得看的国产悬疑剧吗？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "以下是几部最近值得一看的国产悬疑剧推荐：1. 《漫长的季节》——辛爽执导，范伟、秦昊主演，以东北工业城市为背景，讲述跨越二十年的碎尸案，节奏沉稳、情感厚重。2. 《新生》——井柏然、周依然主演，以绑架案为引子，通过嫌疑人视角层层反转，叙事结构新颖。3. 《错位》——马伊琍、佟大为主演，融合现实与悬疑元素，探讨身份与阶层的复杂性。4. 《看不见影子的少年》——张颂文、荣梓杉主演，讲述九十年代失踪儿童案，氛围冷峻、情感细腻。5. 《猎罪图鉴2》——檀健次、金世佳回归，继续用模拟画像破案，案件贴近社会议题。建议根据个人偏好选择观影顺序。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

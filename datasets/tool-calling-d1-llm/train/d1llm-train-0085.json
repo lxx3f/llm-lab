@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0085",
+  "messages": [
+    {
+      "role": "user",
+      "content": "明天去杭州出差，想知道该穿什么衣服合适？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "明天去杭州出差，穿着建议取决于当时的天气情况。由于没有具体日期的天气预报信息，建议查看杭州明天的天气预报后再做决定。一般来说，可以参考以下原则：春季（3-5月）建议穿薄外套、长袖衬衫等；秋季（9-11月）建议穿夹克、风衣等；冬季（12-2月）建议穿厚外套、毛衣等；夏季（6-8月）建议穿短袖、短裤等轻薄透气的衣物。另外，杭州天气多变，建议随身携带雨具。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

@@ -15,21 +15,27 @@ from __future__ import annotations
 
 
 def d1_calculate(expression: str) -> int:
-    """Evaluate simple arithmetic on integers (``+ - * / **``).
+    """Evaluate arithmetic (``+ - * / ** %``) on integers/floats.
 
-    Limited to integer arithmetic to keep results deterministic and JSON-safe.
-    Division rounds toward zero.
+    Supports decimal points (floats) and exponentiation via ``**`` or ``^``
+    so real-LLM-generated expressions (e.g. ``(2**0.5*3.14)**2``) execute.
+    Results are rounded to an int to keep JSON deterministic.
     """
     if not isinstance(expression, str) or not expression.strip():
         raise ValueError("expression must be a non-empty string")
-    # Whitelist digits, spaces, and the operators below.
-    allowed = set("0123456789+-*/%() ")
+    # Whitelist digits, spaces, decimals, and the operators below.
+    allowed = set("0123456789+-*/%().^ ")
     if not set(expression) <= allowed:
         raise ValueError(f"expression contains unsupported characters: {expression!r}")
-    result = eval(expression, {"__builtins__": {}}, {})
+    # Normalize ^ to ** (both are exponentiation).
+    normalized = expression.replace("^", "**")
+    try:
+        result = eval(normalized, {"__builtins__": {}}, {})
+    except Exception as exc:  # noqa: BLE001 — malformed expression
+        raise ValueError(f"expression did not evaluate: {expression!r}: {exc}") from exc
     if not isinstance(result, (int, float)):
         raise ValueError(f"expression did not evaluate to a number: {result!r}")
-    return int(result)
+    return int(round(result))
 
 
 def d1_get_weather(city: str) -> str:

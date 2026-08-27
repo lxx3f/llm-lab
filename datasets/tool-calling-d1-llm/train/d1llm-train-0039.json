@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0039",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我下周要去北京出差三天，帮我查一下那几天的天气，再根据气温算算我大概需要带多厚的衣服（用穿衣指数公式：气温在20度以上每度减0.5，10到20度每度减1，0到10度每度减1.5，0度以下每度减2，最后加上基础层10，得出建议厚度毫米数）。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "北京"
+      },
+      "depends_on": [],
+      "expected_result": "北京 当前天气：晴，22°C，微风。"
+    },
+    {
+      "call_id": "c2",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "0"
+      },
+      "depends_on": [
+        "c1"
+      ],
+      "expected_result": 0
+    }
+  ],
+  "expected_answer": "先调用 d1_get_weather 查询北京下周的天气，获取三天的气温数据；再根据穿衣指数公式（分段函数：>20每度减0.5，10~20每度减1，0~10每度减1.5，<0每度减2，基础层10）逐天计算建议衣物厚度（毫米），最后汇总告诉用户三天各自建议的衣物厚度。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "multi_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

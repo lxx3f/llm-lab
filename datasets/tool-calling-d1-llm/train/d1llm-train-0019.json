@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0019",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我解释一下\"内卷\"这个网络流行语的含义和起源吧。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "\"内卷\"是近年来非常流行的网络用语，其含义和起源如下：\n\n**含义：**\n\"内卷\"（involution）一词最初源自人类学术语，指一种社会或文化模式在发展到某种确定的形式后，便停滞不前或无法转化为更高级模式的现象。在网络语境中，\"内卷\"被引申为：在有限的资源竞争中，个体或群体为了获得相对优势而不断加大投入和努力，但这种努力并没有带来整体福利的提升，反而导致恶性竞争、过度消耗和效率下降的状态。简单来说，就是\"付出了更多，却没有获得更多\"。\n\n常见使用场景包括：\n- 形容职场中的加班竞赛（如\"996\"文化）\n- 形容教育领域的过度竞争（如刷题、鸡娃）\n- 形容行业内的同质化竞争\n- 表达对无效竞争和过度努力的无奈与反思\n\n**起源：**\n1. **学术起源：** \"内卷\"最早由人类学家亚历山大·戈登威泽（Alexander Goldenweiser）于1936年提出，用来描述某种文化模式达到一种确定形态后无法再继续演变的现象。后来格尔茨（Clifford Geertz）在1963年的《农业内卷化》中使用该词来分析印尼爪哇岛的农业经济。\n\n2. **网络流行：** 该词在中国网络上的广泛流行大约始于2020年前后，最初在知乎、豆瓣等平台上被讨论，后来随着社交媒体的传播迅速走红，成为年度热词之一。人们用它来描述和批判社会中各种过度竞争的现象。\n\n**例句：**\n- \"现在的工作太内卷了，每天加班到深夜却还是完不成任务。\"\n- \"大家都在鸡娃，教育真的太内卷了。\"\n\n总的来说，\"内卷\"反映了现代人对竞争加剧、压力增大却收益递减这一社会现象的集体焦虑和反思。",
+  "metadata": {
+    "source": "MiniMax-M3@2026-08-27",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}
