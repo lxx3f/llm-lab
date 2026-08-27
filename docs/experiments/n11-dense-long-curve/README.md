@@ -79,16 +79,15 @@
 ## 不构成正式结论
 
 N11 观察严格限定于：
-- 单 seed（42）；
-- baseline + medium 两个规模点；
+- **baseline + medium + large 三个规模点 × {42, 123, 7} 三 seed**（本文件主体记录单 seed=42 曲线；3-seed 复核见 `docs/experiments/n11-long-multi-seed/README.md`，mean/std 已纳入：baseline 6.078±0.006 / medium 5.544±0.007 / large 5.258±0.009）；
 - OWT 正式 cache；
 - 50000 步训练上限；
 - 5000 → 50000 对比仅限同 seed 同架构。
 
 任何超出上述范围的论断：
-- ❌ 不外推到多 seed；
-- ❌ 不声明"最优训练步数"（50000 步仍未触底）；
-- ❌ 不外推到更大规模。
+- ❌ 不外推到 3-seed 之外的更多 seed（N=3 无显著性检验，趋势为观察记录而非严格结论）；
+- ❌ 不声明"最优训练步数"（50000 步仍未触底；100000 步见 N12）；
+- ❌ 不外推到更大规模/更长序列。
 
 ## 退出条件
 
@@ -104,5 +103,5 @@ N11 观察严格限定于：
 - 协议：`docs/protocols/n11-dense-long-curve.md`
 - 实验记录：`docs/experiments/n11-dense-long-curve/README.md`（本文）
 - Stage review：`docs/plans/reviews/stage-n11-dense-long-curve.md`
-- Configs：`configs/dense_training.owt-formal-curve-long-{baseline,medium}.example.yaml`
-- Artifacts（gitignored）：`artifacts/dense-owt-formal-curve-long-{baseline,medium}-result.json` + `…-long-sweep.png`
+- Configs：`configs/dense_training.owt-formal-curve-long-{baseline,medium,large}.example.yaml`
+- Artifacts（gitignored）：`artifacts/dense-owt-formal-curve-long-{baseline,medium,large}-result.json` + `…-long-scale-sweep.png`；3-seed 版本 `artifacts/dense-owt-formal-curve-long-{baseline,medium,large}-seed{42,123,7}-result.json`（9 个）

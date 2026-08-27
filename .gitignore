@@ -75,6 +75,7 @@ artifacts/tokenizers/
 artifacts/checkpoints/
 artifacts/*.json
 artifacts/*.png
+artifacts/multi-seed-configs/
 
 # Local pi session/runtime state
 .pi-glla/
