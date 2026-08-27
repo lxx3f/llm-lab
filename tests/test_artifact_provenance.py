@@ -202,6 +202,53 @@ class ArtifactProvenanceTests(unittest.TestCase):
         self.assertIn("config_summary", data)
         self.assertGreaterEqual(len(data["config_summary"]), 13)
 
+    def test_moe_overview_stats_use_population_std(self) -> None:
+        """P1-03 protocol contract (auditor round 1 for this stage): ``std``
+        must be the POPULATION standard deviation (divide by N). Independently
+        recompute the MoE multi-seed overview statistics from the six
+        artifact files and assert they match the overview exactly (which the
+        README now mirrors):
+
+        - MoE 5000 steps:  mean = 7.2651, pop-std = 0.0325
+        - MoE 50000 steps: mean = 6.1179, pop-std = 0.0578
+
+        Using the sample std (stdev, divide by N-1) would give 0.0398 /
+        0.0708 and must NOT be what the overview reports.
+        """
+        def pop_std(values: list[float]) -> float:
+            n = len(values)
+            mean = sum(values) / n
+            return (sum((v - mean) ** 2 for v in values) / n) ** 0.5
+
+        def load_min(rel: str) -> float:
+            payload = json.loads((ROOT / rel).read_text(encoding="utf-8"))
+            return payload["metrics"]["curve_summary"]["val_loss_min"]
+
+        moe_5k = [load_min(f"artifacts/moe-owt-formal-curve-seed{s}-result.json")
+                  for s in (42, 123, 7)]
+        moe_50k = [load_min(f"artifacts/moe-owt-formal-curve-long-seed{s}-result.json")
+                   for s in (42, 123, 7)]
+        overview = json.loads((ROOT / "artifacts" / "multi-seed-overview.json")
+                              .read_text(encoding="utf-8"))
+        cs = overview["config_summary"]
+        for rel, vals, expected_mean, expected_std in (
+            ("configs/moe_training.owt-formal-curve.example.yaml", moe_5k, 7.2651, 0.0325),
+            ("configs/moe_training.owt-formal-curve-long.example.yaml", moe_50k, 6.1179, 0.0578),
+        ):
+            entry = cs[rel]
+            recomputed_mean = sum(vals) / len(vals)
+            recomputed_std = pop_std(vals)
+            # Overview must agree with independent recomputation.
+            self.assertAlmostEqual(entry["val_loss_min_mean"], recomputed_mean, places=4)
+            self.assertAlmostEqual(entry["val_loss_min_std"], recomputed_std, places=4)
+            # And must match the documented values (P1-03 population std).
+            self.assertAlmostEqual(recomputed_mean, expected_mean, places=4)
+            self.assertAlmostEqual(recomputed_std, expected_std, places=4)
+            # Guard: the overview must NOT contain the sample-std values.
+            self.assertNotAlmostEqual(recomputed_std, 0.0398, places=4)
+            self.assertNotAlmostEqual(recomputed_std, 0.0708, places=4)
+            self.assertEqual(entry["seeds"], [42, 123, 7])
+
     def test_long_training_pngs_exist(self) -> None:
         """Required long-training overlay PNGs must exist (800x500 plot contract)."""
         for rel in (
