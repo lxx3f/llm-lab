@@ -1,0 +1,21 @@
+{
+  "target": 1500,
+  "train_steps": 20000,
+  "started_at": "2026-08-27T14:15:17Z",
+  "phase_a": {
+    "phase": "A",
+    "providers_tried": [
+      "minimax"
+    ],
+    "started": 126,
+    "ended": 1500,
+    "target": 1500
+  },
+  "phase_b": {
+    "phase": "B",
+    "steps": 20000,
+    "checkpoint": "artifacts/checkpoints/sft-tool-large-night.pt",
+    "rc": 0
+  },
+  "finished_at": "2026-08-27T16:03:54Z"
+}

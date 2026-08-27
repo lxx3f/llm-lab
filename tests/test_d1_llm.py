@@ -71,6 +71,38 @@ class D1LlmDatasetTests(unittest.TestCase):
         manifest_paths = {Path(e["path"]).name for e in self.manifest["samples"]}
         on_disk = {p.name for p in (D1LLM_DIR / "train").glob("d1llm-*.json")}
         self.assertEqual(on_disk, manifest_paths)
+        # Manifest count must reflect total on-disk entries (not just new
+        # samples from the most recent generator run); this guards against
+        # future regressions where count only tracks new samples.
+        self.assertEqual(self.manifest["count"], len(on_disk),
+                         msg=f"manifest count {self.manifest['count']} != "
+                             f"on-disk count {len(on_disk)}")
+
+    def test_manifest_entries_carry_per_file_source(self) -> None:
+        """Every manifest entry MUST carry a ``source`` field (per-file
+        provenance), and the source must match the corresponding sample's
+        metadata. Mixed-source datasets (e.g. an old + new generator run)
+        require per-file provenance, not a single top-level source."""
+        missing = [e["path"] for e in self.manifest["samples"]
+                   if "source" not in e]
+        self.assertEqual(missing, [], msg=f"entries without source: {missing[:3]}")
+        # Cross-check against the on-disk sample metadata.
+        mismatches: list[str] = []
+        for entry in self.manifest["samples"]:
+            path = D1LLM_DIR / entry["path"]
+            sample = json.loads(path.read_text(encoding="utf-8"))
+            if entry["source"] != sample["metadata"]["source"]:
+                mismatches.append(f"{entry['path']}: "
+                                  f"manifest={entry['source']!r} "
+                                  f"sample={sample['metadata']['source']!r}")
+        self.assertEqual(mismatches, [],
+                         msg=f"source mismatches: {mismatches[:3]}")
+        # The top-level ``sources`` summary (if present) must agree with the
+        # actually-seen per-entry sources.
+        seen = sorted({e["source"] for e in self.manifest["samples"]})
+        if "sources" in self.manifest:
+            self.assertEqual(self.manifest["sources"], seen,
+                             msg=f"top-level sources != observed {seen}")
 
     def test_count_and_task_type_coverage(self) -> None:
         from collections import Counter
@@ -86,14 +118,13 @@ class D1LlmDatasetTests(unittest.TestCase):
                                msg=f"{ttype} not represented")
 
     def test_source_is_llm_provenance_not_template(self) -> None:
-        """metadata.source must be an LLM version string, not the template
-        'd1-synthetic-template' marker."""
-        sources = {s["metadata"]["source"] for s in self.samples}
+        """Every sample's metadata.source must be an LLM version string
+        (not the template ``d1-synthetic-template`` marker). The MANIFEST's
+        per-file source fields are the canonical record of provenance."""
+        sources = {e["source"] for e in self.manifest["samples"]}
         self.assertNotIn("d1-synthetic-template", sources)
         self.assertTrue(all("@" in s for s in sources),
                         msg=f"LLM provenance must include @version: {sources}")
-        # MANIFEST source must match the samples.
-        self.assertIn(self.manifest["source"], sources)
 
     def test_all_samples_schema_valid(self) -> None:
         validator = Draft202012Validator(

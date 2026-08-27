@@ -88,3 +88,9 @@ D1_LLM_API_KEY=<key> .venv/python.exe scripts/night_run_sft.py \
 2. **数据质量**：放弃确定性增强（导致重复模板过拟合），改用 D1.1 生成器产出更多**自然变化**的真实 LLM 样本（已有 minimax/deepseek provider 自动 fallback）
 3. **训练策略**：更短训练 + early stopping（night run 20000 步过拟合，5000 步可能更稳定）；或尝试 MoE 架构分散容量
 4. **评测闭环复用**：eval_sft_tool.py + P1-05 分类器可精确量化任意新 checkpoint 的失败层级，无需人工检查生成文本
+
+## Artifact Policy（本项目）
+
+`artifacts/*-result.json`（训练曲线）、`artifacts/*-eval*.json`（评测 JSON）、`artifacts/checkpoints/*.pt`（模型权重）均为本地产物（gitignored by project policy，见 .gitignore）。它们可由 `scripts/train_sft.py` / `scripts/eval_sft_tool.py` 从提交的 config + dataset + commit 复现，不作为 committed artifact。
+
+夜间计划完整状态摘要（providers_tried / 最终样本数 / 训练步数）存档于 `docs/experiments/sft-tool-mvp/night-summary.json`（tracked），原 `.pi-glla/scratch/night-summary.json` 为同名本地副本。

@@ -35,6 +35,7 @@
 - 每完成一个阶段或 MVP，必须先进行一次计划、正确性、实验有效性和文档审查，再进入下一阶段；阶段审查必须由子 agent 执行，审查模型固定使用 `minimax-cn/MiniMax-M3`（MiniMax M3）；审查通过后自动创建一个阶段 Git commit。审查流程见 `docs/plans/review-process.md`，问题统一记录在 `docs/plans/open-issues.md`。
 - 如果 harness 无法确认审查模型身份，必须停止自动 commit 并报告阻塞；
 - 不提交模型权重、API 密钥、内部数据或其他敏感信息。
+- 不提交训练产物（checkpoint/tokenizer artifact/中间产物 JSON），只提交 config + 数据集 + 评测脚本 + docs；训练曲线/评测 JSON 是产物可重跑复现，以 `.gitignore` 覆盖（`artifacts/checkpoints/`, `artifacts/*.json`, `artifacts/tokenizers/`）。
 
 ## 当前阶段
 

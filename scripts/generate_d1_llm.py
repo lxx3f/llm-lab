@@ -430,6 +430,7 @@ def main() -> int:
             "sha256": sha256_file(path),
             "split": args.split,
             "task_type": sample["metadata"]["task_type"],
+            "source": sample["metadata"]["source"],
         })
     if args.skip_existing:
         for path in sorted((out_dir / args.split).glob("d1llm-*.json")):
@@ -442,24 +443,34 @@ def main() -> int:
                 "sha256": sha256_file(path),
                 "split": args.split,
                 "task_type": sample["metadata"]["task_type"],
+                "source": sample["metadata"]["source"],
             })
     aggregate = hashlib.sha256()
+    # Per-file provenance: hash includes path + sha256 + source so the
+    # aggregate changes when provenance changes (even if file bytes do not).
     for e in manifest_entries:
         aggregate.update(e["sha256"].encode("utf-8"))
+        aggregate.update(b"\x00")
+        aggregate.update(e["source"].encode("utf-8"))
+        aggregate.update(b"\x00")
+    # Aggregate the per-entry sources (sorted) for a quick top-level view.
+    sources_seen = sorted({e["source"] for e in manifest_entries})
     manifest = {
         "data_version": "D1.1",
-        "source": args.model_version,
         "pipeline": "d1.1-llm-generator",
-        "count": len(samples),
+        # Total on-disk entries — includes skipped-existing samples from
+        # previous runs with potentially different sources.
+        "count": len(manifest_entries),
         "split": args.split,
         "aggregate_sha256": aggregate.hexdigest(),
+        "sources": sources_seen,
         "samples": manifest_entries,
     }
     manifest_path = out_dir / f"MANIFEST-{args.split}.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
                              encoding="utf-8")
     print(f"[d1.1] wrote {len(samples)} samples to {split_dir}")
-    print(f"[d1.1] wrote {manifest_path}")
+    print(f"[d1.1] wrote {manifest_path} (count={len(manifest_entries)}, sources={sources_seen})")
     # Exit non-zero if any sample failed so callers can detect partial runs,
     # but successful samples are already persisted.
     return 1 if failures else 0
