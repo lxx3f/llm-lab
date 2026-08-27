@@ -42,6 +42,8 @@ KNOWN_NIGHT_RUN_COMMITS = {
     "41268d98f73085e120aaf7814c020bc5d531bae1",  # N11 multi-seed provenance
     "f2c323af6d5051d2b7c501b8af5f89f42ddc786d",  # N11 multi-seed + N11 large
     "cb44a8bd7a97c22eecbeb4d099aeeeccaa4aed02", # N12 ultra 100000-step training
+    "3f0cbe695854e9e5208595c6519d29fc6cca2c2c", # N12 ultra feat (saturation test)
+    "f99910ace136293ca0159cd3a4e45ef70c0f3f8a", # MoE multi-seed (5000+50000 steps)
 }
 
 # Every objective artifact: relative path, expected seed, expected
@@ -96,6 +98,19 @@ EXPECTED_ARTIFACTS: list[dict[str, object]] = [
     # ---- MoE 50000-step curve --------------------------------------------
     {"path": "artifacts/moe-owt-formal-curve-long-result.json",
      "seed": 42, "optimizer_steps": 50000, "status": "completed"},
+    # ---- MoE multi-seed (3 seeds × {5000, 50000} steps) ------------------
+    {"path": "artifacts/moe-owt-formal-curve-seed42-result.json",
+     "seed": 42, "optimizer_steps": 5000, "status": "completed"},
+    {"path": "artifacts/moe-owt-formal-curve-seed123-result.json",
+     "seed": 123, "optimizer_steps": 5000, "status": "completed"},
+    {"path": "artifacts/moe-owt-formal-curve-seed7-result.json",
+     "seed": 7, "optimizer_steps": 5000, "status": "completed"},
+    {"path": "artifacts/moe-owt-formal-curve-long-seed42-result.json",
+     "seed": 42, "optimizer_steps": 50000, "status": "completed"},
+    {"path": "artifacts/moe-owt-formal-curve-long-seed123-result.json",
+     "seed": 123, "optimizer_steps": 50000, "status": "completed"},
+    {"path": "artifacts/moe-owt-formal-curve-long-seed7-result.json",
+     "seed": 7, "optimizer_steps": 50000, "status": "completed"},
     # ---- Multi-seed: representative subset per seed ---------------------
     {"path": "artifacts/dense-owt-formal-curve-large-seed123-result.json",
      "seed": 123, "optimizer_steps": 5000, "status": "completed"},
