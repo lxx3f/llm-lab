@@ -194,6 +194,12 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
                 if exp.get("name") != act.get("name"):
                     plan_matches = False
                     break
+                # Every transcript call_id must match the corresponding
+                # expected call_id (position-paired). Non-string / missing /
+                # mismatched ids fail the plan layer (auditor round 3).
+                if _norm_name(act.get("call_id")) != _norm_name(exp.get("call_id")):
+                    plan_matches = False
+                    break
                 if exp.get("arguments") != act.get("arguments"):
                     plan_matches = False
                     break

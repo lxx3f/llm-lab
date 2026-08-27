@@ -489,6 +489,30 @@ class FailureClassifierTests(unittest.TestCase):
         self.assertFalse(result["layers"]["call_plan_matches"])
         self.assertEqual(result["first_failure"], "call_plan_matches")
 
+    def test_single_call_id_mismatch_fails_plan(self) -> None:
+        """Regression (auditor round 3 for this stage): a single-call
+        transcript whose call_id differs from the expected id (wrong string,
+        dict, list, int, None) must fail call_plan_matches — the plan layer
+        explicitly compares each transcript call_id with the expected
+        call_id."""
+        sample = self._base_sample(
+            "single_tool",
+            [{"call_id": "c1", "name": "d1_calculate",
+              "arguments": {"expression": "1+1"}, "expected_result": 2}],
+            "2",
+        )
+        for bad_id in ("wrong", {"k": 1}, ["x"], 7, None):
+            transcript = {"tool_calls": [{
+                "call_id": bad_id, "name": "d1_calculate",
+                "arguments": {"expression": "1+1"},
+                "execution_outcome": "success", "result": 2,
+            }], "final_answer": "2"}
+            result = classify(sample, transcript)
+            self.assertFalse(result["layers"]["call_plan_matches"],
+                             msg=f"call_id={bad_id!r}")
+            self.assertEqual(result["first_failure"], "call_plan_matches",
+                             msg=f"call_id={bad_id!r}")
+
     def test_all_eight_layers_present_in_ok_transcript(self) -> None:
         """8-level extension: a fully-correct transcript populates all eight
         layers with booleans (no None for an answer-declared sample)."""
@@ -794,12 +818,15 @@ class MalformedTranscriptRegressionTests(unittest.TestCase):
             "final_answer": "2",
         }
         result = classify(sample, transcript)
-        # Positional pairing now correctly matches expected_result=2 with
-        # actual result=2; result_grounded is True (not None) and there is
-        # no first_failure.
-        self.assertIs(result["layers"]["result_grounded"], True,
-                      msg=f"expected True (positional match), got {result['layers']!r}")
-        self.assertIsNone(result["first_failure"])
+        # Auditor round 10 guard: positional pairing in result_grounded must
+        # never false-pass. Auditor round 3 addition: call_id is part of the
+        # plan, so a mismatched call_id now fails at call_plan_matches BEFORE
+        # grounding is evaluated. result_grounded still uses positional
+        # pairing for transcripts that pass the plan layer.
+        self.assertIs(result["layers"]["call_plan_matches"], False)
+        self.assertEqual(result["first_failure"], "call_plan_matches")
+        # Positional pairing is still active for the grounding computation.
+        self.assertIs(result["layers"]["result_grounded"], True)
 
     def test_call_id_mismatch_with_wrong_result_fails_grounding(self) -> None:
         """Companion regression (auditor round 10): when call_id differs
@@ -834,8 +861,12 @@ class MalformedTranscriptRegressionTests(unittest.TestCase):
             "final_answer": "2",
         }
         result = classify(sample, transcript)
+        # call_id mismatch fails at the plan layer first (auditor round 3);
+        # the grounding computation still positionally pairs and reports the
+        # wrong result.
+        self.assertIs(result["layers"]["call_plan_matches"], False)
+        self.assertEqual(result["first_failure"], "call_plan_matches")
         self.assertIs(result["layers"]["result_grounded"], False)
-        self.assertEqual(result["first_failure"], "result_grounded")
 
 
 if __name__ == "__main__":

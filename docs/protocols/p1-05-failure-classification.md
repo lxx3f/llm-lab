@@ -28,7 +28,7 @@ parse_success          ← transcript 结构可解析为 tool_calls 列表（空
   - `tool_error_response`：模型调用一个始终返回 ERROR 响应的工具 → 模型应观察到错误响应并报告，不应传播错误结果（expected_tool_calls 含 1 个调用 + expected_result 为 ERROR 串）；
 - `expected_answer: null`：final_answer_correct = None（不可判定），不计入失败；
 - 有 expected calls 但未声明 `expected_result`：result_grounded = None（不可判定），不计入失败；
-- **定位精度**：错误的工具名（含不在声明工具注册表中的名字）→ tool_name_correct；正确的 name 但错误的参数值 → argument_value_correct；name/args 都正确但顺序/依赖错误 → call_plan_matches；
+- **定位精度**：错误的工具名（含不在声明工具注册表中的名字）→ tool_name_correct；正确的 name 但错误的参数值 → argument_value_correct；name/args 都正确但顺序/依赖错误 → call_plan_matches；每个 transcript call 的 call_id 必须与对应 expected call_id 一致（非字符串/缺失/不匹配 → call_plan_matches）；
 - **未知工具名**：schema_valid 对该 call 不可判定（None，因无 schema 可查），名字错误由 tool_name_correct 报告；
 - **鲁棒性**：非字符串 name（None/int/dict）、任意形状 arguments（None/str/list/非 str key dict）、混合类型 depends_on（str/int）、不可哈希 call_id（dict）全部归一化比较，不崩溃，一律视为与 expected 不匹配；
 - **首次失败层**（None 跳过）= 模型失败的具体位置；答案层失败报告 `final_answer_correct`（非别名 `task_success`）。
@@ -89,7 +89,7 @@ parse_success          ← transcript 结构可解析为 tool_calls 列表（空
 
 ## 校验
 
-- `scripts/run_tests.py full`：tests/test_d1_failure.py（43 tests：manifest / schema / task_type 覆盖 / 确定性 / 八级分类各一 / 全 task_type 集成 / D1 端到端 mock 执行 / expected_result 一致性 / depends_on 可达性 / result_grounded 实际激活 / MalformedTranscriptRegressionTests 8 个反向断言 / call_id 不匹配 位置配对回归 2 个 / 八级扩展 4 个 / 未知工具名 + 非字符串 name/arguments 鲁棒性 3 个 / call_id+depends_on 归一化 2 个）；
+- `scripts/run_tests.py full`：tests/test_d1_failure.py（44 tests：manifest / schema / task_type 覆盖 / 确定性 / 八级分类各一 / 全 task_type 集成 / D1 端到端 mock 执行 / expected_result 一致性 / depends_on 可达性 / result_grounded 实际激活 / MalformedTranscriptRegressionTests 8 个反向断言 / call_id 不匹配 位置配对回归 2 个 / 八级扩展 4 个 / 未知工具名 + 非字符串 name/arguments 鲁棒性 3 个 / call_id+depends_on 归一化 2 个）；
 - 生成器退出码 0 且 0 schema errors。
 
 ## 应用范围

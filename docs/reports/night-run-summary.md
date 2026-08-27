@@ -69,7 +69,7 @@
 
 ## 7. 测试与提交
 
-- `scripts/run_tests.py full`：**163 tests passing**（夜间跑开始前 100 → 163）；
+- `scripts/run_tests.py full`：**164 tests passing**（夜间跑开始前 100 → 164）；
 - Git：main 从夜间跑起点 `43260e3` 推进到最终 commit（+12 commits：multi-seed 39-run / provenance fix / moe-long / n11-multi-seed / n11-large / p1-05 / d1-manifest-repro / report / p1-05 auditor fixes ×2）；当前 HEAD 即最终 commit，provenance 由 tests/test_artifact_provenance.py 动态验证。
 
 ## 8. 完成状态与遗留
@@ -83,7 +83,7 @@
 | N11 长训练多 seed | ✅ | baseline/medium/large × 3 seeds (std < 0.01) |
 | N11 large 50000 步 | ✅ | 5.258 ± 0.009（3-seed mean），3-scale overlay |
 | MoE 多 seed | ✅ | 5000+50000 步 × 3 seeds → 7.2651±0.033 / 6.1179±0.058 |
-| D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，八级分类器，43 测试（test_d1_failure.py）|
+| D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，八级分类器，44 测试（test_d1_failure.py）|
 | 夜间跑总结报告 | ✅ | 本文档 |
 
 ### 已解决（历史修正记录——删除线为历史原文，非当前声明）
