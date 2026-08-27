@@ -6,6 +6,8 @@
 
 此前所有实验（N1-N11）均为**单 seed（42）**，结果不能区分"真实差异"与"初始化噪声"。P1-03 是本项目的多 seed / 统计区间协议。
 
+> 更新（2026-08-27）：N11 长训练已按本协议扩展为 3 seeds（{42, 123, 7}）——见 `docs/experiments/n11-long-multi-seed/README.md`（baseline/medium/large 各 50000 步）；MoE 5000+50000 步亦已 3-seed 实跑。
+
 **实跑预演**：`docs/experiments/multi-seed-sweep/README.md`（N5 + N6 × {42, 123, 7} = 18 个 5000 步训练）已证明：
 - 规模 sweep 结论多 seed 稳健；
 - dropout=0.1 的单 seed 优势是噪声（多 seed 下不成立）；

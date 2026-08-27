@@ -81,7 +81,7 @@
 | N7/N8/N9 多 seed 实跑 | ✅ | 13 configs × 3 seeds，multi-seed-overview.json |
 | MoE 50000 步长训练 | ✅ | moe-owt-formal-curve-long-result.json (6.0434 @ 50000) |
 | N11 长训练多 seed | ✅ | baseline/medium × 3 seeds (std < 0.01) |
-| N11 large 50000 步 | ✅ | 5.2639 @ 50000，3-scale overlay |
+| N11 large 50000 步 | ✅ | 5.258 ± 0.009（3-seed mean），3-scale overlay |
 | D1 数据集 + P1-05 | ✅ | 126 样例 (100/13/13)，六层分类器，34 测试（test_d1_failure.py）|
 | 夜间跑总结报告 | ✅ | 本文档 |
 

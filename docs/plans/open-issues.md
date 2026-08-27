@@ -485,7 +485,7 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
   - N6 dropout=0.1 的单 seed 优势是噪声（多 seed 下 dropout 影响退化）；
   - large std 最大（0.093），单 seed 低估其真实水平。
 默认：3 seeds={42,123,7}；mean/std；N≥5 时可报告 95% CI；torch.compile/CUDA Graph 默认关；AMP bf16 默认开。
-进展：2026-08-26 协议 + 3-seed 实跑完成；N1-N11 单 seed 文档不追溯改写，只在关键结论标注"单 seed"。
+进展：2026-08-26 协议 + 3-seed 实跑完成；2026-08-27 N11 长训练 + MoE 曲线已按本协议扩展为 3-seed（见 `docs/experiments/n11-long-multi-seed/README.md`、`docs/experiments/moe-multi-seed/README.md`）；N1-N10 单 seed 文档不追溯改写，只在关键结论标注"单 seed"。
 ```
 
 ---
