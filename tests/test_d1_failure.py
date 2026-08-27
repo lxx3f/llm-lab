@@ -165,8 +165,9 @@ class FailureClassifierTests(unittest.TestCase):
         transcript = {"tool_calls": [{"call_id": "c1", "name": "d1_calculate", "arguments": {"expression": "1+1"}}], "final_answer": "直接回答"}
         result = classify(sample, transcript)
         self.assertTrue(result["layers"]["parse_success"])
+        self.assertFalse(result["layers"]["tool_name_correct"])
         self.assertFalse(result["layers"]["call_plan_matches"])
-        self.assertEqual(result["first_failure"], "call_plan_matches")
+        self.assertEqual(result["first_failure"], "tool_name_correct")
 
     def test_single_tool_null_answer_task_layer_not_applicable(self) -> None:
         """single_tool with expected_answer null: task_success is None, not False."""
@@ -195,8 +196,9 @@ class FailureClassifierTests(unittest.TestCase):
         result = classify(sample, transcript)
         self.assertTrue(result["layers"]["parse_success"])
         self.assertTrue(result["layers"]["schema_valid"])
+        self.assertFalse(result["layers"]["tool_name_correct"])
         self.assertFalse(result["layers"]["call_plan_matches"])
-        self.assertEqual(result["first_failure"], "call_plan_matches")
+        self.assertEqual(result["first_failure"], "tool_name_correct")
 
     def test_wrong_order_fails_plan(self) -> None:
         expected = [
@@ -278,7 +280,9 @@ class FailureClassifierTests(unittest.TestCase):
         result = classify(sample, transcript)
         self.assertTrue(result["layers"]["result_grounded"] is None or result["layers"]["result_grounded"])
         self.assertFalse(result["layers"]["task_success"])
-        self.assertEqual(result["first_failure"], "task_success")
+        self.assertFalse(result["layers"]["final_answer_correct"])
+        # 8-level taxonomy reports the canonical name for the answer layer.
+        self.assertEqual(result["first_failure"], "final_answer_correct")
 
     def test_every_d1_task_type_has_working_sample(self) -> None:
         """Each D1 task type must have a representative sample that can be
@@ -304,6 +308,92 @@ class FailureClassifierTests(unittest.TestCase):
             result = classify(sample, transcript)
             self.assertIsNone(result["first_failure"], msg=f"{ttype}: correct output failed: {result}")
         self.assertEqual(seen, ALL_TASK_TYPES)
+
+    def test_wrong_argument_value_localized_to_argument_value_correct(self) -> None:
+        """8-level extension (auditor round 1 for this stage): a transcript
+        with the right tool NAME but a WRONG argument value must fail at
+        ``argument_value_correct``, not at ``call_plan_matches``."""
+        sample = self._base_sample(
+            "single_tool",
+            [{"call_id": "c1", "name": "d1_calculate",
+              "arguments": {"expression": "1+1"}, "expected_result": 2}],
+            "2",
+        )
+        transcript = {"tool_calls": [{
+            "call_id": "c1", "name": "d1_calculate",
+            "arguments": {"expression": "1+2"},  # wrong value, right name
+            "execution_outcome": "success", "result": 3,
+        }], "final_answer": "3"}
+        result = classify(sample, transcript)
+        self.assertTrue(result["layers"]["parse_success"])
+        self.assertTrue(result["layers"]["schema_valid"])  # 1+2 is schema-valid
+        self.assertTrue(result["layers"]["tool_name_correct"])  # name is right
+        self.assertFalse(result["layers"]["argument_value_correct"])  # args wrong
+        self.assertEqual(result["first_failure"], "argument_value_correct")
+
+    def test_wrong_order_still_localized_to_call_plan_matches(self) -> None:
+        """8-level extension: a reversed order (right names/args, wrong
+        sequence) must fail at ``call_plan_matches`` — tool_name_correct and
+        argument_value_correct stay True because the name/arg multisets
+        match."""
+        expected = [
+            {"call_id": "a", "name": "d1_calculate", "arguments": {"expression": "1+1"}},
+            {"call_id": "b", "name": "d1_get_weather", "arguments": {"city": "北京"}, "depends_on": ["a"]},
+        ]
+        sample = self._base_sample("multi_tool", expected, None)
+        transcript = {"tool_calls": [
+            {"call_id": "b", "name": "d1_get_weather", "arguments": {"city": "北京"}, "depends_on": ["a"], "execution_outcome": "success"},
+            {"call_id": "a", "name": "d1_calculate", "arguments": {"expression": "1+1"}, "execution_outcome": "success"},
+        ], "final_answer": ""}
+        result = classify(sample, transcript)
+        self.assertTrue(result["layers"]["tool_name_correct"])
+        self.assertTrue(result["layers"]["argument_value_correct"])
+        self.assertFalse(result["layers"]["call_plan_matches"])
+        self.assertEqual(result["first_failure"], "call_plan_matches")
+
+    def test_final_answer_correct_alias_matches_task_success(self) -> None:
+        """8-level extension: ``final_answer_correct`` is the canonical name
+        of the final-answer layer and must equal ``task_success`` (alias)."""
+        sample = self._base_sample(
+            "single_tool",
+            [{"call_id": "c1", "name": "d1_calculate",
+              "arguments": {"expression": "1+1"}, "expected_result": 2}],
+            "2",
+        )
+        good = classify(sample, {"tool_calls": [{
+            "call_id": "c1", "name": "d1_calculate", "arguments": {"expression": "1+1"},
+            "execution_outcome": "success", "result": 2}], "final_answer": "结果是 2"})
+        self.assertIs(good["layers"]["final_answer_correct"], True)
+        self.assertIs(good["layers"]["task_success"], True)
+        self.assertEqual(good["layers"]["final_answer_correct"], good["layers"]["task_success"])
+        bad = classify(sample, {"tool_calls": [{
+            "call_id": "c1", "name": "d1_calculate", "arguments": {"expression": "1+1"},
+            "execution_outcome": "success", "result": 2}], "final_answer": "结果是 3"})
+        self.assertIs(bad["layers"]["final_answer_correct"], False)
+        self.assertIs(bad["layers"]["task_success"], False)
+        self.assertEqual(bad["first_failure"], "final_answer_correct")
+
+    def test_all_eight_layers_present_in_ok_transcript(self) -> None:
+        """8-level extension: a fully-correct transcript populates all eight
+        layers with booleans (no None for an answer-declared sample)."""
+        sample = self._base_sample(
+            "single_tool",
+            [{"call_id": "c1", "name": "d1_calculate",
+              "arguments": {"expression": "1+1"}, "expected_result": 2}],
+            "2",
+        )
+        transcript = {"tool_calls": [{
+            "call_id": "c1", "name": "d1_calculate", "arguments": {"expression": "1+1"},
+            "execution_outcome": "success", "result": 2}], "final_answer": "2"}
+        result = classify(sample, transcript)
+        expected_keys = {"parse_success", "schema_valid", "tool_name_correct",
+                         "argument_value_correct", "call_plan_matches",
+                         "execution_success", "result_grounded",
+                         "task_success", "final_answer_correct"}
+        self.assertEqual(set(result["layers"].keys()), expected_keys)
+        for name, ok in result["layers"].items():
+            self.assertIsInstance(ok, bool, msg=f"{name} should be bool for ok transcript")
+        self.assertIsNone(result["first_failure"])
 
 
 class D1SemanticIntegrationTests(unittest.TestCase):
@@ -464,7 +554,8 @@ class MalformedTranscriptRegressionTests(unittest.TestCase):
         self.assertFalse(result["layers"]["parse_success"])
         self.assertEqual(result["first_failure"], "parse_success")
         # All downstream layers are N/A when the transcript is unparseable.
-        for name in ("schema_valid", "call_plan_matches", "execution_success", "result_grounded"):
+        for name in ("schema_valid", "tool_name_correct", "argument_value_correct",
+                     "call_plan_matches", "execution_success", "result_grounded"):
             self.assertIsNone(result["layers"][name], msg=f"{name} should be None when parse fails")
 
     def test_null_tool_calls_fails_parse(self) -> None:
@@ -504,8 +595,10 @@ class MalformedTranscriptRegressionTests(unittest.TestCase):
         self.assertIn("first_failure", result)
         self.assertIsInstance(result["layers"], dict)
         self.assertEqual(set(result["layers"].keys()),
-                         {"parse_success", "schema_valid", "call_plan_matches",
-                          "execution_success", "result_grounded", "task_success"})
+                         {"parse_success", "schema_valid", "tool_name_correct",
+                          "argument_value_correct", "call_plan_matches",
+                          "execution_success", "result_grounded", "task_success",
+                          "final_answer_correct"})
 
     def test_malformed_list_members_fail_parse_without_crash(self) -> None:
         """Regression (auditor round 8): ``[None]``, ``[1]``, ``["x"]``
@@ -518,7 +611,8 @@ class MalformedTranscriptRegressionTests(unittest.TestCase):
             self.assertFalse(result["layers"]["parse_success"], msg=f"input={bad!r}")
             self.assertEqual(result["first_failure"], "parse_success", msg=f"input={bad!r}")
             # Downstream layers must be N/A (None), not crash.
-            for name in ("schema_valid", "call_plan_matches", "execution_success", "result_grounded"):
+            for name in ("schema_valid", "tool_name_correct", "argument_value_correct",
+                         "call_plan_matches", "execution_success", "result_grounded"):
                 self.assertIsNone(result["layers"][name], msg=f"{name} for {bad!r}")
 
     def test_empty_dict_member_parses_but_fails_schema(self) -> None:

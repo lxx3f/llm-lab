@@ -1,33 +1,35 @@
 # P1-05 工具执行失败层级分类协议
 
-> 状态：已解决（2026-08-27，D1 数据集 + 六层分类器落地）。
+> 状态：已解决（2026-08-27，D1 数据集 + 八级分类器落地）。
 
 ## 背景
 
-工具调用评测如果只记录"工具执行成功率"和"任务完成率"，无法定位模型失败发生在哪一步。P1-05 固定六层错误分类。
+工具调用评测如果只记录"工具执行成功率"和"任务完成率"，无法定位模型失败发生在哪一步。P1-05 固定八级错误分类。
 
-## 六层失败层级（v2，2026-08-27 修订）
+## 八级失败层级（v3，2026-08-27 修订）
 
 ```text
-parse_success       ← transcript 结构可解析为 tool_calls 列表（空列表是合法解析）
-→ schema_valid      ← 每个 call 的 arguments 符合命名工具的声明 schema
-→ call_plan_matches ← 调用与 expected_tool_calls 的 name/arguments/顺序/依赖一致
-→ execution_success ← MockExecutor 是否成功执行（含依赖序）
-→ result_grounded   ← 实际工具结果是否等于 expected_result（未声明时 N/A）
-→ task_success      ← final_answer 是否包含 expected_answer（null 时 N/A）
+parse_success          ← transcript 结构可解析为 tool_calls 列表（空列表是合法解析）
+→ schema_valid         ← 每个 call 的 arguments 符合命名工具的声明 schema
+→ tool_name_correct    ← transcript 的工具名 multiset 与 expected 一致（不含顺序）
+→ argument_value_correct ← transcript 的 (name, arguments) multiset 与 expected 一致（不含顺序）
+→ call_plan_matches    ← 顺序 / depends_on / 数量一致（name/args 已由上层细粒度定位）
+→ execution_success    ← MockExecutor 是否成功执行（含依赖序）
+→ result_grounded      ← 实际工具结果是否等于 expected_result（未声明时 N/A）
+→ final_answer_correct ← final_answer 是否包含 expected_answer（null 时 N/A；
+                         ``task_success`` 为同值向后兼容别名）
 ```
 
 **层语义规则**：
 
-- `no_tool` 样例（expected_tool_calls 为空）：正确输出 = 空 tool_calls；parse/schema/execution/grounding 平凡通过（result_grounded = True，无结果可验证）；
+- `no_tool` 样例（expected_tool_calls 为空）：正确输出 = 空 tool_calls；parse/schema/name/args/execution/grounding 平凡通过（result_grounded = True，无结果可验证）；
 - `tool_error` 样例分两种：
   - `tool_not_available`：用户请求的工具不在 available tools 列表中 → 模型不应调用任何工具，应报告工具不可用（expected_tool_calls = []）；
   - `tool_error_response`：模型调用一个始终返回 ERROR 响应的工具 → 模型应观察到错误响应并报告，不应传播错误结果（expected_tool_calls 含 1 个调用 + expected_result 为 ERROR 串）；
-- `expected_answer: null`：task_success = None（不可判定），不计入失败；
+- `expected_answer: null`：final_answer_correct = None（不可判定），不计入失败；
 - 有 expected calls 但未声明 `expected_result`：result_grounded = None（不可判定），不计入失败；
-- **首次失败层**（None 跳过）= 模型失败的具体位置。
-
-> 完整八级（open-issue P1-05 原文含 tool_name_correct / argument_value_correct / final_answer_correct）在需要更细粒度时扩展；当前六层覆盖 parse→plan→execute→ground→answer 的评测闭环。
+- **定位精度**：错误的工具名 → tool_name_correct；正确的 name 但错误的参数值 → argument_value_correct；name/args 都正确但顺序/依赖错误 → call_plan_matches；
+- **首次失败层**（None 跳过）= 模型失败的具体位置；答案层失败报告 `final_answer_correct`（非别名 `task_success`）。
 
 ## 分类器接口
 
@@ -85,7 +87,7 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 
 ## 校验
 
-- `scripts/run_tests.py full`：tests/test_d1_failure.py（34 tests：manifest / schema / task_type 覆盖 / 确定性 / 六层分类各一 / 全 task_type 集成 / D1 端到端 mock 执行 / expected_result 一致性 / depends_on 可达性 / result_grounded 实际激活 / MalformedTranscriptRegressionTests 8 个反向断言 / call_id 不匹配 位置配对回归 2 个）；
+- `scripts/run_tests.py full`：tests/test_d1_failure.py（38 tests：manifest / schema / task_type 覆盖 / 确定性 / 八级分类各一 / 全 task_type 集成 / D1 端到端 mock 执行 / expected_result 一致性 / depends_on 可达性 / result_grounded 实际激活 / MalformedTranscriptRegressionTests 8 个反向断言 / call_id 不匹配 位置配对回归 2 个 / 八级扩展 4 个（argument_value_correct 定位、顺序仍归 call_plan_matches、final_answer_correct 别名、八层全在））；
 - 生成器退出码 0 且 0 schema errors。
 
 ## 应用范围
@@ -96,5 +98,5 @@ parse_success       ← transcript 结构可解析为 tool_calls 列表（空列
 
 ## 遗留
 
-- 完整八级分类（tool_name_correct / argument_value_correct / final_answer_correct）未实现——当前六层够用，扩展留到正式评测；
-- D1 样例未用真实 LLM 生成（mock-only 约束下用确定性模板 + examples.d1_mocks），`source` 标注为 d1-synthetic-template。canonical D1 已通过 MockExecutor 端到端验证（117/117 expected calls 全部可执行且 result 与 expected_result 一致），result_grounded 层在 canonical 数据上实际激活；D1.1 真实 LLM 生成留后续阶段。
+- 真实 LLM 生成的 transcript（D1.1 需 LLM API 凭证）尚未接入；mock-only 约束下用确定性模板 + examples.d1_mocks，`source` 标注为 d1-synthetic-template。canonical D1 已通过 MockExecutor 端到端验证（117/117 expected calls 全部可执行且 result 与 expected_result 一致），result_grounded 层在 canonical 数据上实际激活；
+- 八级分类的每一级在 canonical D1 上的失败分布统计（哪些层失败最多）是后续 P2 评测报告的输入（当前无真实模型 transcript，无法产生分布）。

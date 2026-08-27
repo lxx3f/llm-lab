@@ -1,14 +1,19 @@
 """P1-05 failure-layer classification evaluator.
 
 Evaluates a model's tool-calling transcript against a D0/D1 sample through
-five failure layers:
+eight failure layers:
 
-    parse_success      transcript has a structured tool_calls list
-    schema_valid       every call's arguments match the named tool's schema
-    call_plan_matches  calls match expected name/arguments/order/dependencies
-    execution_success  MockExecutor ran all calls successfully
-    result_grounded    actual results match expected results (where declared)
-    task_success       final answer contains expected_answer (where declared)
+    parse_success          transcript has a structured tool_calls list
+    schema_valid           every call's arguments match the named tool's schema
+    tool_name_correct      every call's tool name matches the expected plan
+    argument_value_correct every call's arguments match the expected plan
+    call_plan_matches      calls match expected order/dependencies/quantity
+    execution_success      MockExecutor ran all calls successfully
+    result_grounded        actual results match expected results (where declared)
+    task_success           final answer contains expected_answer (where declared)
+
+``final_answer_correct`` is the 8-level name for the last layer (same value as
+``task_success``, kept as a backward-compatible alias).
 
 Layers that are undefined for a sample (e.g. ``task_success`` when
 ``expected_answer`` is null, ``result_grounded`` when no ``expected_result``
@@ -16,7 +21,8 @@ is declared) are reported as ``None`` (not applicable) and never count as the
 first failure.
 
 For ``no_tool`` samples (empty ``expected_tool_calls``), the correct output is
-an empty tool-call list; parse/schema/execution/grounding are trivially true.
+an empty tool-call list; parse/schema/name/args/execution/grounding are
+trivially true.
 
 Usage:
     .venv/python.exe scripts/classify_tool_failure.py \\
@@ -69,14 +75,19 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
         # parse_success. ``task_success`` is evaluated independently from
         # ``final_answer`` so the final-answer check still works.
         layers["schema_valid"] = None
+        layers["tool_name_correct"] = None
+        layers["argument_value_correct"] = None
         layers["call_plan_matches"] = None
         layers["execution_success"] = None
         layers["result_grounded"] = None
         expected_answer = sample.get("expected_answer")
         if expected_answer is None:
             layers["task_success"] = None
+            layers["final_answer_correct"] = None
         else:
-            layers["task_success"] = str(expected_answer) in (transcript.get("final_answer", "") or "")
+            answer_ok = str(expected_answer) in (transcript.get("final_answer", "") or "")
+            layers["task_success"] = answer_ok
+            layers["final_answer_correct"] = answer_ok
         return {"layers": layers, "first_failure": "parse_success"}
 
     # Layer 2: schema_valid — every transcript call's arguments satisfy the
@@ -97,9 +108,42 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
                 break
     layers["schema_valid"] = schema_valid
 
-    # Layer 3: call_plan_matches — transcript calls match the expected plan:
-    # same names, same arguments, same order, same depends_on edges, no
-    # dangling dependency references, and execution order respects deps.
+    # Layer 3: tool_name_correct — the transcript's tool names, as a
+    # multiset, match the expected names. Order is NOT considered here (a
+    # wrong-order transcript still has the right names → tool_name_correct
+    # stays True and the failure is localized to call_plan_matches).
+    name_ok: bool | None = True
+    if len(expected_calls) == 0:
+        # no_tool: no calls expected; any transcript call is a wrong name.
+        name_ok = len(transcript_calls) == 0
+    elif isinstance(transcript_calls, list):
+        exp_names = sorted(e.get("name") for e in expected_calls)
+        act_names = sorted(c.get("name") for c in transcript_calls)
+        name_ok = exp_names == act_names
+    else:
+        name_ok = None
+    layers["tool_name_correct"] = name_ok
+
+    # Layer 4: argument_value_correct — the transcript's (name, arguments)
+    # pairs, as a multiset, match the expected pairs. Order not considered.
+    args_ok: bool | None = True
+    if len(expected_calls) == 0:
+        args_ok = len(transcript_calls) == 0
+    elif isinstance(transcript_calls, list):
+        exp_pairs = sorted((e.get("name"), json.dumps(e.get("arguments"), sort_keys=True, ensure_ascii=False))
+                          for e in expected_calls)
+        act_pairs = sorted((c.get("name"), json.dumps(c.get("arguments"), sort_keys=True, ensure_ascii=False))
+                          for c in transcript_calls)
+        args_ok = exp_pairs == act_pairs
+    else:
+        args_ok = None
+    layers["argument_value_correct"] = args_ok
+
+    # Layer 5: call_plan_matches — transcript calls match the expected plan:
+    # same order, same depends_on edges, no dangling dependency references,
+    # and execution order respects deps. (Name/argument correctness is now
+    # localized to tool_name_correct / argument_value_correct layers above,
+    # but this layer retains the full plan comparison as an overall check.)
     plan_matches: bool | None = True
     if len(expected_calls) == 0:
         # no_tool: expect no calls.
@@ -181,17 +225,27 @@ def classify(sample: dict[str, Any], transcript: dict[str, Any]) -> dict[str, An
             grounded = None
     layers["result_grounded"] = grounded
 
-    # Layer 6: task_success — final answer contains expected_answer where
-    # declared. None when expected_answer is null (unverifiable).
+    # Layer 6/7: task_success + final_answer_correct — final answer contains
+    # expected_answer where declared. ``final_answer_correct`` is the
+    # 8-level name for this layer; ``task_success`` is kept as a
+    # backward-compatible alias (same value). None when expected_answer is
+    # null (unverifiable).
     expected_answer = sample.get("expected_answer")
     if expected_answer is None:
         layers["task_success"] = None
+        layers["final_answer_correct"] = None
     else:
         final_text = transcript.get("final_answer", "") or ""
-        layers["task_success"] = str(expected_answer) in final_text
+        answer_ok = str(expected_answer) in final_text
+        layers["task_success"] = answer_ok
+        layers["final_answer_correct"] = answer_ok
 
-    # First failing layer (skip None / not-applicable).
+    # First failing layer (skip None / not-applicable). Order follows the
+    # 8-level taxonomy; ``final_answer_correct`` is reported instead of its
+    # ``task_success`` alias when the final answer is wrong.
     first_failure = next((name for name, ok in layers.items() if ok is False), None)
+    if first_failure == "task_success":
+        first_failure = "final_answer_correct"
     return {"layers": layers, "first_failure": first_failure}
 
 

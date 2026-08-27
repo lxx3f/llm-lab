@@ -540,14 +540,13 @@ parse_success
 **决策（2026-08-27，P1-05 阶段完成）**
 
 ```text
-状态：已解决（v2，六层）
-决策：六层失败分类已落 docs/protocols/p1-05-failure-classification.md：
-  parse_success → schema_valid → call_plan_matches → execution_success → result_grounded → task_success；
+状态：已解决（v3，八级）
+决策：八级失败分类已落 docs/protocols/p1-05-failure-classification.md：
+  parse_success → schema_valid → tool_name_correct → argument_value_correct → call_plan_matches → execution_success → result_grounded → final_answer_correct；
   scripts/classify_tool_failure.py 实现分类器（--sample / --transcript / --output）；
   D1 数据集已生成（126 样例，6 种 task_type 全覆盖，train/dev/test 100/13/13，所有 single/multi-tool 样例含 expected_result）；
-  tests/test_d1_failure.py 34 单测（含集成验证：MockExecutor 执行 expected_tool_calls、expected_result 一致性、depends_on 可达性、D1SemanticIntegrationTests 6 测试、MalformedTranscriptRegressionTests 8 个反向断言、call_id 不一致位置配对回归 2 个）。
-遗留：完整八级分类（tool_name_correct / argument_value_correct / final_answer_correct）留正式评测阶段；
-  D1 用确定性模板生成（mock-only 约束），真实 LLM 生成留 D1.1。
+  tests/test_d1_failure.py 38 单测（含集成验证：MockExecutor 执行 expected_tool_calls、expected_result 一致性、depends_on 可达性、D1SemanticIntegrationTests 6 测试、MalformedTranscriptRegressionTests 8 个反向断言、call_id 不一致位置配对回归 2 个、八级扩展 4 个）。
+遗留：D1 用确定性模板生成（mock-only 约束），真实 LLM 生成留 D1.1；八级在 canonical D1 上的失败分布统计需真实模型 transcript（P2 评测）。
 ```
 
 ---
