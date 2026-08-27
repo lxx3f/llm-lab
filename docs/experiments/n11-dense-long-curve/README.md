@@ -40,9 +40,9 @@
 
 > 注意：baseline 的 train_first 61.57 是采样起点（step 500 处），因为 log_interval=500 第一次采样在 step 500。
 
-### 2-curve overlay PNG
+### 2-curve overlay PNG（历史，单 seed 版）
 
-`artifacts/dense-owt-formal-curve-long-sweep.png`（800×500 dpi=100）——2 曲线共享双轴（baseline + medium），调色板：baseline tab:blue/orange、medium tab:green/olive。
+`artifacts/dense-owt-formal-curve-long-sweep.png`（800×500 dpi=100）——2 曲线共享双轴（baseline + medium），调色板：baseline tab:blue/orange、medium tab:green/olive。多 seed 扩展后以 3-curve 版为准。
 
 ### 3-curve scale-sweep overlay PNG（含 large）
 
@@ -91,12 +91,12 @@ N11 观察严格限定于：
 
 ## 退出条件
 
-- ✅ 2 个 result JSON schema v1.1 valid + metadata 对齐 HEAD；
-- ✅ 1 个 2-curve overlay PNG 800×500；
+- ✅ 单 seed 3 个 + 多 seed 9 个 result JSON schema v1.1 valid（metadata.git_commit 指向 KNOWN_NIGHT_RUN_COMMITS 中的已知 commit）；
+- ✅ 1 个 3-curve scale-sweep overlay PNG 800×500；
 - ✅ 协议/实验/审查三类文档落盘；
-- ✅ `scripts/run_tests.py full` 仍 100 tests passing。
+- ✅ `scripts/run_tests.py full` 154 tests passing。
 
-完成 N11。
+完成 N11（含 3-seed 扩展）。
 
 ## 文件索引
 
