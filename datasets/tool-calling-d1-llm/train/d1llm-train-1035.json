@@ -1,0 +1,112 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1035",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下杭州现在的天气，然后根据气温算一下买两杯中杯奶茶（假设每杯15元）总共要花多少钱，如果超过30元就再搜一下附近有没有便宜的奶茶店推荐。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "杭州"
+      },
+      "depends_on": [],
+      "expected_result": "杭州 当前天气：晴，22°C，微风。"
+    },
+    {
+      "call_id": "c2",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "15*2"
+      },
+      "depends_on": [],
+      "expected_result": 30
+    },
+    {
+      "call_id": "c3",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "杭州附近便宜的奶茶店推荐",
+        "limit": 5
+      },
+      "depends_on": [],
+      "expected_result": "关于「杭州附近便宜的奶茶店推荐」找到 5 条结果。"
+    }
+  ],
+  "expected_answer": "先调用 d1_get_weather 获取杭州当前天气，再调用 d1_calculate 计算两杯中杯奶茶总价（15*2=30元）。由于总额为30元，并未超过30元，但根据用户意图如需推荐便宜的奶茶店，可继续调用 d1_web_search 搜索附近便宜的奶茶店。最终回答用户当前天气情况、奶茶总价以及（可选的）附近便宜奶茶店推荐。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "multi_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

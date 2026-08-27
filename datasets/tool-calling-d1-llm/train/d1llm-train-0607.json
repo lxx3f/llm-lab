@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0607",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我写一段关于秋天的抒情文字吧，大概三百字左右。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "模型直接创作一段约三百字的秋天抒情文字，无需调用任何工具。可围绕秋风、落叶、丰收、思念等意象展开，语言优美、情感真挚。示例片段：'秋风轻拂过金色的原野，落叶如蝴蝶般翩然飘落，铺成一条通往记忆深处的幽径。天空高远而澄澈，大雁南飞的鸣声划破了午后的宁静，带走了夏日的炽热，也带走了心中那些纷扰的思绪。田野里，稻谷低垂着沉甸甸的头颅，瓜果飘散着成熟的香气，仿佛在诉说着大地最温柔的馈赠。暮色渐浓，夕阳的余晖为远山镀上一层薄薄的金边，村落里升起了袅袅炊烟，空气中弥漫着柴火与桂花混合的清香……'",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

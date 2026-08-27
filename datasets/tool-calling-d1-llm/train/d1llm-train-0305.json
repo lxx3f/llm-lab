@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0305",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我搜一下最近有什么好用的国产大模型框架推荐，想找个轻量级的。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "国产大模型框架 轻量级 推荐",
+        "limit": 5
+      },
+      "depends_on": [],
+      "expected_result": "关于「国产大模型框架 轻量级 推荐」找到 5 条结果。"
+    }
+  ],
+  "expected_answer": "搜索结果有限（仅返回 1 条），模型应发现信息不足，主动追问用户：1) 用户的具体应用场景是什么（如自然语言处理、图像识别、代码生成等）？2) 对模型框架的部署环境有什么要求（如移动端、边缘设备、服务器端）？3) 偏好的编程语言或技术栈是什么（如 Python、PyTorch、TensorFlow 等）？4) 是否有特定的国产大模型框架候选（如 ChatGLM、BaiChuan、Qwen 等），还是希望获取更多元化的推荐？以便提供更精准的框架推荐。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

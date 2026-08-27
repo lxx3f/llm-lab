@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1138",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下长春今天的天气吧，顺便算一下 23*47 等于多少。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "用户请求了两项任务：查询长春今天的天气，以及计算 23*47。当前可用的工具只有 d1_calculate、d1_get_weather 和 d1_web_search。其中 d1_get_weather 可用但无对应注册返回失败，d1_calculate 可用但 23*47 计算场景未匹配到正确工具调用。综上，工具 d1_get_weather 不在有效注册中或返回错误，应向用户报告天气查询工具不可用/失败；计算部分应提示工具调用失败，无法得到结果。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "tool_error",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

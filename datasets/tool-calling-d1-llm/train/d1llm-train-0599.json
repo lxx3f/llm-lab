@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0599",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我搜一下最近有什么性价比高的降噪耳机推荐，就给我一条结果不太够吧，能再多给我几个不同价位的选择吗？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "性价比降噪耳机推荐",
+        "limit": 10
+      },
+      "depends_on": [],
+      "expected_result": "关于「性价比降噪耳机推荐」找到 10 条结果。"
+    }
+  ],
+  "expected_answer": "用户表示之前只拿到1条结果不够用，希望看到不同价位的多款降噪耳机推荐。应使用 d1_web_search 以较大的 limit（如10）重新搜索，然后按价位（如入门款、中端、高端）整理出多款降噪耳机供用户选择。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

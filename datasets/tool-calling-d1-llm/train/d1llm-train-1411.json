@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1411",
+  "messages": [
+    {
+      "role": "user",
+      "content": "今天心情不太好，想吃甜食，你有什么推荐吗？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "理解你的心情不好的时候想吃甜食，推荐几种经典又治愈的甜食选择：1）巧克力——尤其是黑巧克力，能促进 endorphin 释放，让人感到愉悦；2）蛋糕或布丁——比如提拉米苏、芝士蛋糕、芒果布丁，口感柔软甜蜜；3）冰淇淋——夏天吃一口超治愈，推荐经典香草或抹茶口味；4）奶茶或奶盖茶——甜甜的又温暖；5）曲奇饼干或马卡龙——下午茶小点心。建议适量就好，不要一次吃太多，以免之后有负担感。如果心情持续低落，也可以找人聊聊天或者出去走走哦。希望这些推荐能让你开心起来！",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

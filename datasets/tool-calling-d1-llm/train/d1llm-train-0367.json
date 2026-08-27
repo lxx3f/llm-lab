@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0367",
+  "messages": [
+    {
+      "role": "user",
+      "content": "最近心情有点低落，有什么方法能快速调整情绪，让自己开心起来？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "当心情低落时，可以尝试以下方法快速调整情绪：1. 深呼吸放松：做几次深呼吸（4-7-8呼吸法），让身体先放松下来；2. 听喜欢的音乐：选一首欢快的歌，让旋律带动情绪；3. 短暂运动：站起来伸展身体、散步5-10分钟，促进内啡肽分泌；4. 倾诉交流：找朋友或家人聊聊天，把情绪说出来；5. 做件小事：喝杯热饮、整理桌面、记录三件感恩的事；6. 接触阳光和自然：到窗边或户外晒晒太阳；7. 减少刷手机：避免接触负面信息。如果持续低落超过两周且影响生活，建议寻求专业心理咨询帮助。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

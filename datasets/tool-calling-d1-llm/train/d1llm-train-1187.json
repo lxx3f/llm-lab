@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1187",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下今年国内有哪些值得关注的人工智能创业公司，最好是刚拿到新一轮融资的那种。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "今年国内值得关注的人工智能创业公司 新一轮融资",
+        "limit": 10
+      },
+      "depends_on": [],
+      "expected_result": "关于「今年国内值得关注的人工智能创业公司 新一轮融资」找到 10 条结果。"
+    }
+  ],
+  "expected_answer": "通过搜索获取了相关人工智能创业公司的融资信息，但由于搜索结果有限，仅返回1条结果，无法全面满足用户需求。模型应主动告知用户当前检索结果有限，询问用户是否希望了解特定细分领域（如大模型、具身智能、AIGC应用等）的创业公司，或者是否希望按融资轮次/融资金额进行进一步筛选，以便提供更有针对性的信息。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

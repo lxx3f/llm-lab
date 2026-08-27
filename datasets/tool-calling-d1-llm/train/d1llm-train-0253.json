@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0253",
+  "messages": [
+    {
+      "role": "user",
+      "content": "最近读什么书比较能让人静下心来？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "推荐几本适合静下心来的书：1. 《瓦尔登湖》——梭罗在湖畔独居的思考录，文笔宁静优美，适合慢读；2. 《小王子》——圣埃克苏佩里的童话，简洁却有深度，读来温暖治愈；3. 《人间词话》——王国维的文学评论，篇幅不大，能让人沉静下来感受诗词之美；4. 《正念的奇迹》——一行禅师关于日常觉知的书，适合在浮躁时阅读；5. 《慢煮生活》——汪曾祺的散文集，文字平淡朴实，让人内心安宁。建议选择纸质书，远离电子设备，每天留出30分钟专注阅读，慢慢就能静下心来。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

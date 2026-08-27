@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1435",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我推荐几部今年值得看的国产悬疑剧吧。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "今年有几部值得一看的国产悬疑剧值得推荐：1.《漫长的季节》——豆瓣高分的年代悬疑剧，以东北小城为背景，通过一起旧案展现时代变迁与人性挣扎，节奏沉稳、演技精湛。2.《隐秘的角落》续作类作品如《他是谁》——剧情紧凑，反转不断。3.《尘封十三载》——陈建斌主演，以一桩陈年悬案为切入点，悬念层层递进。4.《消失的十一层》——带有较强悬疑推理色彩的剧集。5.《仿生人间》——科幻悬疑题材，探讨AI与人性的边界。整体来看，今年国产悬疑剧在叙事结构和制作水准上都有显著提升，值得追剧爱好者关注。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

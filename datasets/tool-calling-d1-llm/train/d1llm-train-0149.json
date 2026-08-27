@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0149",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下今年最新发布的国产手机推荐，哪款性价比最高？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "s1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "2024年最新发布的国产手机推荐 性价比最高",
+        "limit": 1
+      },
+      "depends_on": [],
+      "expected_result": "关于「2024年最新发布的国产手机推荐 性价比最高」找到 1 条结果。"
+    }
+  ],
+  "expected_answer": "当前搜索结果仅返回1条信息，内容有限，无法全面对比各款国产手机的性价比。建议用户提供更具体的预算范围、使用需求（如拍照、游戏、续航等）或期望的品牌范围，以便进一步缩小范围并给出更有针对性的性价比推荐。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

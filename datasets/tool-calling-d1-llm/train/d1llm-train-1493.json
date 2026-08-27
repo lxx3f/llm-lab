@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1493",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我想了解一下最近上海的气温变化趋势，能不能帮我查一下？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "上海最近气温变化趋势"
+      },
+      "depends_on": [],
+      "expected_result": "关于「上海最近气温变化趋势」找到 3 条结果。"
+    }
+  ],
+  "expected_answer": "搜索结果只返回了一条信息，信息量不足以全面了解上海最近的气温变化趋势。需要向用户追问：希望了解哪个时间段（如最近一周、最近一个月）的气温变化？是否需要具体的每日最高/最低气温数据？以便进一步精确查询。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

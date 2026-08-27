@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0755",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下北京最近一周的天气吧，我想看看适不适合出门。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "北京"
+      },
+      "depends_on": [],
+      "expected_result": "北京 当前天气：晴，22°C，微风。"
+    }
+  ],
+  "expected_answer": "已为您查询北京的天气信息。如果只有一天的结果，可能不足以判断'最近一周'的整体天气情况。您是想了解未来一周的天气预报，还是某一天的具体天气？另外，请问您计划什么时候出门，以及主要进行什么类型的活动（户外运动、逛街、郊游等），我可以帮您更有针对性地判断是否适合出门。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

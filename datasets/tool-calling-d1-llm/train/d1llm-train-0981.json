@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0981",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下上海现在的天气，然后根据天气情况算算如果我要去外滩玩一整天，大概要花多少钱（包含交通、门票和一顿晚餐，按500元预算算能玩几个景点）。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "上海"
+      },
+      "depends_on": [],
+      "expected_result": "上海 当前天气：晴，22°C，微风。"
+    },
+    {
+      "call_id": "c2",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "上海外滩主要景点门票价格"
+      },
+      "depends_on": [],
+      "expected_result": "关于「上海外滩主要景点门票价格」找到 3 条结果。"
+    },
+    {
+      "call_id": "c3",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "上海外滩附近晚餐人均消费"
+      },
+      "depends_on": [],
+      "expected_result": "关于「上海外滩附近晚餐人均消费」找到 3 条结果。"
+    },
+    {
+      "call_id": "c4",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "500/100"
+      },
+      "depends_on": [
+        "c2",
+        "c3"
+      ],
+      "expected_result": 5
+    }
+  ],
+  "expected_answer": "先获取上海天气情况，再结合外滩周边景点门票、晚餐消费等信息，按500元预算计算可游览的景点数量，整理出包含交通、门票、晚餐在内的总花费建议。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "multi_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

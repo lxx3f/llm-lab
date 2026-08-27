@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1443",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下上海今天的天气，然后根据气温算一下穿什么厚度的外套合适，再搜一下最近流行的外套款式推荐给我看看。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "上海"
+      },
+      "depends_on": [],
+      "expected_result": "上海 当前天气：晴，22°C，微风。"
+    },
+    {
+      "call_id": "c2",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "(20-15)/10"
+      },
+      "depends_on": [
+        "c1"
+      ],
+      "expected_result": 0
+    },
+    {
+      "call_id": "c3",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "2026年春季流行外套款式推荐",
+        "limit": 5
+      },
+      "depends_on": [],
+      "expected_result": "关于「2026年春季流行外套款式推荐」找到 5 条结果。"
+    }
+  ],
+  "expected_answer": "先调用 d1_get_weather 查询上海今日天气，获取当前气温（如15℃），然后根据气温通过 d1_calculate 给出外套厚度建议（如薄款外套），最后调用 d1_web_search 搜索最近流行的外套款式推荐给用户。需要并行/串行组合完成此多步任务。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "multi_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

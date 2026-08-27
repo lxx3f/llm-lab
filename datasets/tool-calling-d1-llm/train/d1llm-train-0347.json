@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0347",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下最近有什么不错的科幻电影推荐。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "最近好看的科幻电影推荐"
+      },
+      "depends_on": [],
+      "expected_result": "关于「最近好看的科幻电影推荐」找到 3 条结果。"
+    }
+  ],
+  "expected_answer": "搜索结果仅返回了1条信息，内容有限。为了给您提供更精准的科幻电影推荐，需要进一步了解您的偏好：您更倾向于哪种类型的科幻片？例如硬科幻（如《星际穿越》）、赛博朋克（如《银翼杀手》）、太空探索（如《流浪地球》）、还是科幻惊悚等？另外，您是否在意上映年份、观看平台（如院线/流媒体）或语言版本（国产/好莱坞）？请您补充一下偏好，我可以为您做更有针对性的推荐。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

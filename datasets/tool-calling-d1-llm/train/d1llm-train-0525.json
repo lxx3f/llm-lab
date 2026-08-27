@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0525",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下上海现在的天气，然后根据天气情况算算出门跑步大概消耗多少卡路里（假设跑半小时，配速6分钟/公里，体重70kg）。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "上海"
+      },
+      "depends_on": [],
+      "expected_result": "上海 当前天气：晴，22°C，微风。"
+    },
+    {
+      "call_id": "c2",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "70 * (1.036 * 5 + 0.0014 * 30 - 0.018 * 6 - 4.31)"
+      },
+      "depends_on": [
+        "c1"
+      ],
+      "expected_result": 56
+    }
+  ],
+  "expected_answer": "先查询上海当前天气，然后根据天气温度调整跑步热量消耗估算。跑步30分钟、配速6分钟/公里（约10 km/h）、体重70kg，基础热量消耗约为70 × (1.036×10 + 0.0014×30 - 0.018×6 - 4.31) ≈ 483千卡，再结合天气的冷热/风雨情况给出实际消耗建议（热天可能略高、冷天略低）。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "multi_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

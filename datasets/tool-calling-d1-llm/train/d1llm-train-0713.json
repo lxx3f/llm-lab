@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0713",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我搜一下最近三天上海周边有什么好玩的景点，我想周末带家人出去。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "最近三天上海周边好玩景点推荐 亲子游"
+      },
+      "depends_on": [],
+      "expected_result": "关于「最近三天上海周边好玩景点推荐 亲子游」找到 3 条结果。"
+    }
+  ],
+  "expected_answer": "搜索结果中只返回了一条景点信息，无法全面覆盖上海周边适合周末亲子游的景点。模型应发现搜索结果不足，向用户追问更多偏好信息，例如：希望去哪个方向（西南、西北、东南等）、偏好类型（古镇、爬山、亲子乐园、农家乐）、出行方式（自驾/高铁）、孩子年龄等，以便进一步搜索推荐更合适的景点。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

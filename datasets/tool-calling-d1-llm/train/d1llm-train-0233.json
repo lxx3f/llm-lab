@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0233",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下最近国内有哪些值得关注的人工智能创业公司。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "国内值得关注的人工智能创业公司"
+      },
+      "depends_on": [],
+      "expected_result": "关于「国内值得关注的人工智能创业公司」找到 3 条结果。"
+    },
+    {
+      "call_id": "c2",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "中国人工智能创业公司 融资 2025"
+      },
+      "depends_on": [],
+      "expected_result": "关于「中国人工智能创业公司 融资 2025」找到 3 条结果。"
+    },
+    {
+      "call_id": "c3",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "国内AI独角兽公司 推荐"
+      },
+      "depends_on": [],
+      "expected_result": "关于「国内AI独角兽公司 推荐」找到 3 条结果。"
+    }
+  ],
+  "expected_answer": "搜索结果有限，只返回了少量公司信息。为了给您提供更全面、更精准的推荐，想进一步了解您的偏好：1) 您关注的是哪个细分领域（如大模型、AI芯片、机器人、AIGC应用、AI+医疗/教育/金融等）？2) 您更看重公司的技术领先性、融资规模、还是商业化落地能力？3) 您希望了解的是早期初创公司，还是已有一定规模的独角兽或上市公司？请您补充这些信息后，我可以为您做更有针对性的推荐。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1265",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下最近关于深度学习在医疗影像诊断中的最新研究进展，最好能有一些具体论文或者案例。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "深度学习 医疗影像诊断 最新研究进展 2025"
+      },
+      "depends_on": [],
+      "expected_result": "关于「深度学习 医疗影像诊断 最新研究进展 2025」找到 3 条结果。"
+    },
+    {
+      "call_id": "c2",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "deep learning medical imaging diagnosis latest papers 2025"
+      },
+      "depends_on": [],
+      "expected_result": "关于「deep learning medical imaging diagnosis latest papers 2025」找到 3 条结果。"
+    }
+  ],
+  "expected_answer": "由于搜索结果有限（每个查询仅返回1条结果），无法获取关于深度学习在医疗影像诊断中最新研究进展的全面信息。模型应告知用户当前搜索结果不足，建议用户提供更具体的方向（如具体癌种、影像模态、研究团队等），以便进一步精准检索，或可建议扩大检索范围、查找综述类文章。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1309",
+  "messages": [
+    {
+      "role": "user",
+      "content": "今天有什么好看的电影推荐一下吗？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "以下是一些近期值得一看的电影推荐，涵盖不同类型供您选择：\n\n**国产佳作**\n- 《好东西》：邵艺辉导演的都市女性题材轻喜剧，笑中带暖，台词犀利，豆瓣评分高达9.1。\n- 《角斗士2》：史诗续作，雷德利·斯科特执导，视听震撼，适合大银幕体验。\n- 《里斯本丸沉没》：方励执导的纪录片，取材真实历史事件，豆瓣9.3分，口碑爆棚。\n- 《风流一代》：贾樟柯新作，采用跨越二十多年的拍摄手法，入围戛纳主竞赛。\n\n**进口大片**\n- 《毒液：最后一舞》：漫威超英片，毒液与埃迪的终极冒险，特效炸裂。\n- 《蜡笔小新：我们的恐龙日记》：经典动画剧场版，适合亲子观影。\n\n**小众口碑**\n- 《黑箱日志》：聚焦2014年世越号事件的韩国纪录片。\n- 《云 Hertz》：阿彼察邦风格的艺术电影，适合文艺片爱好者。\n\n**选择建议**\n- 想要放松大笑 → 《好东西》\n- 追求视觉冲击 → 《毒液：最后一舞》\n- 喜欢深度思考 → 《里斯本丸沉没》\n- 想要探索人生 → 《风流一代》\n\n您可以根据当天心情和影院排片，选择最契合的一部，享受光影之旅！",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

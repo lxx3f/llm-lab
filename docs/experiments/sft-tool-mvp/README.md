@@ -1,8 +1,8 @@
 # SFT 工具调用训练 MVP（D1 + D1.1）
 
-> 状态：管线交付完成，**模型结果为诚实负结果**（2026-08-27）。
+> 状态：管线交付完成，**模型结果为诚实负结果**（2026-08-28）。
 >
-> 本实验实现 SFT 工具调用训练闭环（数据构造 → 增强 → 训练 → 生成 → 八级分类器评测），并如实记录：**medium (2.10M) 与 large (5.11M) Dense 模型在 2000 步内均未能学会可靠的工具调用 JSON 生成**。管线与评测基础设施可用，模型能力未达标。
+> 本实验实现 SFT 工具调用训练闭环（数据构造 → 增强 → 训练 → 生成 → 八级分类器评测），并如实记录：**medium (2.10M) / large (5.11M) / large + 5288 样本 + 20000 步三次实跑均未能学会可靠的工具调用 JSON 生成**。管线与评测基础设施可用，模型能力未达标。
 
 ## 交付内容
 
@@ -16,64 +16,65 @@
 | 生成 CLI | `scripts/generate_sft_tool.py` | checkpoint → assistant 续写（自动从 ckpt 读 model_config）|
 | 评测 CLI | `scripts/eval_sft_tool.py` | 模型生成 → 提取 tool_calls → P1-05 八级分类器 → 失败分布 |
 | 单测 | `architecture_lab/training/tests/test_sft_training.py` | 7 个（掩码覆盖/模板/批处理/masked loss/system 消息/增强一致性）|
+| 夜间编排 | `scripts/night_run_sft.py` | 自动 fallback 扩展数据集 → 长训练，串行执行 |
 
-### 训练结果对比（两次实跑）
+### 三次实跑结果对比
 
-| 模型 | 参数量 | 预训练 init | 2000 步后 val_min | 生成质量 |
-|---|---|---|---|---|
-| medium | 2.10M | dense-owt-formal-curve-medium.pt (5000 步) | **1.76** | 乱码+控制字符，无结构 |
-| **large** | **5.11M** | **dense-owt-formal-curve-large.pt (50000 步)** | **1.18** | **学到模板结构（### Result + JSON 片段），但默认 no_tool 路径** |
-
-- **large 改进点**：val_loss 降低 0.58 nats；1/13 评测样例通过 parse 层进入 `argument_value_correct` 层（medium 0/13）
-- **large 残留问题**：模式坍缩到 `### Result（无工具调用）直接回答...`；偶发片段输出有效 JSON 但参数错误
+| 版本 | 模型 | 数据 | 步数 | val_min | D1 dev 评测 | 状态 |
+|---|---|---|---|---|---|---|
+| **MVP v1** | medium 2.10M | 804 (aug k=3) | 2000 | 1.76 | 0/13 parse | 乱码/控制字符，无结构 |
+| **MVP v2** | large 5.11M | 804 (aug k=3) | 2000 | 1.18 | 1/13 → argument_value | 学到模板骨架，模式坍缩到 no_tool |
+| **night run** | large 5.11M | **5288** (aug k=3, 12× 数据) | **20000** | **0.33** | **0/13 parse** | val_loss 显著下降但生成更退化（严重过拟合 + 模式坍缩）|
 
 ## 模型结果（诚实负结果）
 
-**5.11M 模型仍未可靠学会工具调用 JSON 生成**：
+**三次实跑均未达到 SFT 目标**：
 
-- D1 dev（13 样例，在训练集内）评测：
-  - **12/13 parse_success=False**
-  - 1/13 通过到 `argument_value_correct`（生成了有效 JSON `{"call_id": "call-d1-007-b", "name": "d1_web_search", "arguments": {"query": "北京"}}`，但 query 错误：GRPO 强化学习 → 北京）
-  - 0/13 完整通过 8 级分类
-- D1.1 train（126 样例）评测：126/126 parse_success=False（样本更长更复杂，模式坍缩更严重）
+- **MVP v1**：val 1.76 → 生成乱码（控制字符 `\x18` 循环）
+- **MVP v2**：val 1.18 → 学到模板骨架但默认走 no_tool 路径；1/13 进入 argument_value 层（参数错误）
+- **night run**：val **0.33**（训练样本记忆）→ 生成反而更退化，**D1 dev 0/13 + D1.1 train 30/30 全 parse_fail**；输出"（无工具调用）当前可用工具列表中..."模板的无限重复
 
-**失败分析（5.11M 模型 + 2000 步 + 804 样例）**：
-
-1. **欠拟合确认**：训练集内样例（背过 2000 步）也无法生成正确输出 → 非泛化问题，是容量/训练量/数据量不足；
-2. **模式坍缩**：模型学到模板骨架但默认走 `no_tool` 路径——未学到"用户请求类型 → 工具触发"的映射；
-3. **任务难度**："中文自然语言请求 → 工具选择 + 参数提取 + 结构化 JSON 输出"对 5.11M 模型仍过难；
-4. **已尝试修复**：medium→large、换模板（数组→换行对象）、增强（252→804）、system 消息处理——任一变量单独修复均无法突破。
+**关键诊断**：
+1. **过拟合确认（night run）**：val_loss 0.33 但生成完全崩溃，说明 masked loss 在 assistant span 上极低只是模型记住了训练数据，并未真正学会"用户请求 → 工具调用"的映射
+2. **模式坍缩加深**：步数从 2000 → 20000 + 数据 12× → 模型对训练集里"工具不可用"模板的背诵更深，导致推理时永远走 no_tool 路径
+3. **任务难度**：5.11M 模型 + 5288 增强样本的组合在架构层面可能就不足以泛化
 
 ## 评测闭环（基础设施可用）
 
-`scripts/eval_sft_tool.py` 完整跑通：模型生成 → tool_calls 提取（数组 + 换行对象双格式）→ P1-05 八级分类 → 失败分布 JSON：
+`scripts/eval_sft_tool.py` 完整跑通：模型生成 → tool_calls 提取（数组 + 换行对象双格式）→ P1-05 八级分类 → 失败分布 JSON。
 
+D1 dev night run 评测 JSON（13 样例）：
 ```json
-{"total": 13, "first_failure_distribution": {"parse_success": 12, "argument_value_correct": 1}, "no_failure": 0, "parse_success_rate": 0.077}
+{"total": 13, "first_failure_distribution": {"parse_success": 13}, "no_failure": 0, "parse_success_rate": 0.0}
 ```
 
-8 级分类器可定位失败层（parse_success / argument_value_correct / ...），即使模型能力不足也能精确报告问题层级。
+8 级分类器精确报告失败层级，**即使模型能力不足也能量化问题**。
 
 ## 不构成正式结论
 
-- ❌ 不声称"SFT 提升了工具调用能力"——5.11M 模型同样未学会；
-- ❌ 不把 train loss 0.24 / val loss 1.18 表述为质量指标——生成验证失败；
-- 本阶段结论：**管线完整可用，5.11M 是当前 OWT 预训练 checkpoint 中最大规模；进一步突破需要更多真实数据（≥ 5000 样例）或更长训练（≥ 2 万步）或更大模型（d_model 256+ 需重新训 OWT 预训练）**。
+- ❌ 不声称"SFT 提升了工具调用能力"——三次实跑均未达可用状态
+- ❌ 不把 val_loss 0.33 表述为质量指标——对应生成完全崩溃
+- 本阶段结论：**管线完整可用；5.11M 模型在 2000-20000 步范围内 + 252-5288 增强样本范围内均无法可靠学会该任务**
 
 ## 复现
 
 ```bash
-# medium 版本（2.10M）
+# 单次训练（medium）
 .venv/python.exe scripts/train_sft.py --config configs/sft.example.yaml \
     --init-checkpoint artifacts/checkpoints/dense-owt-formal-curve-medium.pt
 
-# large 版本（5.11M，推荐起点）
+# 单次训练（large，推荐起点）
 .venv/python.exe scripts/train_sft.py --config configs/sft-large.example.yaml \
     --init-checkpoint artifacts/checkpoints/dense-owt-formal-curve-large.pt
 
+# 夜间完整计划（数据扩展 + 长训练）
+D1_LLM_API_KEY=<key> .venv/python.exe scripts/night_run_sft.py \
+    --target 1500 --train-steps 20000
+
 # 生成测试
 .venv/python.exe scripts/generate_sft_tool.py \
-    --checkpoint artifacts/checkpoints/sft-tool-large-v1.pt --user "请帮我查一下北京天气"
+    --checkpoint artifacts/checkpoints/sft-tool-large-v1.pt \
+    --user "请帮我查一下北京天气"
 
 # 评测
 .venv/python.exe scripts/eval_sft_tool.py \
@@ -83,7 +84,7 @@
 
 ## 下一步（真实改进路径）
 
-1. **更多数据**（最高 ROI）：D1.1 生成器再产出数千条（真实 LLM 采样，成本可控）；
-2. **更长 SFT 训练**：val 未触底（1.18 @ 2000），2 万步可能收敛；总耗时 ~2h（large 22 ms/step × 20000 / 60）；
-3. **d_model=256+ 模型**：12M+ params，~15 min SFT 但需先 OWT 预训练 ~50 min，总成本 ~65 min；
-4. **评测闭环复用**：eval_sft_tool.py + P1-05 分类器可直接用于任何新 checkpoint。
+1. **架构层面突破**：d_model=256+ 模型 + 全新 OWT 预训练（12M+ params，~65 min 总成本）；当前 5.11M 可能在架构层就不足以胜任该任务
+2. **数据质量**：放弃确定性增强（导致重复模板过拟合），改用 D1.1 生成器产出更多**自然变化**的真实 LLM 样本（已有 minimax/deepseek provider 自动 fallback）
+3. **训练策略**：更短训练 + early stopping（night run 20000 步过拟合，5000 步可能更稳定）；或尝试 MoE 架构分散容量
+4. **评测闭环复用**：eval_sft_tool.py + P1-05 分类器可精确量化任意新 checkpoint 的失败层级，无需人工检查生成文本

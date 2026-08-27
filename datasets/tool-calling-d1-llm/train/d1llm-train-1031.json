@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1031",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下周杰伦最近有什么新专辑发布的信息。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "周杰伦新专辑发布",
+        "limit": 1
+      },
+      "depends_on": [],
+      "expected_result": "关于「周杰伦新专辑发布」找到 1 条结果。"
+    }
+  ],
+  "expected_answer": "搜索结果有限，仅返回了1条关于周杰伦新专辑的信息，信息可能不够全面。为了给您提供更准确、更完整的回复，能否请您补充一下以下信息：1. 您想了解的是哪个时间段的专辑发布（例如最近一个月、半年或一年内的）？2. 您是否有具体的专辑名称或合作歌手/制作人线索？3. 您更关心的是数字专辑还是实体专辑？请您提供更多细节后，我再为您进一步查询。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

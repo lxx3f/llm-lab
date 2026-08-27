@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1403",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下北京下周哪几天适合去爬长城，顺便看看天气怎么样。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "w1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "北京"
+      },
+      "depends_on": [],
+      "expected_result": "北京 当前天气：晴，22°C，微风。"
+    },
+    {
+      "call_id": "s1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "北京下周适合爬长城的天气和日期建议"
+      },
+      "depends_on": [],
+      "expected_result": "关于「北京下周适合爬长城的天气和日期建议」找到 3 条结果。"
+    }
+  ],
+  "expected_answer": "已尝试查询北京下周的天气，并搜索了适合爬长城的日期建议，但搜索结果较少（仅返回有限信息），无法给出明确完整的推荐日期。建议您补充以下信息以便给出更精准的答复：1）您计划爬的是哪段长城（八达岭、慕田峪、司马台等不同路段开放时间和条件不同）；2）您下周具体指的是哪一周或哪几天；3）对天气的偏好（如晴天、多云可接受，是否能接受高温、大风、降雨等）；4）出行时间（工作日还是周末）。请提供更具体的细节，我可以再帮您查询。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

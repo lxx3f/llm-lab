@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1207",
+  "messages": [
+    {
+      "role": "user",
+      "content": "你觉得人工智能会取代人类的工作吗？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "这是一个关于人工智能对就业影响的观点性问题，模型可直接进行回答，无需调用任何工具。回答应涵盖：AI确实会在某些领域替代部分重复性、规则化的工作（如数据录入、简单客服、流水线作业等），但同时也会创造新的岗位（如AI训练师、提示词工程师、AI伦理顾问等）；历史上每一次技术革命虽然会淘汰一些职业，但也会催生更多新职业，总体就业规模并未大幅下降；此外，AI更可能的是与人类协作而非完全替代，特别是需要创造力、情感沟通、复杂决策和跨领域思维的工作。建议关注提升自身的数字素养、批判性思维和创新能力，以适应AI时代的职业发展。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

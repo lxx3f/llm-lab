@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0183",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下明天上海会不会下雨，然后根据可能下雨的概率，决定要不要多带把伞，顺便算下从家到公司地铁加步行需要多长时间。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "上海"
+      },
+      "depends_on": [],
+      "expected_result": "上海 当前天气：晴，22°C，微风。"
+    }
+  ],
+  "expected_answer": "工具调用计划：先调用 d1_get_weather 查询上海明天的天气（含降雨概率），由模型根据降雨概率决定是否建议多带伞。地铁加步行通勤时长属于日常估算类信息，建议通过 d1_web_search 查询，但用户未提供家和公司的具体位置，因此暂不发起；如需计算具体通勤时长（已知分钟数相加），可再调用 d1_calculate 进行加法运算。最终回答应包含：上海明天降雨概率、是否建议多带伞、以及通勤时长估算所需的用户补充信息说明。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "multi_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1159",
+  "messages": [
+    {
+      "role": "user",
+      "content": "你好，我想了解一下明天去杭州旅行穿什么衣服比较合适？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "你好！关于明天去杭州穿什么衣服合适，这取决于明天杭州的具体天气情况。一般来说，建议查看天气预报后再做决定。杭州的天气四季分明：春季（3-5月）温暖湿润，建议穿薄外套加长袖；夏季（6-8月）炎热潮湿，建议穿轻薄透气的夏装，并注意防晒；秋季（9-11月）凉爽宜人，建议穿长袖加薄外套；冬季（12-2月）湿冷，建议穿厚外套、保暖内衣等。明天具体适合穿什么，建议您查询实时天气预报后再选择合适的衣物。请问您需要我帮您查询杭州明天的天气吗？",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

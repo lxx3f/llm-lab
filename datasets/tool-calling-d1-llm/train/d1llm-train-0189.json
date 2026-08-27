@@ -1,0 +1,127 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0189",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我查一下北京现在的天气，然后根据今天的天气情况推荐三个适合去玩的地方，最后算一下这几个地方的门票总价是多少。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "北京"
+      },
+      "depends_on": [],
+      "expected_result": "北京 当前天气：晴，22°C，微风。"
+    },
+    {
+      "call_id": "c2",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "北京适合游玩的地方推荐"
+      },
+      "depends_on": [
+        "c1"
+      ],
+      "expected_result": "关于「北京适合游玩的地方推荐」找到 3 条结果。"
+    },
+    {
+      "call_id": "c3",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "北京景点门票价格"
+      },
+      "depends_on": [
+        "c1"
+      ],
+      "expected_result": "关于「北京景点门票价格」找到 3 条结果。"
+    },
+    {
+      "call_id": "c4",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "0"
+      },
+      "depends_on": [
+        "c2",
+        "c3"
+      ],
+      "expected_result": 0
+    }
+  ],
+  "expected_answer": "先查询北京天气，然后根据天气推荐三个适合游玩的地方（如故宫、颐和园、北海公园等），并计算这三个地方门票的总价。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "multi_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

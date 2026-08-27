@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0611",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我想搜一下\"2024年北京马拉松比赛时间\"，目前好像只查到一条结果，能不能帮我再查查其他相关的信息？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "2024年北京马拉松比赛时间 赛程安排",
+        "limit": 5
+      },
+      "depends_on": [],
+      "expected_result": "关于「2024年北京马拉松比赛时间 赛程安排」找到 5 条结果。"
+    },
+    {
+      "call_id": "c2",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "2024北京马拉松 报名时间 比赛路线",
+        "limit": 5
+      },
+      "depends_on": [],
+      "expected_result": "关于「2024北京马拉松 报名时间 比赛路线」找到 5 条结果。"
+    }
+  ],
+  "expected_answer": "已为您重新搜索更多关于2024年北京马拉松的相关信息，包括比赛具体时间、报名时间、比赛路线、参赛人数等详细信息，请查看上方搜索结果。如仍有未覆盖到的方面，欢迎进一步告知。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "insufficient_result",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

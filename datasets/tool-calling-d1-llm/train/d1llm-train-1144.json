@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1144",
+  "messages": [
+    {
+      "role": "user",
+      "content": "帮我算一下复利终值，本金50000元，年利率3.5%，存5年，每年计息一次。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "c1",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "50000*(1.035)^5"
+      },
+      "depends_on": [],
+      "expected_result": 59384
+    }
+  ],
+  "expected_answer": "实际计算：50000 × (1+3.5%)^5 = 50000 × 1.035^5 ≈ 50000 × 1.187686 ≈ 59384.31元。场景说明：本场景属于工具调用失败场景，因为 d1_calculate 的 expression 参数仅支持纯算术表达式（数字和 + - * / % ( ) ^ 空格），而 3.5%（百分号）是合规字符，1.035 形式也能计算。但这里属于另一种典型错误：用户使用 `^` 符号在此类计算器中可能不被支持或表达式包含非纯算术字符导致报错。若工具返回错误响应，应向用户报告工具调用失败，并建议用户改写为纯数字表达式如 '50000*(1.035)^5' 或手动提供公式让其自行验证。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "tool_error",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

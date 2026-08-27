@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-0439",
+  "messages": [
+    {
+      "role": "user",
+      "content": "你觉得未来十年人工智能会怎么改变我们的日常生活？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "未来十年人工智能将从以下几个方面深刻改变我们的日常生活：1）智能家居更加普及，家电、照明、安防等设备通过AI实现自动化管理；2）出行方面，自动驾驶技术逐步成熟，智能交通系统缓解拥堵；3）医疗健康领域，AI辅助诊断、个性化治疗方案和健康管理让医疗服务更精准高效；4）工作方式上，AI助手承担更多重复性任务，人机协作成为常态；5）教育方面，AI实现个性化学习和智能辅导；6）娱乐和社交中，生成式AI带来更丰富的个性化内容体验。总体而言，AI将使生活更便捷、高效，但同时也带来隐私、就业等方面的挑战，需要在发展中不断完善治理与规范。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}

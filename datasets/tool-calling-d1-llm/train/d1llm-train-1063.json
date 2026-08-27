@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "id": "d1llm-train-1063",
+  "messages": [
+    {
+      "role": "user",
+      "content": "你能给我推荐几本好看的小说吗？最近想换换口味。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "计算简单算术表达式（整数），返回整数结果。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "查询指定城市当前天气，返回天气字符串。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "搜索网络信息，返回搜索摘要。",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [],
+  "expected_answer": "以下是几本不同类型和风格的好看小说推荐，供你换口味参考：\n\n1. **《百年孤独》**（加西亚·马尔克斯）——魔幻现实主义经典，讲述布恩迪亚家族七代人的传奇故事。\n2. **《追风筝的人》**（卡勒德·胡赛尼）——感人至深的成长与救赎故事，背景设于阿富汗。\n3. **《三体》**（刘慈欣）——中国科幻巨作，宏大的宇宙观和深刻的文明思考。\n4. **《挪威的森林》**（村上春树）——青春、孤独与爱情的细腻描写。\n5. **《白夜行》**（东野圭吾）——悬疑推理与深层人性交织的长篇力作。\n6. **《平凡的世界》**（路遥）——中国当代文学经典，展现普通人在时代洪流中的奋斗。\n7. **《盗墓笔记》**（南派三叔）——冒险悬疑题材，情节引人入胜，适合休闲阅读。\n8. **《你当像鸟飞往你的山》**（塔拉·韦斯特弗）——自传体励志作品，关于教育与自我觉醒。\n\n你可以告诉我更偏好哪种类型（科幻、悬疑、言情、历史、文学等），我可以进一步精选推荐。",
+  "metadata": {
+    "source": "MiniMax-M3@minimax-cn",
+    "license": "internal",
+    "task_type": "no_tool",
+    "data_version": "D1.1",
+    "pipeline_version": "d1.1-llm-generator",
+    "created_at": "2026-08-27T00:00:00Z",
+    "validation": {
+      "schema_valid": true
+    }
+  }
+}
