@@ -42,6 +42,7 @@ RUNS = [
     # multi-seed variant writes -seed{42,123,7}-result.json).
     ("configs/dense_training.owt-formal-curve-long-baseline.example.yaml", "dense-owt-formal-curve-long-baseline"),
     ("configs/dense_training.owt-formal-curve-long-medium.example.yaml", "dense-owt-formal-curve-long-medium"),
+    ("configs/dense_training.owt-formal-curve-long-large.example.yaml", "dense-owt-formal-curve-long-large"),
     # MoE curve (5000 step + 50000 step) — multi-seed validation against
     # the existing single-seed observations (val_min 7.22 @ 4600 / 6.04 @ 50000).
     ("configs/moe_training.owt-formal-curve.example.yaml", "moe-owt-formal-curve"),
