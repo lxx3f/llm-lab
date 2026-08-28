@@ -732,7 +732,7 @@ D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于�
 
 - **P3 交付摘要**：D2 多轮对话数据集当前为 **5000 样本**（round 14，HEAD `217b0c4`），train/dev/test = 3500/750/750 IID split（4 类 833 + 2 类 834 unique canonical variants）；P3 专项测试当前为 49 个，使用独立 D2 schema、真实 `MockExecutor.execute_sequence()`、依赖图语义校验、canonical semantic uniqueness 校验、IID stratified shuffle、跨 split canonical disjointness 与 D2-vs-D1/D1.1 cross_dataset disjointness。~~历史 MVP 样本版（数字见下方 round-13 归档）~~：在 `21d1d7e` 交付，已于 `c6eac20` 扩样到 5000 取代。
 
-P3 已解决本条目的独立 IID held-out split 要求（**历史 MVP 样本版（详细数字见下方 round-13 归档）**）：D2 dev 的早期历史子集（详细数字见下方 round-13 归档）可用于 held-out reward pipeline 验证；P3 已完成 5 ckpt × D2 dev 的历史 reward 评测（详细数字见下方 round-13 归档） 个真实推理 reward_signal，最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750（round 14，HEAD `217b0c4`）；P5-02 阶段在扩样后的 dev (750 样本) 子集 (90) 上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8。
+P3 已解决本条目的独立 IID held-out split 要求（**历史 MVP 样本版（详细数字见下方 round-13 归档）**）：D2 dev 的早期历史子集（详细数字见下方 round-13 归档）可用于 held-out reward pipeline 验证；P3 已完成 5 ckpt × D2 dev 的历史 reward 评测（详细数字见下方 round-13 归档） 个真实推理 reward_signal，最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750（round 14，HEAD `217b0c4`）；P5-02 阶段在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 benchmark 子集，benchmark 子集规模详见 `docs/protocols/transformers-backend.md` §3，**不是 D2 数据集规模或 split 契约**）上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8。
 
 后续 P3/P5 需要：
 
@@ -804,7 +804,7 @@ P3/P4 后续动作：
 - 重新生成最终 `datasets/tool-calling-d2/`，并重新运行 5 ckpt × D2 dev reward artifact（详细数字见下方 round-13 归档）。
 
   - 跑完 5 ckpt × D2 dev 推理 + reward_offline（reward_signal 数量详见下方 round-13 归档））；
-  - 最终结果（**round 9 历史数字** — round 10 IID 后被取代）：large-v1 历史 reward_layered 数字（见下方 round-13 归档）（86 parse_success / 3 argument_value_correct / 1 tool_name_correct），d256-20k 历史 reward_layered 数字（见下方 round-13 归档）（89 parse_success / 1 tool_name_correct），其余 3 个 checkpoint `reward_layered=0.0000`（90 parse_success）；5 个 checkpoint 均 `reward_binary=0.0`；
+  - 最终结果（**round 9 历史数字** — round 10 IID 后被取代）：large-v1 历史 reward_layered 数字（见下方 round-13 归档）（86 parse_success / 3 argument_value_correct / 1 tool_name_correct），d256-20k 历史 reward_layered 数字（见下方 round-13 归档）（89 parse_success / 1 tool_name_correct），其余 3 个 checkpoint `reward_layered=0.0000`（全部 parse_success 失败）；5 个 checkpoint 均 `reward_binary=0.0`；
   - `schemas/reward_signal.schema.json` task_type enum 扩展 D2 六类多轮；
   - `scripts/eval_sft_tool.py` 新增 `--prompt-mode multi_turn`（多轮历史序列化提示）；
   - `tool_not_available` 与其余 task builder 通过 600/600（历史数字；见下方 round-13 归档） canonical semantic uniqueness 校验；
@@ -838,7 +838,7 @@ P3/P4 后续动作：
 
 - **根因**：`_insufficient_result_search` 生成器把"中间响应"作为 `expected_answer` 传给 `_sample()`，但 transcript 后续又追加 user turn + 一个 terminal assistant acknowledgement——这两个值不一致，违反 protocol 中 `expected_answer` "closes the entire transcript" 约定。100/100（历史数字；见下方 round-13 归档） `insufficient_result_search` 样本受影响（train/dev/test 历史分配（详细数字见下方 round-13 归档））。现有测试只校验 transcript 结构与 schema，未校验 `expected_answer` 与 final assistant content 一致。
 - **修复**：(a) 把 `_insufficient_result_search` 的 final assistant content 抽出为 `final_answer` 变量，同时作为 transcript 最后一条 assistant 消息 content 与 `expected_answer` 参数；(b) `transcript_well_formedness_errors()` 增加 invariant (5)：逆向定位 final assistant content，验证 `sample.expected_answer == final_answer_content`，不等则报错；(c) 新增 `D2ExpectedAnswerContractTests`：`test_expected_answer_equals_final_assistant_content` 遍历历史样本（详细数字见下方 round-13 归档）验证 invariant；`test_transcript_well_formedness_flags_expected_answer_mismatch` 反向断言（修改 expected_answer 后 validator 必须报错）。
-- **测试**：`scripts/run_tests.py full` → Ran 历史 test 数（详细见下方 round-13 归档） (skipped=0)；stage0 9/9；D2 专项 49 tests OK (skipped=0)；600/600（历史数字；见下方 round-13 归档） `expected_answer == final assistant content`；重生成数据集 + 5 ckpt × D2 dev reward 重跑（450 reward_signal（历史数字；见下方 round-13 归档） schema 合法，large-v1 0.0099、其余 4 ckpt 0、全部 binary=0，数字与 round 12 一致）。
+- **测试**：`scripts/run_tests.py full` → Ran 历史 test 数（详细见下方 round-13 归档） (skipped=0)；stage0 9/9；D2 专项 49 tests OK (skipped=0)；全部 `expected_answer == final assistant content` 校验通过（详细数字见下方 round-13 归档）；重生成数据集 + 5 ckpt × D2 dev reward 重跑（reward_signal 数量详见下方 round-13 归档 schema 合法，large-v1 历史 reward_layered 数字（见下方 round-13 归档）、其余 4 ckpt 0、全部 binary=0，数字与 round 12 一致）。
 
 ---
 
@@ -847,7 +847,7 @@ P3/P4 后续动作：
 ### P5-02 Transformers backend + 5 个公开 instruction-tuned 模型 × D2 dev reward 评测（2026-08-28）
 
 状态：已交付（2026-08-28 下午修正 target-answer 泄漏 bug 后重新验证；待 detached auditor + minimax-M3 subagent reviewer 联合复审）。
-决策：实现 `scripts/eval_transformers.py` Transformers 推理后端，在当前扩样版 D2 dev（750 样本）子集 90 上对 5 个公开 instruction-tuned 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）跑真实推理 + reward_offline；修正后 5 模型 reward_binary 全部 = 0（诚实负结果），reward_layered 在 0.33–0.42 区间，仍显著高于自研 5 ckpt 的 0.0（自研评测在 **历史 MVP 样本版（详细数字见下方 round-13 归档）** dev 历史子集（详细数字见下方 round-13 归档） 上完成，见 `docs/experiments/p2-evaluator/README.md` §6）。
+决策：实现 `scripts/eval_transformers.py` Transformers 推理后端，在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 benchmark 子集，benchmark 子集规模详见 `docs/protocols/transformers-backend.md` §3，**不是 D2 数据集规模或 split 契约**）上对 5 个公开 instruction-tuned 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）跑真实推理 + reward_offline；修正后 5 模型 reward_binary 全部 = 0（诚实负结果），reward_layered 在 0.33–0.42 区间，仍显著高于自研 5 ckpt 的 0.0（自研评测在 **历史 MVP 样本版（详细数字见下方 round-13 归档）** dev 历史子集（详细数字见下方 round-13 归档） 上完成，见 `docs/experiments/p2-evaluator/README.md` §6）。
 
 改动（含 2026-08-28 下午修正）：
 - `scripts/eval_transformers.py`（9066 → ~11300 bytes）：AutoModelForCausalLM + AutoTokenizer + 官方 chat_template + greedy + bf16；保留 `extract_tool_calls` 与 `classify_tool_failure` 复用，输出与 `eval_sft_tool.py` 完全一致的 `{summary, rows}` schema 以便 `reward_offline.py` 直接消费；CPU 强制 fp32；CUDA bf16；output 增加 `generated_preview` + 完整 `generated`；`first_failure_distribution` / `parse_success_count` / `parse_success_rate` / 5 个 backend 元数据 (backend/revision/device/dtype/transformers_version/torch_version)；**新增 `_strip_terminal_assistant()` 在 `_apply_chat_template()` 中去除 D2 样本的 gold terminal assistant content message 避免 target-answer 泄漏**。
@@ -855,7 +855,7 @@ P3/P4 后续动作：
 - `scripts/run_tests.py` `COMMON_TESTS` + `MODULES["training"]` 新增 `test_transformers_backend.py`；运行总数 245 → 270 fast（含全部子模块）。
 - `docs/protocols/transformers-backend.md`（NEW）：CLI / 输入契约 / chat template 优先级 / output schema 严格定义 / reward_offline 衔接 / GPU 显存 / 已知边界（包含 target-answer 泄漏修复段） / 5 模型修正后结果表与复现命令。
 - `docs/experiments/p2-evaluator/README.md` §7（NEW + 修正）：5 模型矩阵 + P5-02 benchmark evaluation subset 修正后结果表（详细数字见下方 round-13 归档） + 与自研 5 ckpt 横向对比 + 解读（含原版 vs 修正后诚实负结果对比）。
-- `docs/plans/roadmap.md` P5-02 行更新：含 25 单测、5 模型、450 reward_signal（历史数字；见下方 round-13 归档）、全部 reward_binary=0、stage review planned。
+- `docs/plans/roadmap.md` P5-02 行更新：含 25 单测、5 模型、reward_signal（详细数字见下方 round-13 归档）、全部 reward_binary=0、stage review planned。
 - `docs/plans/open-issues.md` P5-02 条目含修复记录。
 - `.gitignore` 增 `artifacts/huggingface/` + `artifacts/**/*.json`（避免权重 + eval JSON 入库）。
 - `artifacts/{qwen2.5,huggingfacetb-smollm2}-*-eval-d2dev.json` + `-reward.json`：5 × 2 = 10 个 gitignored 产物（P5-02 benchmark evaluation subset 信号数；详见下方 round-13 归档）。
@@ -864,7 +864,7 @@ P3/P4 后续动作：
 修正后验证（2026-08-28 下午）：
 - `scripts/run_tests.py fast` → Ran 270 tests OK（25 个 P5-02 含 5 个 GoldAnswerLeakageTests）。
 - `scripts/validate_stage0.py --examples` → 9/9 PASS（reward schema 仍合法）。
-- 5 个 `eval-d2dev-reward.json` 全部 schema 合法（450 reward_signal（历史数字；见下方 round-13 归档））。
+- 5 个 `eval-d2dev-reward.json` 全部 schema 合法（reward_signal 总数 = 5 模型 × benchmark 子集规模；详细数字见下方 round-13 归档）。
 - 修正后 5 模型 aggregate：SmolLM2-360M binary=0/layered=0.4236（从原 0.0111 修正为 0；原伪信号因 target-answer 泄漏产生）；Qwen2.5-0.5B binary=0/layered=0.3634；Qwen2.5-1.5B binary=0/layered=0.3690；Qwen2.5-3B binary=0/layered=0.3333；SmolLM2-1.7B binary=0/layered=0.4236。
 - 修正后 5 模型 `no_failure` 全部 = 0（SmolLM2-360M 修复前为 1）。所有模型的 final_answer 都是 prompt 中**不存在**的生成文本，证明 prompt 不含 gold 答案。
 - 横向对比：自研 5 ckpt reward_layered 全部 0；公开模型 reward_layered ≥ 0.33。
