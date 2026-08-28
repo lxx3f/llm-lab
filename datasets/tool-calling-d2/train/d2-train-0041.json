@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 3 ** 4，再搜索结果 result 81。"
+      "content": "第一步求 144 / 12；计算得到 12 后，搜索result。（场景是客服工单，额外要求是需要清楚说明限制。）"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_calculate",
-            "arguments": "{\"expression\": \"3 ** 4\"}"
+            "arguments": "{\"expression\": \"144 / 12\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "81",
+      "content": "12",
       "tool_call_id": "call-d2-train-0041-0001",
       "name": "d1_calculate"
     },
@@ -39,20 +39,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"result 81\", \"limit\": 3}"
+            "arguments": "{\"query\": \"result 12\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「result 81」找到 3 条结果。",
+      "content": "关于「result 12」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0041-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "计算结果为 81；搜索结果：关于「result 81」找到 3 条结果。"
+      "content": "先得到 12，再完成相关检索：关于「result 12」找到 2 条结果。（场景是客服工单，额外要求是需要清楚说明限制。）"
     }
   ],
   "tools": [
@@ -102,25 +102,25 @@
       "call_id": "call-d2-train-0041-0001",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "3 ** 4"
+        "expression": "144 / 12"
       },
-      "expected_result": 81,
+      "expected_result": 12,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0041-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "result 81",
-        "limit": 3
+        "query": "result 12",
+        "limit": 2
       },
       "depends_on": [
         "call-d2-train-0041-0001"
       ],
-      "expected_result": "关于「result 81」找到 3 条结果。"
+      "expected_result": "关于「result 12」找到 2 条结果。"
     }
   ],
-  "expected_answer": "计算结果为 81；搜索结果：关于「result 81」找到 3 条结果。",
+  "expected_answer": "先得到 12，再完成相关检索：关于「result 12」找到 2 条结果。（场景是客服工单，额外要求是需要清楚说明限制。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

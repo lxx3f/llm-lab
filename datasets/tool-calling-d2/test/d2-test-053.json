@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 100 / 5，再搜索结果 result 20。"
+      "content": "请先算出 125 / 5，随后查找所得数值为 25 的资料。（场景是产品原型，额外要求是记录关键中间结果。）"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_calculate",
-            "arguments": "{\"expression\": \"100 / 5\"}"
+            "arguments": "{\"expression\": \"125 / 5\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "20",
+      "content": "25",
       "tool_call_id": "call-d2-test-053-0001",
       "name": "d1_calculate"
     },
@@ -39,20 +39,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"result 20\", \"limit\": 3}"
+            "arguments": "{\"query\": \"所得数值 25\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「result 20」找到 3 条结果。",
+      "content": "关于「所得数值 25」找到 2 条结果。",
       "tool_call_id": "call-d2-test-053-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "计算结果为 20；搜索结果：关于「result 20」找到 3 条结果。"
+      "content": "计算输出是 25。相关检索结果为：关于「所得数值 25」找到 2 条结果。（场景是产品原型，额外要求是记录关键中间结果。）"
     }
   ],
   "tools": [
@@ -102,25 +102,25 @@
       "call_id": "call-d2-test-053-0001",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "100 / 5"
+        "expression": "125 / 5"
       },
-      "expected_result": 20,
+      "expected_result": 25,
       "depends_on": []
     },
     {
       "call_id": "call-d2-test-053-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "result 20",
-        "limit": 3
+        "query": "所得数值 25",
+        "limit": 2
       },
       "depends_on": [
         "call-d2-test-053-0001"
       ],
-      "expected_result": "关于「result 20」找到 3 条结果。"
+      "expected_result": "关于「所得数值 25」找到 2 条结果。"
     }
   ],
-  "expected_answer": "计算结果为 20；搜索结果：关于「result 20」找到 3 条结果。",
+  "expected_answer": "计算输出是 25。相关检索结果为：关于「所得数值 25」找到 2 条结果。（场景是产品原型，额外要求是记录关键中间结果。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

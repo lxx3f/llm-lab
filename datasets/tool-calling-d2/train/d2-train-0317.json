@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 17 * 4，再搜索结果 result 68。"
+      "content": "请按顺序处理 6 ** 2 和后续搜索，搜索关键词使用 这个数字 36。（场景是成本控制，额外要求是关注输入边界。）"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_calculate",
-            "arguments": "{\"expression\": \"17 * 4\"}"
+            "arguments": "{\"expression\": \"6 ** 2\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "68",
+      "content": "36",
       "tool_call_id": "call-d2-train-0317-0001",
       "name": "d1_calculate"
     },
@@ -39,20 +39,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"result 68\", \"limit\": 3}"
+            "arguments": "{\"query\": \"这个数字 36\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「result 68」找到 3 条结果。",
+      "content": "关于「这个数字 36」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0317-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "计算结果为 68；搜索结果：关于「result 68」找到 3 条结果。"
+      "content": "计算输出是 36。相关检索结果为：关于「这个数字 36」找到 2 条结果。（场景是成本控制，额外要求是关注输入边界。）"
     }
   ],
   "tools": [
@@ -102,25 +102,25 @@
       "call_id": "call-d2-train-0317-0001",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "17 * 4"
+        "expression": "6 ** 2"
       },
-      "expected_result": 68,
+      "expected_result": 36,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0317-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "result 68",
-        "limit": 3
+        "query": "这个数字 36",
+        "limit": 2
       },
       "depends_on": [
         "call-d2-train-0317-0001"
       ],
-      "expected_result": "关于「result 68」找到 3 条结果。"
+      "expected_result": "关于「这个数字 36」找到 2 条结果。"
     }
   ],
-  "expected_answer": "计算结果为 68；搜索结果：关于「result 68」找到 3 条结果。",
+  "expected_answer": "计算输出是 36。相关检索结果为：关于「这个数字 36」找到 2 条结果。（场景是成本控制，额外要求是关注输入边界。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "帮我订阅明天北京的大风预警。"
+      "content": "如果可以的话，麻烦帮我完成：帮我订阅明天北京的大风预警。 我今天就要用到结果。（场景是论文复核，额外要求是需要清楚说明限制。）"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有天气预警订阅功能，无法完成订阅。"
+      "content": "可用工具无法支持天气预警；本次请求不能由工具链完成。（场景是论文复核，额外要求是需要清楚说明限制。）"
     }
   ],
   "tools": [
@@ -30,24 +30,6 @@
           },
           "required": [
             "expression"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "city": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "city"
           ]
         }
       }
@@ -73,10 +55,32 @@
           ]
         }
       }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "target_lang"
+          ]
+        }
+      }
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有天气预警订阅功能，无法完成订阅。",
+  "expected_answer": "可用工具无法支持天气预警；本次请求不能由工具链完成。（场景是论文复核，额外要求是需要清楚说明限制。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

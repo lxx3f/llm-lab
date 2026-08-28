@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "请帮我创建一个新的 IT 工单。"
+      "content": "我现在有一个实际需求：请帮我创建一个新的 IT 工单。 我今天就要用到结果。（场景是小模型推理，额外要求是需要清楚说明限制。）"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有工单创建功能，无法创建工单。"
+      "content": "当前可用工具中没有工单创建功能，无法完成此任务。（场景是小模型推理，额外要求是需要清楚说明限制。）"
     }
   ],
   "tools": [
@@ -73,10 +73,32 @@
           ]
         }
       }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "target_lang"
+          ]
+        }
+      }
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有工单创建功能，无法创建工单。",
+  "expected_answer": "当前可用工具中没有工单创建功能，无法完成此任务。（场景是小模型推理，额外要求是需要清楚说明限制。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Test sentence.' 翻译成中文。"
+      "content": "请把“Metrics should be recorded.”翻译成德文。（场景是长期维护，额外要求是关注输入边界。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Test sentence.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"Metrics should be recorded.\", \"target_lang\": \"de\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='Metrics should be recorded.', target_lang='de')",
       "tool_call_id": "call-d2-test-074-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')。无法完成翻译。"
+      "content": "翻译服务暂不可用（ERROR: translation service unavailable (text='Metrics should be recorded.', target_lang='de')），因此没有生成译文。（场景是长期维护，额外要求是关注输入边界。）"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-test-074-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Test sentence.",
-        "target_lang": "zh"
+        "text": "Metrics should be recorded.",
+        "target_lang": "de"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='Metrics should be recorded.', target_lang='de')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "翻译服务暂不可用（ERROR: translation service unavailable (text='Metrics should be recorded.', target_lang='de')），因此没有生成译文。（场景是长期维护，额外要求是关注输入边界。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

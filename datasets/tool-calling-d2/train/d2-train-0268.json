@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下深圳的天气。"
+      "content": "帮我查一下深圳的天气。（场景是数据治理，额外要求是避免臆造无法验证的信息。）"
     },
     {
       "role": "assistant",
@@ -32,7 +32,7 @@
     },
     {
       "role": "user",
-      "content": "改成查北京的天气吧。"
+      "content": "现在优先给我杭州的天气。"
     },
     {
       "role": "assistant",
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_get_weather",
-            "arguments": "{\"city\": \"北京\"}"
+            "arguments": "{\"city\": \"杭州\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "北京 当前天气：晴，22°C，微风。",
+      "content": "杭州 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0268-0002",
       "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。"
+      "content": "已按你的新要求查询杭州：杭州 当前天气：晴，22°C，微风。（场景是数据治理，额外要求是避免臆造无法验证的信息。）"
     }
   ],
   "tools": [
@@ -93,15 +93,15 @@
       "call_id": "call-d2-train-0268-0002",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "北京"
+        "city": "杭州"
       },
       "depends_on": [
         "call-d2-train-0268-0001"
       ],
-      "expected_result": "北京 当前天气：晴，22°C，微风。"
+      "expected_result": "杭州 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。",
+  "expected_answer": "已按你的新要求查询杭州：杭州 当前天气：晴，22°C，微风。（场景是数据治理，额外要求是避免臆造无法验证的信息。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 PyTorch 的最新特性；结果不足时请调整查询。"
+      "content": "搜索 PyTorch 的 深度学习框架最新进展；结果不足时请调整查询。（场景是企业知识库，额外要求是优先保留可复现性。）"
     },
     {
       "role": "assistant",
@@ -32,7 +32,7 @@
     },
     {
       "role": "assistant",
-      "content": "结果过少，我会细化关键词后重试。"
+      "content": "“PyTorch”结果过少，我会细化关键词后重试。"
     },
     {
       "role": "assistant",
@@ -56,7 +56,7 @@
     },
     {
       "role": "assistant",
-      "content": "初始搜索过窄，已重试细化关键词：关于「PyTorch 2.x 新特性」找到 3 条结果。"
+      "content": "初次搜索『PyTorch』结果过少（深度学习框架最新进展），已重试为『PyTorch 2.x 新特性』并扩大 limit，得到：关于「PyTorch 2.x 新特性」找到 3 条结果。（场景是企业知识库，额外要求是优先保留可复现性。）"
     }
   ],
   "tools": [
@@ -107,7 +107,7 @@
       "expected_result": "关于「PyTorch 2.x 新特性」找到 3 条结果。"
     }
   ],
-  "expected_answer": "初始搜索过窄，已重试细化关键词：关于「PyTorch 2.x 新特性」找到 3 条结果。",
+  "expected_answer": "初次搜索『PyTorch』结果过少（深度学习框架最新进展），已重试为『PyTorch 2.x 新特性』并扩大 limit，得到：关于「PyTorch 2.x 新特性」找到 3 条结果。（场景是企业知识库，额外要求是优先保留可复现性。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

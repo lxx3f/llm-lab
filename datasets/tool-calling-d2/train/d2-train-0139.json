@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "请帮我把这份合同翻译成英文。"
+      "content": "帮我在公司 1 公里内找一家能彩打的店。 我今天就要用到结果。（场景是移动端部署，额外要求是记录关键中间结果。）"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有合同翻译功能，无法完成翻译。"
+      "content": "可用工具无法支持附近打印店；本次请求不能由工具链完成。（场景是移动端部署，额外要求是记录关键中间结果。）"
     }
   ],
   "tools": [
@@ -76,12 +76,12 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有合同翻译功能，无法完成翻译。",
+  "expected_answer": "可用工具无法支持附近打印店；本次请求不能由工具链完成。（场景是移动端部署，额外要求是记录关键中间结果。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_翻译成英文",
+    "task_template": "missing_打印店",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:56:05Z",

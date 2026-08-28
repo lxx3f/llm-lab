@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "帮我看看公司楼下有没有停车位。"
+      "content": "帮我看看公司楼下有没有停车位。 我今天就要用到结果。（场景是客服工单，额外要求是需要清楚说明限制。）"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有停车位查询功能，无法查询。"
+      "content": "当前可用工具中没有停车位查询功能，无法完成此任务。（场景是客服工单，额外要求是需要清楚说明限制。）"
     }
   ],
   "tools": [
@@ -76,7 +76,7 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有停车位查询功能，无法查询。",
+  "expected_answer": "当前可用工具中没有停车位查询功能，无法完成此任务。（场景是客服工单，额外要求是需要清楚说明限制。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

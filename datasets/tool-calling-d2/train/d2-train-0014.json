@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Test sentence.' 翻译成中文。"
+      "content": "请把“Test sentence.”翻译成中文。（场景是企业知识库，额外要求是关注输入边界。）"
     },
     {
       "role": "assistant",
@@ -32,7 +32,7 @@
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')。无法完成翻译。"
+      "content": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')。请稍后重试。（场景是企业知识库，额外要求是关注输入边界。）"
     }
   ],
   "tools": [
@@ -71,7 +71,7 @@
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')。请稍后重试。（场景是企业知识库，额外要求是关注输入边界。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

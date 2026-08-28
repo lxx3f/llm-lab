@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下广州的天气。"
+      "content": "先帮我获取南京的天气信息。（场景是安全审查，额外要求是关注输入边界。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_get_weather",
-            "arguments": "{\"city\": \"广州\"}"
+            "arguments": "{\"city\": \"南京\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "广州 当前天气：晴，22°C，微风。",
+      "content": "南京 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0286-0001",
       "name": "d1_get_weather"
     },
     {
       "role": "user",
-      "content": "改成查北京的天气吧。"
+      "content": "我改变主意了，改看苏州的天气。"
     },
     {
       "role": "assistant",
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_get_weather",
-            "arguments": "{\"city\": \"北京\"}"
+            "arguments": "{\"city\": \"苏州\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "北京 当前天气：晴，22°C，微风。",
+      "content": "苏州 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0286-0002",
       "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。"
+      "content": "已按你的新要求查询苏州：苏州 当前天气：晴，22°C，微风。（场景是安全审查，额外要求是关注输入边界。）"
     }
   ],
   "tools": [
@@ -84,24 +84,24 @@
       "call_id": "call-d2-train-0286-0001",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "广州"
+        "city": "南京"
       },
-      "expected_result": "广州 当前天气：晴，22°C，微风。",
+      "expected_result": "南京 当前天气：晴，22°C，微风。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0286-0002",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "北京"
+        "city": "苏州"
       },
       "depends_on": [
         "call-d2-train-0286-0001"
       ],
-      "expected_result": "北京 当前天气：晴，22°C，微风。"
+      "expected_result": "苏州 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。",
+  "expected_answer": "已按你的新要求查询苏州：苏州 当前天气：晴，22°C，微风。（场景是安全审查，额外要求是关注输入边界。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

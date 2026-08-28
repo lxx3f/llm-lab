@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Good morning.' 翻译成中文。"
+      "content": "请把“Keep the cache warm.”翻译成德文。（场景是生产排障，额外要求是需要清楚说明限制。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"Keep the cache warm.\", \"target_lang\": \"de\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='Keep the cache warm.', target_lang='de')",
       "tool_call_id": "call-d2-test-008-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。"
+      "content": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Keep the cache warm.', target_lang='de')。请稍后重试。（场景是生产排障，额外要求是需要清楚说明限制。）"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-test-008-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Good morning.",
-        "target_lang": "zh"
+        "text": "Keep the cache warm.",
+        "target_lang": "de"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='Keep the cache warm.', target_lang='de')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Keep the cache warm.', target_lang='de')。请稍后重试。（场景是生产排障，额外要求是需要清楚说明限制。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

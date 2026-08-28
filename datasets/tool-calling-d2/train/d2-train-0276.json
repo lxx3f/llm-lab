@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 PyTorch 的最新特性；结果不足时请调整查询。"
+      "content": "搜索 distillation 的 模型压缩技术；结果不足时请调整查询。（场景是安全审查，额外要求是优先保留可复现性。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"PyTorch\", \"limit\": 1}"
+            "arguments": "{\"query\": \"distillation\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「PyTorch」找到 1 条结果。",
+      "content": "关于「distillation」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0276-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "结果过少，我会细化关键词后重试。"
+      "content": "初次检索不充分，接下来我会收窄到更具体的关键词。"
     },
     {
       "role": "assistant",
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"PyTorch 2.x 新特性\", \"limit\": 3}"
+            "arguments": "{\"query\": \"knowledge distillation 2025\", \"limit\": 3}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「PyTorch 2.x 新特性」找到 3 条结果。",
+      "content": "关于「knowledge distillation 2025」找到 3 条结果。",
       "tool_call_id": "call-d2-train-0276-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "初始搜索过窄，已重试细化关键词：关于「PyTorch 2.x 新特性」找到 3 条结果。"
+      "content": "初次搜索『distillation』结果过少（模型压缩技术），已重试为『knowledge distillation 2025』并扩大 limit，得到：关于「knowledge distillation 2025」找到 3 条结果。（场景是安全审查，额外要求是优先保留可复现性。）"
     }
   ],
   "tools": [
@@ -88,26 +88,26 @@
       "call_id": "call-d2-train-0276-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "PyTorch",
-        "limit": 1
+        "query": "distillation",
+        "limit": 2
       },
-      "expected_result": "关于「PyTorch」找到 1 条结果。",
+      "expected_result": "关于「distillation」找到 2 条结果。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0276-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "PyTorch 2.x 新特性",
+        "query": "knowledge distillation 2025",
         "limit": 3
       },
       "depends_on": [
         "call-d2-train-0276-0001"
       ],
-      "expected_result": "关于「PyTorch 2.x 新特性」找到 3 条结果。"
+      "expected_result": "关于「knowledge distillation 2025」找到 3 条结果。"
     }
   ],
-  "expected_answer": "初始搜索过窄，已重试细化关键词：关于「PyTorch 2.x 新特性」找到 3 条结果。",
+  "expected_answer": "初次搜索『distillation』结果过少（模型压缩技术），已重试为『knowledge distillation 2025』并扩大 limit，得到：关于「knowledge distillation 2025」找到 3 条结果。（场景是安全审查，额外要求是优先保留可复现性。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

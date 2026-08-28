@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下深圳的天气。"
+      "content": "请调用天气工具查询上海。（场景是成本控制，额外要求是记录关键中间结果。）"
     },
     {
       "role": "assistant",
@@ -16,6 +16,30 @@
       "tool_calls": [
         {
           "id": "call-d2-train-0322-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"上海\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "上海 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-train-0322-0001",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "user",
+      "content": "我改变主意了，改看深圳的天气。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0322-0002",
           "type": "function",
           "function": {
             "name": "d1_get_weather",
@@ -27,36 +51,12 @@
     {
       "role": "tool",
       "content": "深圳 当前天气：晴，22°C，微风。",
-      "tool_call_id": "call-d2-train-0322-0001",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "user",
-      "content": "改成查北京的天气吧。"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0322-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"北京\"}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "北京 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0322-0002",
       "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。"
+      "content": "最新指定城市为深圳，天气信息如下：深圳 当前天气：晴，22°C，微风。（场景是成本控制，额外要求是记录关键中间结果。）"
     }
   ],
   "tools": [
@@ -84,24 +84,24 @@
       "call_id": "call-d2-train-0322-0001",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "深圳"
+        "city": "上海"
       },
-      "expected_result": "深圳 当前天气：晴，22°C，微风。",
+      "expected_result": "上海 当前天气：晴，22°C，微风。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0322-0002",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "北京"
+        "city": "深圳"
       },
       "depends_on": [
         "call-d2-train-0322-0001"
       ],
-      "expected_result": "北京 当前天气：晴，22°C，微风。"
+      "expected_result": "深圳 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。",
+  "expected_answer": "最新指定城市为深圳，天气信息如下：深圳 当前天气：晴，22°C，微风。（场景是成本控制，额外要求是记录关键中间结果。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

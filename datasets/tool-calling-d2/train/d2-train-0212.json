@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Good morning.' 翻译成中文。"
+      "content": "我需要英文版本，请翻译：The result is reproducible.（场景是多语言内容，额外要求是优先保留可复现性。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"The result is reproducible.\", \"target_lang\": \"en\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='The result is reproducible.', target_lang='en')",
       "tool_call_id": "call-d2-train-0212-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。"
+      "content": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='The result is reproducible.', target_lang='en')。（场景是多语言内容，额外要求是优先保留可复现性。）"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-train-0212-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Good morning.",
-        "target_lang": "zh"
+        "text": "The result is reproducible.",
+        "target_lang": "en"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='The result is reproducible.', target_lang='en')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='The result is reproducible.', target_lang='en')。（场景是多语言内容，额外要求是优先保留可复现性。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

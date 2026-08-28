@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Good morning.' 翻译成中文。"
+      "content": "我需要日文版本，请翻译：Today is a sunny day.（场景是安全审查，额外要求是关注输入边界。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"Today is a sunny day.\", \"target_lang\": \"ja\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='Today is a sunny day.', target_lang='ja')",
       "tool_call_id": "call-d2-train-0284-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。"
+      "content": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='Today is a sunny day.', target_lang='ja')。（场景是安全审查，额外要求是关注输入边界。）"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-train-0284-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Good morning.",
-        "target_lang": "zh"
+        "text": "Today is a sunny day.",
+        "target_lang": "ja"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='Today is a sunny day.', target_lang='ja')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='Today is a sunny day.', target_lang='ja')。（场景是安全审查，额外要求是关注输入边界。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

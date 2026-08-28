@@ -10,9 +10,12 @@ Covers::
 - MockExecutor replay returns the declared ``expected_result`` for every
   expected call;
 - held-out ``train / dev / test`` partitions are disjoint at the sample-id
-  layer and at the path layer; train is disjoint from D1 / D1.1 train ids;
+  layer, path layer, and canonical semantic-content layer; train is disjoint
+  from D1 / D1.1 train ids;
 - ``MANIFEST-{train,dev,test}.json`` ``count`` and ``aggregate_sha256``
-  match the on-disk files.
+  match the on-disk files;
+- canonical semantic content is unique across all 600 rows after removing
+  bookkeeping identifiers, dependency references, split metadata, and timestamps.
 
 The D2 directory is treated as a fixture: the tests skip themselves if
 the dataset has not been generated yet (``--count 600`` via the
@@ -24,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import json
 import unittest
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -375,6 +379,60 @@ class D2SplitDisjointnessTests(unittest.TestCase):
         d2_train_ids = {s["id"] for s in self.train}
         self.assertEqual(d2_train_ids & d1_ids, set(),
                          "D2 train ids overlap with D1/D1.1 train ids")
+
+    def test_canonical_semantic_content_is_disjoint_across_splits(self) -> None:
+        """ID disjointness alone is insufficient for a held-out split."""
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_signature_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        signatures = {
+            split: {module.canonical_content_signature(sample)
+                    for sample in samples}
+            for split, samples in (("train", self.train),
+                                   ("dev", self.dev),
+                                   ("test", self.test))
+        }
+        self.assertEqual(set(), signatures["train"] & signatures["dev"])
+        self.assertEqual(set(), signatures["train"] & signatures["test"])
+        self.assertEqual(set(), signatures["dev"] & signatures["test"])
+        self.assertEqual(600, len(set().union(*signatures.values())))
+        all_samples = self.train + self.dev + self.test
+        for task_type in EXPECTED_TASK_TYPES:
+            task_signatures = {
+                module.canonical_content_signature(sample)
+                for sample in all_samples
+                if sample["metadata"]["task_type"] == task_type
+            }
+            self.assertEqual(
+                100, len(task_signatures),
+                f"{task_type} must contain 100 unique semantic instances",
+            )
+
+    def test_canonical_duplicate_is_rejected_by_generator_validation(self) -> None:
+        """Changing only bookkeeping fields must not bypass duplicate checks."""
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_duplicate_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        original = deepcopy(self.train[0])
+        duplicate = deepcopy(original)
+        duplicate["id"] = "d2-dev-999"
+        duplicate["metadata"]["split"] = "dev"
+        duplicate["metadata"]["created_at"] = "2026-07-25T18:00:00Z"
+        errors = module._validate_samples([original, duplicate])
+        self.assertTrue(
+            any("duplicate canonical semantic content" in error for error in errors),
+            f"duplicate content was not rejected: {errors}",
+        )
 
     def test_split_counts_match_manifest(self) -> None:
         for split, samples in (("train", self.train),

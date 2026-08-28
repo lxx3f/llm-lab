@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 'vLLM 部署' 的资料，如果不够请追问。"
+      "content": "帮我搜集 模型蒸馏 相关内容，若只有少量结果就先询问我的关注点。（场景是生产排障，额外要求是记录关键中间结果。）"
     },
     {
       "role": "assistant",
@@ -19,28 +19,28 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"vLLM 部署\", \"limit\": 1}"
+            "arguments": "{\"query\": \"模型蒸馏\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「vLLM 部署」找到 1 条结果。",
+      "content": "关于「模型蒸馏」找到 2 条结果。",
       "tool_call_id": "call-d2-test-021-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "仅找到 1 条结果：关于「vLLM 部署」找到 1 条结果。。请补充你关注的方向。"
+      "content": "仅找到 2 条结果：关于「模型蒸馏」找到 2 条结果。。请补充你关注的方向。"
     },
     {
       "role": "user",
-      "content": "我关注 2026 年的最新进展。"
+      "content": "我主要关心部署成本。"
     },
     {
       "role": "assistant",
-      "content": "收到，我会按这个方向继续。"
+      "content": "收到，我会按这个方向继续。（场景是生产排障，额外要求是记录关键中间结果。）"
     }
   ],
   "tools": [
@@ -72,14 +72,14 @@
       "call_id": "call-d2-test-021-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "vLLM 部署",
-        "limit": 1
+        "query": "模型蒸馏",
+        "limit": 2
       },
-      "expected_result": "关于「vLLM 部署」找到 1 条结果。",
+      "expected_result": "关于「模型蒸馏」找到 2 条结果。",
       "depends_on": []
     }
   ],
-  "expected_answer": "仅找到 1 条结果：关于「vLLM 部署」找到 1 条结果。。请补充你关注的方向。",
+  "expected_answer": "仅找到 2 条结果：关于「模型蒸馏」找到 2 条结果。。请补充你关注的方向。（场景是生产排障，额外要求是记录关键中间结果。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

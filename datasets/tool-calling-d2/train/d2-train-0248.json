@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Good morning.' 翻译成中文。"
+      "content": "帮我将下面这句话转换为日文：Good morning.（场景是数据治理，额外要求是需要清楚说明限制。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"ja\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='ja')",
       "tool_call_id": "call-d2-train-0248-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。"
+      "content": "翻译服务暂不可用（ERROR: translation service unavailable (text='Good morning.', target_lang='ja')），因此没有生成译文。（场景是数据治理，额外要求是需要清楚说明限制。）"
     }
   ],
   "tools": [
@@ -65,13 +65,13 @@
       "name": "d1_translate",
       "arguments": {
         "text": "Good morning.",
-        "target_lang": "zh"
+        "target_lang": "ja"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='ja')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "翻译服务暂不可用（ERROR: translation service unavailable (text='Good morning.', target_lang='ja')），因此没有生成译文。（场景是数据治理，额外要求是需要清楚说明限制。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

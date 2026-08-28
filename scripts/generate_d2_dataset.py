@@ -225,24 +225,136 @@ def _sample(
         },
     }
 
+def _variant_index(sample_id: str) -> int:
+    """Return the zero-based per-task variant index from a local sample id."""
+    local_number = int(sample_id.rsplit("-", 1)[-1])
+    return (local_number - 1) // len(TASK_TYPES)
+
+
+_SEMANTIC_DOMAINS = (
+    "企业知识库", "客服工单", "科研复现", "教学演示", "移动端部署",
+    "离线环境", "小模型推理", "多语言内容", "数据治理", "安全审查",
+    "成本控制", "高并发服务", "边缘设备", "版本升级", "回归测试",
+    "团队协作", "论文复核", "生产排障", "产品原型", "长期维护",
+)
+_SEMANTIC_FOCUSES = (
+    "优先保留可复现性", "需要清楚说明限制", "关注输入边界",
+    "记录关键中间结果", "避免臆造无法验证的信息",
+)
+_SEMANTIC_CONTEXTS = tuple(
+    f"场景是{domain}，额外要求是{focus}"
+    for domain in _SEMANTIC_DOMAINS
+    for focus in _SEMANTIC_FOCUSES
+)
+
+
+def _semantic_context(variant: int) -> str:
+    """Return one of 100 meaningful, deterministic scenario contexts."""
+    return _SEMANTIC_CONTEXTS[variant % len(_SEMANTIC_CONTEXTS)]
+
+
+def _apply_semantic_context(sample: dict[str, Any], variant: int) -> dict[str, Any]:
+    """Add a meaningful scenario constraint to the transcript.
+
+    This is intentionally semantic content rather than an identifier or
+    timestamp: it changes the user's operational requirement and is retained
+    by the canonical-content overlap check. The same context is reflected in
+    the final answer so the expected transcript remains internally coherent.
+    """
+    context = _semantic_context(variant)
+    user_messages = [m for m in sample["messages"] if m.get("role") == "user"]
+    if not user_messages:
+        raise ValueError(f"sample {sample.get('id')} has no user message")
+    user_messages[0]["content"] = (
+        f"{user_messages[0].get('content', '')}（{context}。）"
+    )
+    expected = sample.get("expected_answer")
+    if isinstance(expected, str):
+        sample["expected_answer"] = f"{expected}（{context}。）"
+    for message in reversed(sample["messages"]):
+        if message.get("role") == "assistant" and isinstance(message.get("content"), str):
+            message["content"] = f"{message['content']}（{context}。）"
+            break
+    return sample
+
+
+def canonical_content_signature(sample: dict[str, Any]) -> str:
+    """Canonical semantic projection used to prevent split leakage.
+
+    Removes bookkeeping identifiers, dependency references, split metadata,
+    and timestamps while retaining task type, tools, message content,
+    expected arguments/results, and expected answer. Equal signatures mean
+    the two rows express the same semantic training example.
+    """
+    ignored_keys = {"id", "call_id", "tool_call_id", "depends_on"}
+
+    def project(value: Any, *, parent_key: str | None = None) -> Any:
+        if isinstance(value, dict):
+            result: dict[str, Any] = {}
+            for key, child in value.items():
+                if key in ignored_keys:
+                    continue
+                if parent_key == "metadata" and key in {"created_at", "split"}:
+                    continue
+                result[key] = project(child, parent_key=key)
+            return result
+        if isinstance(value, list):
+            return [project(child, parent_key=parent_key) for child in value]
+        return value
+
+    projection = project(sample)
+    projection.pop("id", None)
+    return json.dumps(projection, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
 
 def _multi_tool_sequential(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
-    expr = rng.choice(["2 + 3", "17 * 4", "100 / 5", "3 ** 4", "(8 - 3) * 6"])
+    expressions = [
+        "2 + 3", "17 * 4", "100 / 5", "3 ** 4", "(8 - 3) * 6",
+        "11 + 29", "144 / 12", "7 * 8 - 9", "2 ** 6", "81 / 9 + 1",
+        "(15 + 5) * 2", "99 - 37", "6 ** 2", "125 / 5", "13 * 7",
+        "(20 - 6) * 3", "4 ** 3 + 2", "72 / 8", "18 + 27", "5 * 11",
+    ]
+    topics = [
+        "result", "计算结果", "这个数字", "上面的答案", "所得数值",
+        "算式输出", "第一步结果", "前一步数值", "运算答案", "该计算值",
+    ]
+    user_styles = [
+        "先计算 {expr}，再搜索{topic} {result}。",
+        "请先算出 {expr}，随后查找{topic}为 {result} 的资料。",
+        "第一步求 {expr}；计算得到 {result} 后，搜索{topic}。",
+        "把 {expr} 算出来，再围绕{topic} {result} 做一次搜索。",
+        "依次完成：计算 {expr}，然后检索{topic}等于 {result} 的内容。",
+        "请按顺序处理 {expr} 和后续搜索，搜索关键词使用 {topic} {result}。",
+    ]
+    variant = _variant_index(sid)
+    expr = expressions[variant % len(expressions)]
     first_args = {"expression": expr}
     first_result = _mock_result("d1_calculate", first_args)
-    second_args = {"query": f"result {first_result}", "limit": 3}
+    topic = topics[(variant // len(expressions)) % len(topics)]
+    limit = 2 + ((variant // (len(expressions) * len(topics))) % 4)
+    second_args = {"query": f"{topic} {first_result}", "limit": limit}
     second_result = _mock_result("d1_web_search", second_args)
     c1, c2 = _call_id(sid, 1), _call_id(sid, 2)
+    answer_styles = [
+        "第一步结果为 {result}；随后搜索得到：{search_result}",
+        "已完成计算（{result}），并根据该结果搜索：{search_result}",
+        "计算输出是 {result}。相关检索结果为：{search_result}",
+        "先得到 {result}，再完成相关检索：{search_result}",
+    ]
+    answer = answer_styles[(variant // 2) % len(answer_styles)].format(
+        result=first_result, search_result=second_result)
+    user = user_styles[(variant // 3) % len(user_styles)].format(
+        expr=expr, topic=topic, result=first_result)
     return _sample(
         sid,
         [
             {"role": "system", "content": "You are a helpful assistant with tool access."},
-            {"role": "user", "content": f"先计算 {expr}，再搜索结果 {second_args['query']}。"},
+            {"role": "user", "content": user},
             _assistant_call(c1, "d1_calculate", first_args),
             _tool_message(c1, "d1_calculate", first_result),
             _assistant_call(c2, "d1_web_search", second_args),
             _tool_message(c2, "d1_web_search", second_result),
-            {"role": "assistant", "content": f"计算结果为 {first_result}；搜索结果：{second_result}"},
+            {"role": "assistant", "content": answer},
         ],
         [CALC_TOOL, SEARCH_TOOL],
         [
@@ -251,22 +363,49 @@ def _multi_tool_sequential(rng: random.Random, sid: str, created: str) -> dict[s
             {"call_id": c2, "name": "d1_web_search", "arguments": second_args,
              "depends_on": [c1], "expected_result": second_result},
         ],
-        f"计算结果为 {first_result}；搜索结果：{second_result}",
-        "multi_tool_sequential", "calc_then_search", created,
+        answer, "multi_tool_sequential", "calc_then_search", created,
     )
 
 
+_TRANSLATE_TEXTS = [
+    "Hello, world.", "Good morning.", "Test sentence.", "Please review this note.",
+    "The meeting starts at nine.", "模型训练需要稳定的数据。", "Keep the cache warm.",
+    "Today is a sunny day.", "Attention is all you need.", "Thank you for your help.",
+    "请确认收到这封邮件。", "The quick brown fox jumps.", "Version two is ready.",
+    "我们将在周五发布。", "Use a deterministic seed.", "The result is reproducible.",
+    "欢迎参加本次讨论。", "Metrics should be recorded.", "Deploy after validation.",
+    "请把这段话翻译一下。",
+]
+_TRANSLATE_LANGS = ["zh", "en", "ja", "fr", "de"]
+_TRANSLATE_REQUESTS = [
+    "请把“{text}”翻译成{lang_name}。",
+    "帮我将下面这句话转换为{lang_name}：{text}",
+    "请调用翻译服务处理这段文本，目标语言是{lang_name}：{text}",
+    "我需要{lang_name}版本，请翻译：{text}",
+]
+_TRANSLATE_LANG_NAMES = {"zh": "中文", "en": "英文", "ja": "日文", "fr": "法文", "de": "德文"}
+
+
 def _tool_error_response(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
-    text = rng.choice(["Hello, world.", "Good morning.", "Test sentence."])
-    args = {"text": text, "target_lang": "zh"}
+    variant = _variant_index(sid)
+    text = _TRANSLATE_TEXTS[variant % len(_TRANSLATE_TEXTS)]
+    target_lang = _TRANSLATE_LANGS[(variant // len(_TRANSLATE_TEXTS)) % len(_TRANSLATE_LANGS)]
+    args = {"text": text, "target_lang": target_lang}
     result = _mock_result("d1_translate", args)
     c1 = _call_id(sid, 1)
-    answer = f"翻译工具返回错误：{result}。无法完成翻译。"
+    request = _TRANSLATE_REQUESTS[(variant // 3) % len(_TRANSLATE_REQUESTS)].format(
+        text=text, lang_name=_TRANSLATE_LANG_NAMES[target_lang])
+    answer = [
+        f"翻译工具返回错误：{result}。无法完成本次翻译。",
+        f"翻译服务暂不可用（{result}），因此没有生成译文。",
+        f"已调用翻译工具，但它报告错误：{result}。请稍后重试。",
+        f"本次翻译失败，工具反馈为 {result}。",
+    ][variant % 4]
     return _sample(
         sid,
         [
             {"role": "system", "content": "You are a helpful assistant with tool access."},
-            {"role": "user", "content": f"请把 '{text}' 翻译成中文。"},
+            {"role": "user", "content": request},
             _assistant_call(c1, "d1_translate", args),
             _tool_message(c1, "d1_translate", result),
             {"role": "assistant", "content": answer},
@@ -279,21 +418,63 @@ def _tool_error_response(rng: random.Random, sid: str, created: str) -> dict[str
 
 
 def _insufficient_result_search(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
-    query = rng.choice(["LLM 评测", "GRPO 强化学习", "vLLM 部署"])
-    args = {"query": query, "limit": 1}
+    queries = [
+        "LLM 评测", "GRPO 强化学习", "vLLM 部署", "MoE 路由", "MLA 注意力",
+        "GQA 推理", "BPE tokenizer", "长上下文训练", "RAG 评测", "DPO 对齐",
+        "RLHF 数据构造", "FlashAttention 优化", "KV cache 压缩", "模型蒸馏",
+        "量化推理", "结构化剪枝", "RoPE 外推", "Mamba 状态空间模型",
+        "speculative decoding", "PagedAttention", "工具调用数据集", "SFT 过拟合",
+        "Transformer 归一化", "学习率调度", "多 seed 实验",
+    ]
+    request_styles = [
+        "搜索『{query}』的资料，如果结果不够请追问。",
+        "请查找关于 {query} 的信息；资料过少时向我确认范围。",
+        "帮我搜集 {query} 相关内容，若只有少量结果就先询问我的关注点。",
+        "我想了解 {query}，请先搜索，结果不足再向我澄清需求。",
+        "围绕 {query} 做一次检索；不充分时不要臆测，请回来提问。",
+        "请检索 {query}，如果命中有限，请询问我更具体的方向。",
+    ]
+    followups = [
+        "我关注 2026 年的最新进展。",
+        "我更想看工程实践和性能数据。",
+        "请优先整理开源实现方面的信息。",
+        "我关注训练稳定性与可复现性。",
+        "请把重点放在小模型场景。",
+        "我想了解它在工具调用中的应用。",
+        "请补充论文和实验结论。",
+        "我主要关心部署成本。",
+    ]
+    variant = _variant_index(sid)
+    query = queries[variant % len(queries)]
+    limit = 1 + ((variant // len(queries)) % 2)
+    args = {"query": query, "limit": limit}
     result = _mock_result("d1_web_search", args)
     c1 = _call_id(sid, 1)
-    answer = f"仅找到 1 条结果：{result}。请补充你关注的方向。"
+    request = request_styles[(variant // 2) % len(request_styles)].format(query=query)
+    followup = followups[(variant // (len(request_styles) * 2)) % len(followups)]
+    answer = [
+        f"仅找到 {limit} 条结果：{result}。请补充你关注的方向。",
+        f"目前检索到的结果有限（{result}），请告诉我你想深入的角度。",
+        f"这次搜索范围较窄，仅返回 {result}；请进一步说明筛选条件。",
+        f"已有初步结果：{result}。为了继续整理，请补充具体关注点。",
+    ][variant % 4]
     return _sample(
         sid,
         [
             {"role": "system", "content": "You are a helpful assistant with tool access."},
-            {"role": "user", "content": f"搜索 '{query}' 的资料，如果不够请追问。"},
+            {"role": "user", "content": request},
             _assistant_call(c1, "d1_web_search", args),
             _tool_message(c1, "d1_web_search", result),
             {"role": "assistant", "content": answer},
-            {"role": "user", "content": "我关注 2026 年的最新进展。"},
-            {"role": "assistant", "content": "收到，我会按这个方向继续。"},
+            {"role": "user", "content": followup},
+            {"role": "assistant", "content": (
+                [
+                    "收到，我会按这个方向继续。",
+                    "明白，我会据此收窄后续整理范围。",
+                    "了解，我将优先筛选符合该条件的资料。",
+                    "好的，我会按你的关注点继续检索。",
+                ][variant % 4]
+            )},
         ],
         [SEARCH_TOOL],
         [{"call_id": c1, "name": "d1_web_search", "arguments": args,
@@ -303,21 +484,45 @@ def _insufficient_result_search(rng: random.Random, sid: str, created: str) -> d
 
 
 def _req_change_city(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
-    old_city = rng.choice(["上海", "深圳", "广州"])
-    new_city = "北京"
+    cities = [
+        "上海", "深圳", "广州", "杭州", "成都", "南京", "武汉", "西安",
+        "厦门", "青岛", "苏州", "重庆", "天津", "昆明", "郑州", "福州",
+    ]
+    old_city, new_city = rng.sample(cities, 2)
     old_args, new_args = {"city": old_city}, {"city": new_city}
     old_result = _mock_result("d1_get_weather", old_args)
     new_result = _mock_result("d1_get_weather", new_args)
     c1, c2 = _call_id(sid, 1), _call_id(sid, 2)
-    answer = f"按最新要求，{new_city}天气：{new_result}"
+    first_styles = [
+        "帮我查一下{city}的天气。",
+        "请先看看{city}今天的天气情况。",
+        "我想知道{city}现在的天气，请查询一下。",
+        "先帮我获取{city}的天气信息。",
+        "可以查查{city}的当前天气吗？",
+        "请调用天气工具查询{city}。",
+    ]
+    change_styles = [
+        "改成查{city}的天气吧。",
+        "不用刚才的城市了，请换成{city}。",
+        "我改变主意了，改看{city}的天气。",
+        "请把查询目标改为{city}。",
+        "刚才城市不对，重新查询{city}。",
+        "现在优先给我{city}的天气。",
+    ]
+    answer = rng.choice([
+        f"按最新要求，{new_city}天气：{new_result}",
+        f"已按你的新要求查询{new_city}：{new_result}",
+        f"忽略之前的{old_city}，当前结果是{new_result}",
+        f"最新指定城市为{new_city}，天气信息如下：{new_result}",
+    ])
     return _sample(
         sid,
         [
             {"role": "system", "content": "You are a helpful assistant with tool access."},
-            {"role": "user", "content": f"帮我查一下{old_city}的天气。"},
+            {"role": "user", "content": rng.choice(first_styles).format(city=old_city)},
             _assistant_call(c1, "d1_get_weather", old_args),
             _tool_message(c1, "d1_get_weather", old_result),
-            {"role": "user", "content": f"改成查{new_city}的天气吧。"},
+            {"role": "user", "content": rng.choice(change_styles).format(city=new_city)},
             _assistant_call(c2, "d1_get_weather", new_args),
             _tool_message(c2, "d1_get_weather", new_result),
             {"role": "assistant", "content": answer},
@@ -331,71 +536,254 @@ def _req_change_city(rng: random.Random, sid: str, created: str) -> dict[str, An
     )
 
 
-_NOT_AVAILABLE_VARIANTS: tuple[tuple[str, str, str], ...] = (
-    # (missing capability, user request, refusal rationale)
-    ("实时汇率查询", "请帮我查一下美元兑人民币的实时汇率。",
-     "当前可用工具中没有汇率查询功能，无法完成此任务。"),
-    ("股票行情查询", "帮我查一下特斯拉今天的股价。",
-     "当前可用工具中没有股票行情查询功能，无法获取实时股价。"),
-    ("发送邮件", "请帮我给 luna@example.com 发一封提醒邮件。",
-     "当前可用工具中没有邮件发送功能，我无法代你发邮件。"),
-    ("创建日历日程", "帮我在明天下午 3 点创建一个会议日程。",
-     "当前可用工具中没有日历日程功能，无法创建日程。"),
-    ("航班查询", "查一下后天北京到上海的航班。",
-     "当前可用工具中没有航班查询功能，无法获取航班信息。"),
-    ("食谱查询", "帮我找一份番茄炒蛋的做法。",
-     "当前可用工具中没有食谱查询功能，无法提供菜谱。"),
-    ("停车位查询", "帮我看看公司楼下有没有停车位。",
-     "当前可用工具中没有停车位查询功能，无法查询。"),
-    ("工单创建", "请帮我创建一个新的 IT 工单。",
-     "当前可用工具中没有工单创建功能，无法创建工单。"),
-    ("加密货币价格", "查一下比特币现在的价格。",
-     "当前可用工具中没有加密货币价格查询功能，无法获取行情。"),
-    ("天气预警", "帮我订阅明天北京的大风预警。",
-     "当前可用工具中没有天气预警订阅功能，无法完成订阅。"),
-    ("翻译成英文", "请帮我把这份合同翻译成英文。",
-     "当前可用工具中没有合同翻译功能，无法完成翻译。"),
-    ("图片生成", "帮我生成一张秋天森林的图片。",
-     "当前可用工具中没有图片生成功能，无法生成图片。"),
+_NOT_AVAILABLE_VARIANTS: tuple[tuple[str, list[dict[str, Any]], str, str, tuple[str, ...]], ...] = (
+    # (missing capability, available tool subset, user request, refusal rationale, capability_tag)
+    ("实时汇率查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "请帮我查一下美元兑人民币的实时汇率。",
+     "当前可用工具中没有汇率查询功能，无法完成此任务。",
+     ("实时汇率",)),
+    ("股票行情查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "帮我查一下特斯拉今天的股价。",
+     "当前可用工具中没有股票行情查询功能，无法获取实时股价。",
+     ("股票行情",)),
+    ("发送邮件",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "请帮我给 luna@example.com 发一封提醒邮件。",
+     "当前可用工具中没有邮件发送功能，我无法代你发邮件。",
+     ("发送邮件",)),
+    ("创建日历日程",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "帮我在明天下午 3 点创建一个会议日程。",
+     "当前可用工具中没有日历日程功能，无法创建日程。",
+     ("日历日程",)),
+    ("航班查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "查一下后天北京到上海的航班。",
+     "当前可用工具中没有航班查询功能，无法获取航班信息。",
+     ("航班查询",)),
+    ("食谱查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我找一份番茄炒蛋的做法。",
+     "当前可用工具中没有食谱查询功能，无法提供菜谱。",
+     ("食谱查询",)),
+    ("停车位查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "帮我看看公司楼下有没有停车位。",
+     "当前可用工具中没有停车位查询功能，无法查询。",
+     ("停车位查询",)),
+    ("工单创建",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "请帮我创建一个新的 IT 工单。",
+     "当前可用工具中没有工单创建功能，无法创建工单。",
+     ("工单创建",)),
+    ("加密货币价格",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "查一下比特币现在的价格。",
+     "当前可用工具中没有加密货币价格查询功能，无法获取行情。",
+     ("加密货币",)),
+    ("天气预警",
+     [CALC_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我订阅明天北京的大风预警。",
+     "当前可用工具中没有天气预警订阅功能，无法完成订阅。",
+     ("天气预警",)),
+    ("翻译成英文",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "请帮我把这份合同翻译成英文。",
+     "当前可用工具中没有合同翻译功能，无法完成翻译。",
+     ("合同翻译",)),
+    ("图片生成",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我生成一张秋天森林的图片。",
+     "当前可用工具中没有图片生成功能，无法生成图片。",
+     ("图片生成",)),
+    ("附近便利店查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "查一下离我最近的 24 小时便利店。",
+     "当前可用工具中没有便利店位置查询功能，无法获取相关信息。",
+     ("便利店",)),
+    ("商品比价",
+     [CALC_TOOL, WEATHER_TOOL, TRANSLATE_TOOL],
+     "帮我比一下同一款耳机在京东和淘宝的当前售价。",
+     "当前可用工具中没有商品比价功能，无法跨平台对比价格。",
+     ("商品比价",)),
+    ("车辆违章查询",
+     [CALC_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "查一下我车牌京A12345 最近的违章记录。",
+     "当前可用工具中没有车辆违章查询功能，无法查询违规记录。",
+     ("违章查询",)),
+    ("身份证信息核验",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "请帮我核验一下这个身份证号的归属地。",
+     "当前可用工具中没有身份信息核验功能，无法验证身份证。",
+     ("身份核验",)),
+    ("医院挂号",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我在协和医院挂一个明天上午的消化内科号。",
+     "当前可用工具中没有医院挂号功能，无法为你预约门诊。",
+     ("医院挂号",)),
+    ("电梯维保查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "查一下我们小区电梯下次维保的时间。",
+     "当前可用工具中没有电梯维保查询功能，无法获取记录。",
+     ("电梯维保",)),
+    ("小区门禁临时密码",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮访客生成一个今天有效的小区门禁临时密码。",
+     "当前可用工具中没有门禁密码生成功能，无法创建临时凭证。",
+     ("门禁密码",)),
+    ("机房报警阈值设置",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "把机房的温度报警门槛调到 28 度。",
+     "当前可用工具中没有机房参数调整功能，无法修改阈值。",
+     ("机房阈值",)),
+    ("上传文件到云盘",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我把刚才的 PDF 上传到公司云盘。",
+     "当前可用工具中没有云盘上传功能，无法代你上传文件。",
+     ("云盘上传",)),
+    ("查询论文引用次数",
+     [CALC_TOOL, WEATHER_TOOL, TRANSLATE_TOOL],
+     "查一下 Attention Is All You Need 的最新引用数。",
+     "当前可用工具中没有论文引用查询功能，无法统计引用次数。",
+     ("论文引用",)),
+    ("健身房课程预约",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我预约周三晚上的动感单车课。",
+     "当前可用工具中没有课程预约功能，无法为你预订课程。",
+     ("课程预约",)),
+    ("附近打印店",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "帮我在公司 1 公里内找一家能彩打的店。",
+     "当前可用工具中没有周边商铺查询功能，无法推荐店铺。",
+     ("打印店",)),
 )
 
 
 def _tool_not_available(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
-    """User asks for a capability that is NOT among the available tools.
+    """Generate a semantically varied unavailable-capability refusal.
 
-    The expected transcript: assistant does NOT call any tool and reports
-    that the requested capability is unavailable. Each sample draws from
-    a pool of (capability, request, rationale) triples so the task keeps
-    its semantics while the user request, available-tool set, and refusal
-    wording differ across samples (auditor round 7 diversity fix)."""
-    capability, request, rationale = rng.choice(_NOT_AVAILABLE_VARIANTS)
+    The 24 capability records are combined with independent request,
+    context, and refusal styles using the deterministic per-task variant
+    index. This gives 100 distinct semantic combinations for the default
+    count instead of sampling a small pool with replacement.
+    """
+    variant = _variant_index(sid)
+    capability, tools_subset, request, rationale, capability_tag = (
+        _NOT_AVAILABLE_VARIANTS[variant % len(_NOT_AVAILABLE_VARIANTS)])
+    request_styles = (
+        "{request}",
+        "我现在有一个实际需求：{request}",
+        "请处理下面这项请求：{request}",
+        "如果可以的话，麻烦帮我完成：{request}",
+        "我需要你协助处理这件事——{request}",
+    )
+    contexts = (
+        "我今天就要用到结果。",
+        "这是一个办公场景，请说明当前能力边界。",
+        "请直接告诉我是否能完成，不要虚构结果。",
+        "如果不能执行，请给出明确的限制说明。",
+    )
+    refusal_styles = (
+        "当前可用工具中没有{capability}功能，无法完成此任务。",
+        "当前工具列表不包含{capability}能力，因此无法执行该请求。",
+        "我没有可用于{capability}的工具，不能假装已经完成这项操作。",
+        "可用工具无法支持{capability}；本次请求不能由工具链完成。",
+    )
+    style = (variant // len(_NOT_AVAILABLE_VARIANTS)) % len(request_styles)
+    context = contexts[(variant // (len(_NOT_AVAILABLE_VARIANTS) * len(request_styles))) % len(contexts)]
+    refusal = refusal_styles[(variant // 7) % len(refusal_styles)].format(
+        capability=capability)
+    user = request_styles[style].format(request=request) + " " + context
+    answer = refusal
     return _sample(
         sid,
         [
             {"role": "system", "content": "You are a helpful assistant with tool access."},
-            {"role": "user", "content": request},
-            {"role": "assistant", "content": rationale},
+            {"role": "user", "content": user},
+            {"role": "assistant", "content": answer},
         ],
-        [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL], [], rationale,
-        "tool_not_available", f"missing_{capability[:8]}", created,
+        list(tools_subset), [], answer,
+        "tool_not_available", f"missing_{capability_tag[0][:8]}", created,
     )
 
 
+_ERROR_RECOVERY_VARIANTS: tuple[tuple[str, str, str], ...] = (
+    # (first_query, refined_query, user_intent)
+    ("PyTorch", "PyTorch 2.x 新特性", "深度学习框架最新进展"),
+    ("TensorFlow", "TensorFlow 2.15 新特性", "深度学习框架最新进展"),
+    ("JAX", "JAX v0.4.20 主要改进", "深度学习框架最新进展"),
+    ("MindSpore", "MindSpore 2.x 架构变动", "深度学习框架最新进展"),
+    ("transformers", "transformers 4.40 主要变更", "训练库版本变化"),
+    ("vLLM", "vLLM 0.4 性能提升点", "推理引擎近期性能"),
+    ("LoRA", "LoRA 微调 2025 综述", "参数高效微调最新研究"),
+    ("KV cache", "KV cache 压缩 2025 进展", "推理优化近期研究"),
+    ("FlashAttention", "FlashAttention-3 性能数据", "注意力优化近期"),
+    ("MoE", "Mixture-of-Experts 路由 2025", "混合专家机制"),
+    ("MLA", "Multi-head Latent Attention 解析", "新型注意力机制"),
+    ("GQA", "Grouped Query Attention 实现", "注意力机制实现"),
+    ("GRPO", "GRPO 强化学习 综述", "强化学习算法"),
+    ("RLHF", "RLHF vs DPO 对比", "对齐算法对比"),
+    ("DPO", "DPO 收敛性分析", "对齐算法理论"),
+    ("distillation", "knowledge distillation 2025", "模型压缩技术"),
+    ("quantization", "INT4 quantization 论文", "模型量化研究"),
+    ("pruning", "structured pruning 2025", "模型剪枝研究"),
+    ("scaling laws", "Chinchilla scaling law 修正", "扩展律研究"),
+    ("emergent abilities", "emergent abilities 争议", "涌现能力研究"),
+    ("Mamba", "Mamba 状态空间模型 2025", "序列模型近期进展"),
+    ("long context", "1M context 训练方法", "长上下文技术"),
+    ("RAG", "RAG 检索增强 2025", "检索增强生成"),
+    ("agent", "agent tool-use 2025", "智能体工具使用"),
+    ("BPE", "BPE 词表训练 2025", "分词训练方法"),
+    ("RoPE", "RoPE 外推 2025", "位置编码"),
+    ("Yarn", "YaRN 位置编码", "位置编码变体"),
+    ("ALiBi", "ALiBi 位置编码", "位置编码变体"),
+    ("paged attention", "PagedAttention 性能", "推理优化"),
+    ("speculative decoding", "speculative decoding 2025", "推理优化"),
+)
+
+
 def _error_recovery(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
-    first_args = {"query": "PyTorch", "limit": 1}
-    second_args = {"query": "PyTorch 2.x 新特性", "limit": 3}
+    """Generate one deterministic, semantically distinct recovery trace."""
+    variant = _variant_index(sid)
+    first_query, refined_query, intent = _ERROR_RECOVERY_VARIANTS[
+        variant % len(_ERROR_RECOVERY_VARIANTS)]
+    first_limit = 1 + ((variant // len(_ERROR_RECOVERY_VARIANTS)) % 2)
+    second_limit = 3 + ((variant // (len(_ERROR_RECOVERY_VARIANTS) * 2)) % 4)
+    first_args = {"query": first_query, "limit": first_limit}
+    second_args = {"query": refined_query, "limit": second_limit}
     first_result = _mock_result("d1_web_search", first_args)
     second_result = _mock_result("d1_web_search", second_args)
     c1, c2 = _call_id(sid, 1), _call_id(sid, 2)
-    answer = f"初始搜索过窄，已重试细化关键词：{second_result}"
+    answer_styles = (
+        "初次搜索『{first}』结果过少（{intent}），已重试为『{second}』并扩大 limit，得到：{result}",
+        "第一次检索『{first}』不够充分；围绕{intent}改用『{second}』后得到：{result}",
+        "针对{intent}，初始关键词『{first}』命中有限，细化为『{second}』的结果是：{result}",
+        "搜索『{first}』后发现信息不足，我按{intent}调整到『{second}』：{result}",
+        "『{first}』的初步结果不够，我将{intent}聚焦到『{second}』，返回：{result}",
+    )
+    first_ack_styles = (
+        "“{first}”结果过少，我会细化关键词后重试。",
+        "初次检索不充分，接下来我会收窄到更具体的关键词。",
+        "这个搜索范围太宽，我先调整检索词。",
+        "结果数量有限，我会根据任务目标重新组织查询。",
+        "需要进一步细化主题后再搜索。",
+    )
+    answer = answer_styles[variant % len(answer_styles)].format(
+        first=first_query, second=refined_query, intent=intent, result=second_result)
     return _sample(
         sid,
         [
             {"role": "system", "content": "You are a helpful assistant with tool access."},
-            {"role": "user", "content": "搜索 PyTorch 的最新特性；结果不足时请调整查询。"},
+            {"role": "user", "content": (
+                f"搜索 {first_query} 的 {intent}；结果不足时请调整查询。"
+            )},
             _assistant_call(c1, "d1_web_search", first_args),
             _tool_message(c1, "d1_web_search", first_result),
-            {"role": "assistant", "content": "结果过少，我会细化关键词后重试。"},
+            {"role": "assistant", "content": first_ack_styles[
+                (variant // len(_ERROR_RECOVERY_VARIANTS)) % len(first_ack_styles)
+            ].format(first=first_query)},
             _assistant_call(c2, "d1_web_search", second_args),
             _tool_message(c2, "d1_web_search", second_result),
             {"role": "assistant", "content": answer},
@@ -427,6 +815,7 @@ def build_samples(count: int, rng: random.Random, *, seed: int) -> list[dict[str
         sid = f"d2-local-{index + 1:04d}"
         task_type, builder = BUILDERS[index % len(BUILDERS)]
         sample = builder(rng, sid, _now_ts(seed, index + 1))
+        sample = _apply_semantic_context(sample, _variant_index(sid))
         if sample["metadata"]["task_type"] != task_type:
             raise AssertionError(f"builder/type mismatch: {task_type} != {sample['metadata']}")
         samples.append(sample)
@@ -564,10 +953,19 @@ def _validate_samples(samples: list[dict[str, Any]]) -> list[str]:
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     validator = Draft202012Validator(schema, format_checker=FormatChecker())
     errors: list[str] = []
+    signatures: dict[str, str] = {}
     for sample in samples:
         errors.extend(f"{sample['id']}: {error.message}" for error in validator.iter_errors(sample))
         errors.extend(f"{sample['id']}: {error}" for error in validate_semantics(sample))
         errors.extend(f"{sample['id']}: {error}" for error in execute_through_mock_executor(sample))
+        signature = canonical_content_signature(sample)
+        previous_id = signatures.get(signature)
+        if previous_id is not None:
+            errors.append(
+                f"{sample['id']}: duplicate canonical semantic content with {previous_id}"
+            )
+        else:
+            signatures[signature] = sample["id"]
     return errors
 
 
@@ -624,6 +1022,8 @@ def main() -> int:
         build_samples(args.count, random.Random(args.seed), seed=args.seed),
         seed=args.seed,
     )
+    if len(samples) != args.count:
+        raise AssertionError(f"generated {len(samples)} samples, expected {args.count}")
     errors = _validate_samples(samples)
     if errors:
         for error in errors[:20]:

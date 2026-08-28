@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下广州的天气。"
+      "content": "先帮我获取深圳的天气信息。（场景是安全审查，额外要求是优先保留可复现性。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_get_weather",
-            "arguments": "{\"city\": \"广州\"}"
+            "arguments": "{\"city\": \"深圳\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "广州 当前天气：晴，22°C，微风。",
+      "content": "深圳 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0274-0001",
       "name": "d1_get_weather"
     },
     {
       "role": "user",
-      "content": "改成查北京的天气吧。"
+      "content": "现在优先给我西安的天气。"
     },
     {
       "role": "assistant",
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_get_weather",
-            "arguments": "{\"city\": \"北京\"}"
+            "arguments": "{\"city\": \"西安\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "北京 当前天气：晴，22°C，微风。",
+      "content": "西安 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0274-0002",
       "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。"
+      "content": "已按你的新要求查询西安：西安 当前天气：晴，22°C，微风。（场景是安全审查，额外要求是优先保留可复现性。）"
     }
   ],
   "tools": [
@@ -84,24 +84,24 @@
       "call_id": "call-d2-train-0274-0001",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "广州"
+        "city": "深圳"
       },
-      "expected_result": "广州 当前天气：晴，22°C，微风。",
+      "expected_result": "深圳 当前天气：晴，22°C，微风。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0274-0002",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "北京"
+        "city": "西安"
       },
       "depends_on": [
         "call-d2-train-0274-0001"
       ],
-      "expected_result": "北京 当前天气：晴，22°C，微风。"
+      "expected_result": "西安 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。",
+  "expected_answer": "已按你的新要求查询西安：西安 当前天气：晴，22°C，微风。（场景是安全审查，额外要求是优先保留可复现性。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

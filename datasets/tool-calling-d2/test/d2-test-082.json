@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下广州的天气。"
+      "content": "我想知道武汉现在的天气，请查询一下。（场景是长期维护，额外要求是记录关键中间结果。）"
     },
     {
       "role": "assistant",
@@ -16,6 +16,30 @@
       "tool_calls": [
         {
           "id": "call-d2-test-082-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"武汉\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "武汉 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-test-082-0001",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "user",
+      "content": "刚才城市不对，重新查询广州。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-test-082-0002",
           "type": "function",
           "function": {
             "name": "d1_get_weather",
@@ -27,36 +51,12 @@
     {
       "role": "tool",
       "content": "广州 当前天气：晴，22°C，微风。",
-      "tool_call_id": "call-d2-test-082-0001",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "user",
-      "content": "改成查北京的天气吧。"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-test-082-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"北京\"}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "北京 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-test-082-0002",
       "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。"
+      "content": "忽略之前的武汉，当前结果是广州 当前天气：晴，22°C，微风。（场景是长期维护，额外要求是记录关键中间结果。）"
     }
   ],
   "tools": [
@@ -84,24 +84,24 @@
       "call_id": "call-d2-test-082-0001",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "广州"
+        "city": "武汉"
       },
-      "expected_result": "广州 当前天气：晴，22°C，微风。",
+      "expected_result": "武汉 当前天气：晴，22°C，微风。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-test-082-0002",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "北京"
+        "city": "广州"
       },
       "depends_on": [
         "call-d2-test-082-0001"
       ],
-      "expected_result": "北京 当前天气：晴，22°C，微风。"
+      "expected_result": "广州 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。",
+  "expected_answer": "忽略之前的武汉，当前结果是广州 当前天气：晴，22°C，微风。（场景是长期维护，额外要求是记录关键中间结果。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

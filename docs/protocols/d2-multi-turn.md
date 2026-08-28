@@ -58,11 +58,14 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 
 - id 命名空间前缀不同（`d2-train-` / `d2-dev-` / `d2-test-`）；
 - 目录物理隔离（`datasets/tool-calling-d2/{train,dev,test}/`）；
-- 与 D1 / D1.1 train id 在 stem 层不重叠（D2 id 是 `d2-*`，D1 是 `d1-*` / `d1llm-*`）。
+- 与 D1 / D1.1 train id 在 stem 层不重叠（D2 id 是 `d2-*`，D1 是 `d1-*` / `d1llm-*`）；
+- 生成器和测试均计算同一个 `canonical_content_signature()`：去除 `id` / `call_id` / `tool_call_id` / `depends_on`、`metadata.created_at` 和 `metadata.split` 后，仍保留 task_type、tools、消息内容、工具参数/结果与 expected_answer。600 个签名全局唯一；每类 100/100 唯一；train/dev/test 三组 canonical signature 交集均为空。
 
 `tests/test_d2_dataset.py::D2SplitDisjointnessTests` 显式校验：
 
 - `train ∩ dev = train ∩ test = dev ∩ test = ∅`；
+- canonical semantic content 的三组 split 交集为空，且 600 个样本签名全局唯一；
+- 每个 task_type 都有 100 个不同 canonical semantic instances；
 - train 与 D1/D1.1 train id 集合无交集；
 - 每个 `MANIFEST-{split}.json` 的 `count` / `aggregate_sha256` / 每文件 sha256 与磁盘一致。
 
@@ -125,7 +128,7 @@ fmt  = datetime.fromtimestamp(ts, tz=UTC).isoformat().replace("+00:00", "Z")
 .venv/python.exe scripts/generate_d2_dataset.py --out datasets/tool-calling-d2-test
 ```
 
-确定性保证：同一 `--seed` 产生相同的 sample 内容 / sha256 / MANIFEST aggregate hash；不同 `--count` 通过 round-robin 在 6 类 task_type 间分配。
+确定性保证：同一 `--seed` 产生相同的 600 条 canonical content、文件 sha256 和 MANIFEST aggregate hash；不同 `--count` 通过 round-robin 在 6 类 task_type 间分配。生成器写盘前以 `canonical_content_signature()` 执行全局语义去重；去除 ID、时间戳、split、call_id 和依赖引用后，默认数据仍保持 600/600 唯一、每类 100/100 唯一、三 split 无交集。
 
 ## 7. 与 P2 离线 reward 校验的衔接
 
@@ -141,7 +144,7 @@ P2 阶段交付的 `scripts/reward_offline.py` 直接消费 D2 dev 90 样本作�
 
 D1 dev 13 样本保留作为早期 dev 探针；D2 dev 是首个有统计意义的 reward 评测 split。
 
-**P3 阶段已在 D2 dev 上完成 5 ckpt × 90 = 450 个真实推理 reward_signal**：自研单轮 SFT 模型全部 450/450 `parse_success` 失败（reward_binary=0.0，见 `docs/experiments/p2-evaluator/README.md` 第 6 节）。该诚实负结果证明：(a) D2 dev 评测管线可跑通；(b) 单轮模型不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。
+**P3 阶段已在 D2 dev 上完成 5 ckpt × 90 = 450 个真实推理 reward_signal**：最终多样化数据上，5 个 checkpoint 均 `reward_binary=0.0`；large-v1 的 `reward_layered=0.0162`（86 个 `parse_success`，4 个 `argument_correct`），d256-20k 的 `reward_layered=0.0042`（89 个 `parse_success`，1 个 `argument_correct`），其余三者为 0.0000。该诚实负结果证明：(a) D2 dev 评测管线可跑通；(b) 单轮模型基本不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。
 
 `scripts/eval_sft_tool.py --prompt-mode multi_turn` 负责把 D2 多轮 messages 序列化为 SFT 模板历史并生成续写，是 D2 dev 评测的标准推理入口。
 

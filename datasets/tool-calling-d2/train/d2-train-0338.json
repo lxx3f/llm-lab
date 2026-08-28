@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Good morning.' 翻译成中文。"
+      "content": "请调用翻译服务处理这段文本，目标语言是日文：欢迎参加本次讨论。（场景是高并发服务，额外要求是需要清楚说明限制。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"欢迎参加本次讨论。\", \"target_lang\": \"ja\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='欢迎参加本次讨论。', target_lang='ja')",
       "tool_call_id": "call-d2-train-0338-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。"
+      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='欢迎参加本次讨论。', target_lang='ja')。无法完成本次翻译。（场景是高并发服务，额外要求是需要清楚说明限制。）"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-train-0338-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Good morning.",
-        "target_lang": "zh"
+        "text": "欢迎参加本次讨论。",
+        "target_lang": "ja"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='欢迎参加本次讨论。', target_lang='ja')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='欢迎参加本次讨论。', target_lang='ja')。无法完成本次翻译。（场景是高并发服务，额外要求是需要清楚说明限制。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

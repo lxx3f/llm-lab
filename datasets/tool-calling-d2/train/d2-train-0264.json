@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 PyTorch 的最新特性；结果不足时请调整查询。"
+      "content": "搜索 RLHF 的 对齐算法对比；结果不足时请调整查询。（场景是数据治理，额外要求是记录关键中间结果。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"PyTorch\", \"limit\": 1}"
+            "arguments": "{\"query\": \"RLHF\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「PyTorch」找到 1 条结果。",
+      "content": "关于「RLHF」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0264-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "结果过少，我会细化关键词后重试。"
+      "content": "初次检索不充分，接下来我会收窄到更具体的关键词。"
     },
     {
       "role": "assistant",
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"PyTorch 2.x 新特性\", \"limit\": 3}"
+            "arguments": "{\"query\": \"RLHF vs DPO 对比\", \"limit\": 3}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「PyTorch 2.x 新特性」找到 3 条结果。",
+      "content": "关于「RLHF vs DPO 对比」找到 3 条结果。",
       "tool_call_id": "call-d2-train-0264-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "初始搜索过窄，已重试细化关键词：关于「PyTorch 2.x 新特性」找到 3 条结果。"
+      "content": "搜索『RLHF』后发现信息不足，我按对齐算法对比调整到『RLHF vs DPO 对比』：关于「RLHF vs DPO 对比」找到 3 条结果。（场景是数据治理，额外要求是记录关键中间结果。）"
     }
   ],
   "tools": [
@@ -88,26 +88,26 @@
       "call_id": "call-d2-train-0264-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "PyTorch",
-        "limit": 1
+        "query": "RLHF",
+        "limit": 2
       },
-      "expected_result": "关于「PyTorch」找到 1 条结果。",
+      "expected_result": "关于「RLHF」找到 2 条结果。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0264-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "PyTorch 2.x 新特性",
+        "query": "RLHF vs DPO 对比",
         "limit": 3
       },
       "depends_on": [
         "call-d2-train-0264-0001"
       ],
-      "expected_result": "关于「PyTorch 2.x 新特性」找到 3 条结果。"
+      "expected_result": "关于「RLHF vs DPO 对比」找到 3 条结果。"
     }
   ],
-  "expected_answer": "初始搜索过窄，已重试细化关键词：关于「PyTorch 2.x 新特性」找到 3 条结果。",
+  "expected_answer": "搜索『RLHF』后发现信息不足，我按对齐算法对比调整到『RLHF vs DPO 对比』：关于「RLHF vs DPO 对比」找到 3 条结果。（场景是数据治理，额外要求是记录关键中间结果。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

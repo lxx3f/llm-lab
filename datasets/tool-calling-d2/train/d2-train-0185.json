@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 17 * 4，再搜索结果 result 68。"
+      "content": "依次完成：计算 (15 + 5) * 2，然后检索计算结果等于 40 的内容。（场景是小模型推理，额外要求是优先保留可复现性。）"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_calculate",
-            "arguments": "{\"expression\": \"17 * 4\"}"
+            "arguments": "{\"expression\": \"(15 + 5) * 2\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "68",
+      "content": "40",
       "tool_call_id": "call-d2-train-0185-0001",
       "name": "d1_calculate"
     },
@@ -39,20 +39,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"result 68\", \"limit\": 3}"
+            "arguments": "{\"query\": \"计算结果 40\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「result 68」找到 3 条结果。",
+      "content": "关于「计算结果 40」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0185-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "计算结果为 68；搜索结果：关于「result 68」找到 3 条结果。"
+      "content": "先得到 40，再完成相关检索：关于「计算结果 40」找到 2 条结果。（场景是小模型推理，额外要求是优先保留可复现性。）"
     }
   ],
   "tools": [
@@ -102,25 +102,25 @@
       "call_id": "call-d2-train-0185-0001",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "17 * 4"
+        "expression": "(15 + 5) * 2"
       },
-      "expected_result": 68,
+      "expected_result": 40,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0185-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "result 68",
-        "limit": 3
+        "query": "计算结果 40",
+        "limit": 2
       },
       "depends_on": [
         "call-d2-train-0185-0001"
       ],
-      "expected_result": "关于「result 68」找到 3 条结果。"
+      "expected_result": "关于「计算结果 40」找到 2 条结果。"
     }
   ],
-  "expected_answer": "计算结果为 68；搜索结果：关于「result 68」找到 3 条结果。",
+  "expected_answer": "先得到 40，再完成相关检索：关于「计算结果 40」找到 2 条结果。（场景是小模型推理，额外要求是优先保留可复现性。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

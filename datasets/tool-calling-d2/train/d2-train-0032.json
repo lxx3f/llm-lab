@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Good morning.' 翻译成中文。"
+      "content": "帮我将下面这句话转换为中文：模型训练需要稳定的数据。（场景是客服工单，额外要求是优先保留可复现性。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"模型训练需要稳定的数据。\", \"target_lang\": \"zh\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='模型训练需要稳定的数据。', target_lang='zh')",
       "tool_call_id": "call-d2-train-0032-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。"
+      "content": "翻译服务暂不可用（ERROR: translation service unavailable (text='模型训练需要稳定的数据。', target_lang='zh')），因此没有生成译文。（场景是客服工单，额外要求是优先保留可复现性。）"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-train-0032-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Good morning.",
+        "text": "模型训练需要稳定的数据。",
         "target_lang": "zh"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='模型训练需要稳定的数据。', target_lang='zh')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "翻译服务暂不可用（ERROR: translation service unavailable (text='模型训练需要稳定的数据。', target_lang='zh')），因此没有生成译文。（场景是客服工单，额外要求是优先保留可复现性。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

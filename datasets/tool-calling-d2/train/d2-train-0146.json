@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Hello, world.' 翻译成中文。"
+      "content": "请把“The meeting starts at nine.”翻译成英文。（场景是移动端部署，额外要求是避免臆造无法验证的信息。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Hello, world.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"The meeting starts at nine.\", \"target_lang\": \"en\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Hello, world.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='The meeting starts at nine.', target_lang='en')",
       "tool_call_id": "call-d2-train-0146-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Hello, world.', target_lang='zh')。无法完成翻译。"
+      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='The meeting starts at nine.', target_lang='en')。无法完成本次翻译。（场景是移动端部署，额外要求是避免臆造无法验证的信息。）"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-train-0146-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Hello, world.",
-        "target_lang": "zh"
+        "text": "The meeting starts at nine.",
+        "target_lang": "en"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Hello, world.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='The meeting starts at nine.', target_lang='en')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Hello, world.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='The meeting starts at nine.', target_lang='en')。无法完成本次翻译。（场景是移动端部署，额外要求是避免臆造无法验证的信息。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下上海的天气。"
+      "content": "先帮我获取天津的天气信息。（场景是多语言内容，额外要求是关注输入边界。）"
     },
     {
       "role": "assistant",
@@ -16,6 +16,30 @@
       "tool_calls": [
         {
           "id": "call-d2-train-0226-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"天津\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "天津 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-train-0226-0001",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "user",
+      "content": "改成查上海的天气吧。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0226-0002",
           "type": "function",
           "function": {
             "name": "d1_get_weather",
@@ -27,36 +51,12 @@
     {
       "role": "tool",
       "content": "上海 当前天气：晴，22°C，微风。",
-      "tool_call_id": "call-d2-train-0226-0001",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "user",
-      "content": "改成查北京的天气吧。"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0226-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"北京\"}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "北京 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0226-0002",
       "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。"
+      "content": "按最新要求，上海天气：上海 当前天气：晴，22°C，微风。（场景是多语言内容，额外要求是关注输入边界。）"
     }
   ],
   "tools": [
@@ -84,24 +84,24 @@
       "call_id": "call-d2-train-0226-0001",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "上海"
+        "city": "天津"
       },
-      "expected_result": "上海 当前天气：晴，22°C，微风。",
+      "expected_result": "天津 当前天气：晴，22°C，微风。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0226-0002",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "北京"
+        "city": "上海"
       },
       "depends_on": [
         "call-d2-train-0226-0001"
       ],
-      "expected_result": "北京 当前天气：晴，22°C，微风。"
+      "expected_result": "上海 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。",
+  "expected_answer": "按最新要求，上海天气：上海 当前天气：晴，22°C，微风。（场景是多语言内容，额外要求是关注输入边界。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

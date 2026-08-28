@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Good morning.' 翻译成中文。"
+      "content": "请把“Use a deterministic seed.”翻译成法文。（场景是回归测试，额外要求是避免臆造无法验证的信息。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"Use a deterministic seed.\", \"target_lang\": \"fr\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='fr')",
       "tool_call_id": "call-d2-dev-026-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。"
+      "content": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='fr')。请稍后重试。（场景是回归测试，额外要求是避免臆造无法验证的信息。）"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-dev-026-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Good morning.",
-        "target_lang": "zh"
+        "text": "Use a deterministic seed.",
+        "target_lang": "fr"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='fr')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='fr')。请稍后重试。（场景是回归测试，额外要求是避免臆造无法验证的信息。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

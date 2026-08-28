@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 'vLLM 部署' 的资料，如果不够请追问。"
+      "content": "请查找关于 vLLM 部署 的信息；资料过少时向我确认范围。（场景是企业知识库，额外要求是关注输入边界。）"
     },
     {
       "role": "assistant",
@@ -32,7 +32,7 @@
     },
     {
       "role": "assistant",
-      "content": "仅找到 1 条结果：关于「vLLM 部署」找到 1 条结果。。请补充你关注的方向。"
+      "content": "这次搜索范围较窄，仅返回 关于「vLLM 部署」找到 1 条结果。；请进一步说明筛选条件。"
     },
     {
       "role": "user",
@@ -40,7 +40,7 @@
     },
     {
       "role": "assistant",
-      "content": "收到，我会按这个方向继续。"
+      "content": "了解，我将优先筛选符合该条件的资料。（场景是企业知识库，额外要求是关注输入边界。）"
     }
   ],
   "tools": [
@@ -79,7 +79,7 @@
       "depends_on": []
     }
   ],
-  "expected_answer": "仅找到 1 条结果：关于「vLLM 部署」找到 1 条结果。。请补充你关注的方向。",
+  "expected_answer": "这次搜索范围较窄，仅返回 关于「vLLM 部署」找到 1 条结果。；请进一步说明筛选条件。（场景是企业知识库，额外要求是关注输入边界。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

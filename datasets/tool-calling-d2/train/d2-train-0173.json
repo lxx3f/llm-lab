@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 3 ** 4，再搜索结果 result 81。"
+      "content": "把 2 ** 6 算出来，再围绕计算结果 64 做一次搜索。（场景是离线环境，额外要求是记录关键中间结果。）"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_calculate",
-            "arguments": "{\"expression\": \"3 ** 4\"}"
+            "arguments": "{\"expression\": \"2 ** 6\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "81",
+      "content": "64",
       "tool_call_id": "call-d2-train-0173-0001",
       "name": "d1_calculate"
     },
@@ -39,20 +39,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"result 81\", \"limit\": 3}"
+            "arguments": "{\"query\": \"计算结果 64\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「result 81」找到 3 条结果。",
+      "content": "关于「计算结果 64」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0173-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "计算结果为 81；搜索结果：关于「result 81」找到 3 条结果。"
+      "content": "计算输出是 64。相关检索结果为：关于「计算结果 64」找到 2 条结果。（场景是离线环境，额外要求是记录关键中间结果。）"
     }
   ],
   "tools": [
@@ -102,25 +102,25 @@
       "call_id": "call-d2-train-0173-0001",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "3 ** 4"
+        "expression": "2 ** 6"
       },
-      "expected_result": 81,
+      "expected_result": 64,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0173-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "result 81",
-        "limit": 3
+        "query": "计算结果 64",
+        "limit": 2
       },
       "depends_on": [
         "call-d2-train-0173-0001"
       ],
-      "expected_result": "关于「result 81」找到 3 条结果。"
+      "expected_result": "关于「计算结果 64」找到 2 条结果。"
     }
   ],
-  "expected_answer": "计算结果为 81；搜索结果：关于「result 81」找到 3 条结果。",
+  "expected_answer": "计算输出是 64。相关检索结果为：关于「计算结果 64」找到 2 条结果。（场景是离线环境，额外要求是记录关键中间结果。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

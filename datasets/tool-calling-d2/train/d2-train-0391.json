@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "查一下后天北京到上海的航班。"
+      "content": "请处理下面这项请求：查一下我们小区电梯下次维保的时间。 我今天就要用到结果。（场景是版本升级，额外要求是优先保留可复现性。）"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有航班查询功能，无法获取航班信息。"
+      "content": "当前工具列表不包含电梯维保查询能力，因此无法执行该请求。（场景是版本升级，额外要求是优先保留可复现性。）"
     }
   ],
   "tools": [
@@ -76,12 +76,12 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有航班查询功能，无法获取航班信息。",
+  "expected_answer": "当前工具列表不包含电梯维保查询能力，因此无法执行该请求。（场景是版本升级，额外要求是优先保留可复现性。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_航班查询",
+    "task_template": "missing_电梯维保",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T18:00:17Z",

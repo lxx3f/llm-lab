@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下广州的天气。"
+      "content": "我想知道广州现在的天气，请查询一下。（场景是长期维护，额外要求是需要清楚说明限制。）"
     },
     {
       "role": "assistant",
@@ -32,7 +32,7 @@
     },
     {
       "role": "user",
-      "content": "改成查北京的天气吧。"
+      "content": "刚才城市不对，重新查询福州。"
     },
     {
       "role": "assistant",
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_get_weather",
-            "arguments": "{\"city\": \"北京\"}"
+            "arguments": "{\"city\": \"福州\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "北京 当前天气：晴，22°C，微风。",
+      "content": "福州 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-test-070-0002",
       "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。"
+      "content": "最新指定城市为福州，天气信息如下：福州 当前天气：晴，22°C，微风。（场景是长期维护，额外要求是需要清楚说明限制。）"
     }
   ],
   "tools": [
@@ -93,15 +93,15 @@
       "call_id": "call-d2-test-070-0002",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "北京"
+        "city": "福州"
       },
       "depends_on": [
         "call-d2-test-070-0001"
       ],
-      "expected_result": "北京 当前天气：晴，22°C，微风。"
+      "expected_result": "福州 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。",
+  "expected_answer": "最新指定城市为福州，天气信息如下：福州 当前天气：晴，22°C，微风。（场景是长期维护，额外要求是需要清楚说明限制。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

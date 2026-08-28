@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "查一下后天北京到上海的航班。"
+      "content": "我现在有一个实际需求：查一下后天北京到上海的航班。 我今天就要用到结果。（场景是离线环境，额外要求是记录关键中间结果。）"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有航班查询功能，无法获取航班信息。"
+      "content": "当前可用工具中没有航班查询功能，无法完成此任务。（场景是离线环境，额外要求是记录关键中间结果。）"
     }
   ],
   "tools": [
@@ -76,7 +76,7 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有航班查询功能，无法获取航班信息。",
+  "expected_answer": "当前可用工具中没有航班查询功能，无法完成此任务。（场景是离线环境，额外要求是记录关键中间结果。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

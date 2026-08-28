@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "帮我看看公司楼下有没有停车位。"
+      "content": "如果可以的话，麻烦帮我完成：帮我看看公司楼下有没有停车位。 我今天就要用到结果。（场景是团队协作，额外要求是记录关键中间结果。）"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有停车位查询功能，无法查询。"
+      "content": "可用工具无法支持停车位查询；本次请求不能由工具链完成。（场景是团队协作，额外要求是记录关键中间结果。）"
     }
   ],
   "tools": [
@@ -76,7 +76,7 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有停车位查询功能，无法查询。",
+  "expected_answer": "可用工具无法支持停车位查询；本次请求不能由工具链完成。（场景是团队协作，额外要求是记录关键中间结果。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Good morning.' 翻译成中文。"
+      "content": "我需要法文版本，请翻译：The quick brown fox jumps.（场景是回归测试，额外要求是需要清楚说明限制。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"The quick brown fox jumps.\", \"target_lang\": \"fr\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='The quick brown fox jumps.', target_lang='fr')",
       "tool_call_id": "call-d2-dev-008-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。"
+      "content": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='The quick brown fox jumps.', target_lang='fr')。（场景是回归测试，额外要求是需要清楚说明限制。）"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-dev-008-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Good morning.",
-        "target_lang": "zh"
+        "text": "The quick brown fox jumps.",
+        "target_lang": "fr"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='The quick brown fox jumps.', target_lang='fr')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='The quick brown fox jumps.', target_lang='fr')。（场景是回归测试，额外要求是需要清楚说明限制。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

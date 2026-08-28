@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "查一下比特币现在的价格。"
+      "content": "我需要你协助处理这件事——帮我在明天下午 3 点创建一个会议日程。 我今天就要用到结果。（场景是长期维护，额外要求是避免臆造无法验证的信息。）"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有加密货币价格查询功能，无法获取行情。"
+      "content": "我没有可用于创建日历日程的工具，不能假装已经完成这项操作。（场景是长期维护，额外要求是避免臆造无法验证的信息。）"
     }
   ],
   "tools": [
@@ -76,12 +76,12 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有加密货币价格查询功能，无法获取行情。",
+  "expected_answer": "我没有可用于创建日历日程的工具，不能假装已经完成这项操作。（场景是长期维护，额外要求是避免臆造无法验证的信息。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_加密货币价格",
+    "task_template": "missing_日历日程",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T18:03:41Z",

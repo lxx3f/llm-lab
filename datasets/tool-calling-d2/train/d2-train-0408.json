@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 PyTorch 的最新特性；结果不足时请调整查询。"
+      "content": "搜索 KV cache 的 推理优化近期研究；结果不足时请调整查询。（场景是版本升级，额外要求是关注输入边界。）"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"PyTorch\", \"limit\": 1}"
+            "arguments": "{\"query\": \"KV cache\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「PyTorch」找到 1 条结果。",
+      "content": "关于「KV cache」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0408-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "结果过少，我会细化关键词后重试。"
+      "content": "这个搜索范围太宽，我先调整检索词。"
     },
     {
       "role": "assistant",
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"PyTorch 2.x 新特性\", \"limit\": 3}"
+            "arguments": "{\"query\": \"KV cache 压缩 2025 进展\", \"limit\": 4}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「PyTorch 2.x 新特性」找到 3 条结果。",
+      "content": "关于「KV cache 压缩 2025 进展」找到 4 条结果。",
       "tool_call_id": "call-d2-train-0408-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "初始搜索过窄，已重试细化关键词：关于「PyTorch 2.x 新特性」找到 3 条结果。"
+      "content": "针对推理优化近期研究，初始关键词『KV cache』命中有限，细化为『KV cache 压缩 2025 进展』的结果是：关于「KV cache 压缩 2025 进展」找到 4 条结果。（场景是版本升级，额外要求是关注输入边界。）"
     }
   ],
   "tools": [
@@ -88,26 +88,26 @@
       "call_id": "call-d2-train-0408-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "PyTorch",
+        "query": "KV cache",
         "limit": 1
       },
-      "expected_result": "关于「PyTorch」找到 1 条结果。",
+      "expected_result": "关于「KV cache」找到 1 条结果。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0408-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "PyTorch 2.x 新特性",
-        "limit": 3
+        "query": "KV cache 压缩 2025 进展",
+        "limit": 4
       },
       "depends_on": [
         "call-d2-train-0408-0001"
       ],
-      "expected_result": "关于「PyTorch 2.x 新特性」找到 3 条结果。"
+      "expected_result": "关于「KV cache 压缩 2025 进展」找到 4 条结果。"
     }
   ],
-  "expected_answer": "初始搜索过窄，已重试细化关键词：关于「PyTorch 2.x 新特性」找到 3 条结果。",
+  "expected_answer": "针对推理优化近期研究，初始关键词『KV cache』命中有限，细化为『KV cache 压缩 2025 进展』的结果是：关于「KV cache 压缩 2025 进展」找到 4 条结果。（场景是版本升级，额外要求是关注输入边界。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

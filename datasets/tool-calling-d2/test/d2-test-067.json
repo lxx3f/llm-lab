@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "请帮我给 luna@example.com 发一封提醒邮件。"
+      "content": "我需要你协助处理这件事——请帮我查一下美元兑人民币的实时汇率。 我今天就要用到结果。（场景是长期维护，额外要求是需要清楚说明限制。）"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有邮件发送功能，我无法代你发邮件。"
+      "content": "当前工具列表不包含实时汇率查询能力，因此无法执行该请求。（场景是长期维护，额外要求是需要清楚说明限制。）"
     }
   ],
   "tools": [
@@ -76,12 +76,12 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有邮件发送功能，我无法代你发邮件。",
+  "expected_answer": "当前工具列表不包含实时汇率查询能力，因此无法执行该请求。（场景是长期维护，额外要求是需要清楚说明限制。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_发送邮件",
+    "task_template": "missing_实时汇率",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T18:03:23Z",

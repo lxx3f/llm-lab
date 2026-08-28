@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 'LLM 评测' 的资料，如果不够请追问。"
+      "content": "帮我搜集 MoE 路由 相关内容，若只有少量结果就先询问我的关注点。（场景是成本控制，额外要求是记录关键中间结果。）"
     },
     {
       "role": "assistant",
@@ -19,28 +19,28 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"LLM 评测\", \"limit\": 1}"
+            "arguments": "{\"query\": \"MoE 路由\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「LLM 评测」找到 1 条结果。",
+      "content": "关于「MoE 路由」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0321-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "仅找到 1 条结果：关于「LLM 评测」找到 1 条结果。。请补充你关注的方向。"
+      "content": "目前检索到的结果有限（关于「MoE 路由」找到 1 条结果。），请告诉我你想深入的角度。"
     },
     {
       "role": "user",
-      "content": "我关注 2026 年的最新进展。"
+      "content": "请把重点放在小模型场景。"
     },
     {
       "role": "assistant",
-      "content": "收到，我会按这个方向继续。"
+      "content": "明白，我会据此收窄后续整理范围。（场景是成本控制，额外要求是记录关键中间结果。）"
     }
   ],
   "tools": [
@@ -72,14 +72,14 @@
       "call_id": "call-d2-train-0321-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "LLM 评测",
+        "query": "MoE 路由",
         "limit": 1
       },
-      "expected_result": "关于「LLM 评测」找到 1 条结果。",
+      "expected_result": "关于「MoE 路由」找到 1 条结果。",
       "depends_on": []
     }
   ],
-  "expected_answer": "仅找到 1 条结果：关于「LLM 评测」找到 1 条结果。。请补充你关注的方向。",
+  "expected_answer": "目前检索到的结果有限（关于「MoE 路由」找到 1 条结果。），请告诉我你想深入的角度。（场景是成本控制，额外要求是记录关键中间结果。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 'LLM 评测' 的资料，如果不够请追问。"
+      "content": "请检索 DPO 对齐，如果命中有限，请询问我更具体的方向。（场景是高并发服务，额外要求是避免臆造无法验证的信息。）"
     },
     {
       "role": "assistant",
@@ -19,28 +19,28 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"LLM 评测\", \"limit\": 1}"
+            "arguments": "{\"query\": \"DPO 对齐\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「LLM 评测」找到 1 条结果。",
+      "content": "关于「DPO 对齐」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0357-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "仅找到 1 条结果：关于「LLM 评测」找到 1 条结果。。请补充你关注的方向。"
+      "content": "已有初步结果：关于「DPO 对齐」找到 1 条结果。。为了继续整理，请补充具体关注点。"
     },
     {
       "role": "user",
-      "content": "我关注 2026 年的最新进展。"
+      "content": "请把重点放在小模型场景。"
     },
     {
       "role": "assistant",
-      "content": "收到，我会按这个方向继续。"
+      "content": "好的，我会按你的关注点继续检索。（场景是高并发服务，额外要求是避免臆造无法验证的信息。）"
     }
   ],
   "tools": [
@@ -72,14 +72,14 @@
       "call_id": "call-d2-train-0357-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "LLM 评测",
+        "query": "DPO 对齐",
         "limit": 1
       },
-      "expected_result": "关于「LLM 评测」找到 1 条结果。",
+      "expected_result": "关于「DPO 对齐」找到 1 条结果。",
       "depends_on": []
     }
   ],
-  "expected_answer": "仅找到 1 条结果：关于「LLM 评测」找到 1 条结果。。请补充你关注的方向。",
+  "expected_answer": "已有初步结果：关于「DPO 对齐」找到 1 条结果。。为了继续整理，请补充具体关注点。（场景是高并发服务，额外要求是避免臆造无法验证的信息。）",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
