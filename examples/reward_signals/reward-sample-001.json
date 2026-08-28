@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "sample_id": "reward-sample-001",
+  "task_type": "single_tool",
+  "transcript_kind": "mock_transcript",
+  "checkpoint": null,
+  "reward_type": "execution_correct",
+  "reward_binary": 1.0,
+  "reward_layered": 1.0,
+  "layer_pass_count": 8,
+  "layer_pass_total": 8,
+  "first_failure": null,
+  "layers": {
+    "parse_success": true,
+    "schema_valid": true,
+    "tool_name_correct": true,
+    "argument_value_correct": true,
+    "call_plan_matches": true,
+    "execution_success": true,
+    "result_grounded": true,
+    "final_answer_correct": true
+  },
+  "expected_calls_count": 1,
+  "predicted_calls_count": 1,
+  "expected_answer": "北京 22C",
+  "predicted_answer": "北京 22C",
+  "reward_offline_version": "1.0"
+}

@@ -63,6 +63,14 @@ def main() -> int:
             ROOT / "examples/evaluation_results/sample-001.json",
             ROOT / "schemas/evaluation_result.schema.json",
         ),
+        (
+            ROOT / "examples/reward_signals/reward-sample-001.json",
+            ROOT / "schemas/reward_signal.schema.json",
+        ),
+        (
+            ROOT / "examples/reward_signals/reward-sample-002-parse-fail.json",
+            ROOT / "schemas/reward_signal.schema.json",
+        ),
     ]
 
     failed = False

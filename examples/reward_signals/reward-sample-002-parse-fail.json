@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "sample_id": "reward-sample-002",
+  "task_type": "single_tool",
+  "transcript_kind": "model_generated",
+  "checkpoint": null,
+  "reward_type": "parse_success",
+  "reward_binary": 0.0,
+  "reward_layered": 0.0,
+  "layer_pass_count": 0,
+  "layer_pass_total": 1,
+  "first_failure": "parse_success",
+  "layers": {
+    "parse_success": false,
+    "schema_valid": null,
+    "tool_name_correct": null,
+    "argument_value_correct": null,
+    "call_plan_matches": null,
+    "execution_success": null,
+    "result_grounded": null,
+    "final_answer_correct": null
+  },
+  "expected_calls_count": 1,
+  "predicted_calls_count": 1,
+  "expected_answer": null,
+  "predicted_answer": "",
+  "reward_offline_version": "1.0"
+}

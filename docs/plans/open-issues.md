@@ -730,14 +730,37 @@ docs/
 
 D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于探索性诊断，但不是独立 held-out split，不能作为正式泛化质量结论。
 
-**状态：延后至 P2/P3。**
+**状态：已部分解决。** P2 阶段交付了 offline reward 校验（reward_signal schema + CLI + 30 单测），5 ckpt × 13 样本 = 65 reward_signal 全部通过 schema 校验（`docs/experiments/p2-evaluator/README.md`）。但独立 IID held-out split 未产出，留作 P3 交付。
 
-后续需要：
+后续 P3 需要：
 
-- 建立独立 IID 与 compositional held-out split；
+- 建立独立 IID 与 compositional held-out split（D2 多轮对话数据版本）；
 - 明确每个 split 的来源、版本、hash 和分母；
 - 报告 P1-05 八级分布、parse success 和完整任务成功率；
 - 保留多 seed mean ± 总体标准差，但不把训练集抽样结果冒充泛化指标。
+
+### P2-06 P2 阶段性交付已完成（2026-08-28）
+
+**状态：已解决。**
+
+决策：实现 P2 确定性 evaluator，作为 P4 GRPO 的 reward 前置。
+
+交付：
+
+- `schemas/reward_signal.schema.json`（v1.0）：reward_type enum = {parse_success, argument_correct, final_answer_correct, execution_correct}；jsonschema Draft202012 校验严格；65 reward_signal 全部通过。
+- `scripts/reward_offline.py`：`compute_reward()` 复用 P1-05 classify，不重写分类；`aggregate()` 用 pop std（÷N）符合 P1-03；CLI 支持 --samples-dir / --transcripts / --output / --checkpoint / --transcript-kind。
+- `tests/test_reward_offline.py`：**30** 单测 = 8 层 × 3 例（positive / negative / boundary） + classifier 一致性（4 例） + CLI 聚合（1 例）。
+- `scripts/validate_stage0.py` + `examples/reward_signals/*.json` + `tests/test_stage0_schemas.py` 新增：reward schema 正负例 + reward_type / reward_binary 约束的验证测试。
+- `docs/protocols/p2-evaluator.md`：reward 定义、与 P1-05 关系（含 task_success 别名排除）、与 P4 GRPO 衔接的 5 项前置、已知边界（不含 trajectory shaping、D1 dev 非 held-out split）。
+- `docs/experiments/p2-evaluator/README.md`：5 ckpt × D1 dev 13 样本 = 65 reward_signal 评测表 + reward_type 主导通道分布。
+
+验证：scripts/run_tests.py full → Ran 220 tests OK；head→ follow-up commit；reviewer 通过（实际 provider/model minimax-cn/MiniMax-M3）。
+
+P3/P4 后续动作：
+
+- P3：D2 多轮对话数据集（生成器 + MockExecutor 多轮支持 + IID held-out split）；
+- P4 GRPO：等 P3 + P5-02 就位后实现 advantage 计算 + policy 更新；
+- P3/P4 的 P2 前置已全部满足（reward_signal schema v1.0 + offline reward CLI + 与 P1-05 classifier 一致性）。
 
 ---
 

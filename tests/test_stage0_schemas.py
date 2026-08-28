@@ -43,6 +43,7 @@ class Stage0SchemaTests(unittest.TestCase):
             "tool_calling_sample.schema.json": EXAMPLES / "tool_calling",
             "model_output.schema.json": EXAMPLES / "model_outputs",
             "evaluation_result.schema.json": EXAMPLES / "evaluation_results",
+            "reward_signal.schema.json": EXAMPLES / "reward_signals",
         }
         for schema_name, directory in groups.items():
             for path in sorted(directory.glob("*.json")):
@@ -85,6 +86,35 @@ class Stage0SchemaTests(unittest.TestCase):
         document = copy.deepcopy(self.single_tool)
         del document["metadata"]["license"]
         self.assert_invalid(document, "tool_calling_sample.schema.json")
+
+    def test_reward_signal_full_pass_is_valid(self) -> None:
+        reward = load_json(EXAMPLES / "reward_signals/reward-sample-001.json")
+        self.assertEqual(
+            [], errors_for(reward, "reward_signal.schema.json"))
+
+    def test_reward_signal_parse_fail_is_valid(self) -> None:
+        reward = load_json(
+            EXAMPLES / "reward_signals/reward-sample-002-parse-fail.json")
+        self.assertEqual(
+            [], errors_for(reward, "reward_signal.schema.json"))
+
+    def test_reward_signal_missing_reward_type_is_rejected(self) -> None:
+        document = load_json(
+            EXAMPLES / "reward_signals/reward-sample-001.json")
+        del document["reward_type"]
+        self.assert_invalid(document, "reward_signal.schema.json")
+
+    def test_reward_signal_unknown_reward_type_is_rejected(self) -> None:
+        document = copy.deepcopy(load_json(
+            EXAMPLES / "reward_signals/reward-sample-001.json"))
+        document["reward_type"] = "unknown_reward_type"
+        self.assert_invalid(document, "reward_signal.schema.json")
+
+    def test_reward_signal_binary_out_of_range_is_rejected(self) -> None:
+        document = copy.deepcopy(load_json(
+            EXAMPLES / "reward_signals/reward-sample-001.json"))
+        document["reward_binary"] = 1.5
+        self.assert_invalid(document, "reward_signal.schema.json")
 
 
 if __name__ == "__main__":

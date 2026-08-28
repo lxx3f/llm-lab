@@ -10,6 +10,7 @@
     "sample_id",
     "task_type",
     "transcript_kind",
+    "reward_type",
     "reward_binary",
     "reward_layered",
     "layer_pass_count",
@@ -48,6 +49,16 @@
     "checkpoint": {
       "type": ["string", "null"],
       "description": "Optional model checkpoint identifier (e.g. 'sft-tool-d256-seed42'). Null for mock transcripts."
+    },
+    "reward_type": {
+      "type": "string",
+      "enum": [
+        "parse_success",
+        "argument_correct",
+        "final_answer_correct",
+        "execution_correct"
+      ],
+      "description": "Dominant reward channel selected by reward_offline. ``parse_success`` is chosen when the first_failure is parse_success (transcript malformed) or when no tool calls were expected/predicted but the transcript is structurally valid. ``execution_correct`` is chosen when all tool calls executed successfully and the result_grounded layer passed. ``argument_correct`` is chosen when the transcript parsed and the calls match the expected plan (tool name + argument value) but execution or grounding fell short. ``final_answer_correct`` is the dominant reward when earlier layers pass but final_answer_correct is the first failure; it means the tool-calling chain produced a usable final answer."
     },
     "reward_binary": {
       "type": "number",
