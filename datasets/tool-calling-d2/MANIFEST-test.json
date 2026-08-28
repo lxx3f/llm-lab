@@ -1,0 +1,551 @@
+{
+  "schema_version": "1.0",
+  "data_version": "D2",
+  "split": "test",
+  "generator": "scripts/generate_d2_dataset.py",
+  "seed": 2026,
+  "count": 90,
+  "aggregate_sha256": "ecc646380530be66d9f2bc4252cdeecc3db3bc41a049bce9d99a53e467d811f6",
+  "samples": [
+    {
+      "path": "test/d2-test-001.json",
+      "sha256": "27ce338c34c1483271bb7fa8a979b8efdcd0beaa820ebd3edfd68dad569d14a3",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-002.json",
+      "sha256": "27c829d55ed6f86ba1204d49cce12d54583626350690666b84af7cca0e71d68d",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-003.json",
+      "sha256": "2bc65a85b2d9aaf5ee2f2210912679d17590b143148921482784104668dbff48",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-004.json",
+      "sha256": "749e3ed6162ec8c886eb4f6257071a4725838e4a8b96246b7777125a490a209c",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-005.json",
+      "sha256": "757d3d6fd74b99f4348d370cb9f28bdb9e7b42aa65049a5a9c441a6e7a82c598",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-006.json",
+      "sha256": "e588c87da212a96e0170289437a97fa92b89c1d06ba3267bd12c80740fb47f62",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-007.json",
+      "sha256": "abb7326d402f882a634f3971ea09beaef4a94e7fd1e7fcf6022d2734740d919a",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-008.json",
+      "sha256": "554471d7dc8f4d8786d9451af81dc9e90a7c8f7ac4ea80bb28524f93dd3dbfef",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-009.json",
+      "sha256": "1afad7aa64e99b0ee5807561b6a6f8ff664c7ad58390f4a7d68db0ae5e2f9654",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-010.json",
+      "sha256": "7a44dd6f89c8ddcf0f19d59a4a35d864e3072f2961b3f86fe89d4adaa0e3ab0f",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-011.json",
+      "sha256": "e7efb5881c7f8974a01ea5f6484657e63865c5aa4bd587fb8cf183a2afab75b1",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-012.json",
+      "sha256": "0a2c9576e49c91bf6fce40d57b38c708f50cb0651f3a3cde342eb38a26c1eb49",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-013.json",
+      "sha256": "3d668fb1bce9b088d7ccdebc76b198dd7b9710bc467d796e040f7594545143f5",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-014.json",
+      "sha256": "2b8267c373d6cb724bbbaf1e00330a5bce812f13ec70d7c139e454505e5903cd",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-015.json",
+      "sha256": "bb6de606a64da326083b7b80d7188c4a13a0a7fd3958e989bceb0a9df4d98b9d",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-016.json",
+      "sha256": "b25943f48e95e589f15209c81e23a633f719e9ecbcde0ecce8994616a764f009",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-017.json",
+      "sha256": "812b29584ffc6f98b3dbc9c92407bac0cc42dbccb88bfc92aa9463a053b8ff6a",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-018.json",
+      "sha256": "f94ac6e66d2de7893a024d95e0b047c684cfaeb192eeb852c648666b7221e291",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-019.json",
+      "sha256": "629cc97553ee974f903c5d326e760ae3a6a5c65e57a20653134371bc9d3d13d4",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-020.json",
+      "sha256": "27ce2a6e7f7a3edb298f1f6860729972f059de688a619cef33116f8fada5819a",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-021.json",
+      "sha256": "8bb56ad937cc082ddf62704fbf54a2238f405ab3de79c01d197742a49efaee2d",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-022.json",
+      "sha256": "a8a273f553edabe7a05bcfa909414647eb3e6445a632527b9dac02ac17963bd2",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-023.json",
+      "sha256": "4aa00090b2cd285d82541762583af57169901dfe3255792d5e576e06c890a6a0",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-024.json",
+      "sha256": "5c84305f807783d44fa1d22dc17a8c56f80a92e4d821b7e57fc79cb25f10dbc7",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-025.json",
+      "sha256": "52274e58eaca9cf4a1877378acd3fbfddbe90b88fdc68b14ef55600d88dff2c1",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-026.json",
+      "sha256": "4f1413a1434d42d967f8ae8c79fc42e55a9822cf6e3c493502fb557c66527db1",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-027.json",
+      "sha256": "9fc40b97cbe9fc919c570e1c83cd55be70a5d523651d2cd36c5cc36951535efd",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-028.json",
+      "sha256": "7a7d9cc93e681e69ad75b9408ffc4d2f676e7f8e510941d7803ad08db214d14d",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-029.json",
+      "sha256": "fd52c59a5ce3326ee7d0e6a9cf0366c041e9aa9b84e0c6619c2f12a9929c4470",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-030.json",
+      "sha256": "9817615bf8d4cb761669913718a86f8f837230594d54fd3256737b347e31aa5e",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-031.json",
+      "sha256": "ffc867e16966677422d4246e7ae214dd451e8e2b8be42c5d52229d64422211ca",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-032.json",
+      "sha256": "1837ed1f69ce96d28ba98f9cda45f9d0605c4584702948864cf105901f3c2ba9",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-033.json",
+      "sha256": "9d5edd465a2da42b52b733b82a0bb49f095995e35df0fb5d7a32862db2a5df5f",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-034.json",
+      "sha256": "159e737c19b9c761551d80851e452b50b89ef8bd41173cb014afba4f1c4ac60e",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-035.json",
+      "sha256": "dd42f89dbf0690e5464237bd7cbd8a9aa43890c1b5476222acddc4fefe5fb42a",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-036.json",
+      "sha256": "c3476286bbcbc756890b65dfb49046df7df212236881e19a39817a62864ced60",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-037.json",
+      "sha256": "039ee5037ec388af95cafae830ecf3c4331a2401cc36678ed44b99e02a128481",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-038.json",
+      "sha256": "f49bbd5d541093deaca1d78eb9e756c9786ed27acbc2b91cca4d9f1346222b09",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-039.json",
+      "sha256": "3cbf80418970335a99e1b5ccf76afb212000569b92076fbfaa07e9dafd3b2ce5",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-040.json",
+      "sha256": "b48f024e5050927e1681b85051838691324c0c5959ebc7d24578bd5804f14b5b",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-041.json",
+      "sha256": "946e20f5b7748b1a7281f9a687a860b5eee9dacedd6b61215f827fdf451c1ae2",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-042.json",
+      "sha256": "2c95b6d4bb7b3314166f195f5ff5fa552a58ddc3b9b34674c22be80b062cd34e",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-043.json",
+      "sha256": "57f5f031fb07c49c1f64ac161519e1033bc2a7dc64dfcc4cbbddc5f3c5ee556a",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-044.json",
+      "sha256": "fb5b22cc2b457ae4d42a7b0adaa97d2c69637252a8addb5aca6477c88ade5202",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-045.json",
+      "sha256": "98056016abf4dff7ba435424f310fe46fa34c040a67f9ea528d8035a8b98f0f5",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-046.json",
+      "sha256": "d205c5c99b959f0ee343e7b5baf3ca8cd3eda4e7213fc46c50ce122cb97c4229",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-047.json",
+      "sha256": "f89cfca18d3e88935201f56ada4cbef8a1bcbc56b0b879635b3924b3b293843c",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-048.json",
+      "sha256": "ed78cc018b78773ee1c39db1df509e347f36dd8180b45013d2159c5a83521d43",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-049.json",
+      "sha256": "6cb4a3a850ab72b49a1e8c9d9bba58626698f8a783306b46cf832a68a05fa4c1",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-050.json",
+      "sha256": "ea14012d079e404b57a6bb24650ce50bf00c350e946cc961fcf6070e72c49e5d",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-051.json",
+      "sha256": "2a98d948a5d8c043c57b6b7d24f428155d1bdca9bdfed96b88565ec9163dee46",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-052.json",
+      "sha256": "8d8f07530e0039ac0d504ef97db124d03b27801dd3f5683aec2be73dd065d050",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-053.json",
+      "sha256": "4f96c7ae018603a0a36648b19e1084f68f4ef9a7a997673c33db2e91b16c125e",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-054.json",
+      "sha256": "9ad0d1d8909a1aff356d1080a84b64320a9dcbc8c1837de0ab979bbc715f35e5",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-055.json",
+      "sha256": "5a611d8298ccf340d67ddb4ac9efddf6fb96ed7d776757bd7530dd6267d178c3",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-056.json",
+      "sha256": "944d311976d720450f4d36aed74369dffc6d86072a72772d8381ce2542ed9433",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-057.json",
+      "sha256": "427aa4e82f4304b9ef81710d17a8788f6e66f880e7719a0ad387732baea06c2f",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-058.json",
+      "sha256": "634867e1832ff283fafbb0e9a2f80e5ac123cda7b317d0902293afe9c2b7bf6f",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-059.json",
+      "sha256": "80f76d7235b0a8ed24093a92c6b2b68b7c20e84497e9b037c62eacaf3a3aaef4",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-060.json",
+      "sha256": "2396348b2779cd0b7c92d482539849fa8be8838abe05780b0f33dd4656ec5af3",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-061.json",
+      "sha256": "0553971eb1d16ab6a2587f603b437d85b0f677bc59efc772f401afaa4efc543f",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-062.json",
+      "sha256": "a3898f9ec783d07a69c3a8ca64cf8e304c4ae1e0c0fdfa6ae60e32ca3226c77f",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-063.json",
+      "sha256": "00a242afcf52d23eaf94bf3af95a7e4df7da832a5a1bd1011500d987aa856e10",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-064.json",
+      "sha256": "c500ff5cc7d57f13755deb46e39cbf16bd9ebbdcc1129b6d6322da7136d6ef8b",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-065.json",
+      "sha256": "85f2134ea7038e482adf49ba148d23bbef3f2da19f267743b9fb5942ee4d0340",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-066.json",
+      "sha256": "dc5bc5f8ba867430c09a7829e9c491d90fe99655d574225da30dea26567c6f2d",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-067.json",
+      "sha256": "21cfc89be1f2536d1d1e96696633b944d6706291b827462f9bcb1d7ea06b1a25",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-068.json",
+      "sha256": "bb6d50091afa91c4619174debf7f3acf9fa10fa3e205eac741eebdc3744420b7",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-069.json",
+      "sha256": "09564f0663360efbffd0ee91ae53d8ccb8f76b76fdcf7b993dfe74740548cfa6",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-070.json",
+      "sha256": "bbe3e756b82d60f4b9777d3e9502ab76421ba8f9a7e4e782a2b682964185985b",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-071.json",
+      "sha256": "e0d4a4427379f0258f4a18cf3fbf32c340743e6fb790b6699c7c4cc75181e822",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-072.json",
+      "sha256": "1b46ef86a251f2600e94146499b1e0b94c15384c83da4068067dd79f7c9e8131",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-073.json",
+      "sha256": "76203a0765c4eced3706e0347d884e3df42efba0fff4ae0829fef597213929bd",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-074.json",
+      "sha256": "bc43e22cb377febde8e3284286747b0f26388ec00ddb33cf7692b5d13737b09f",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-075.json",
+      "sha256": "811f2ff6e17e21932aee997e50231d2fb8093225189e7bec1dffba4e915cf914",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-076.json",
+      "sha256": "500cbbeecfad822774f6db8a6c81b0861309fbe3f7817e5f576fe83f5f41f289",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-077.json",
+      "sha256": "665b37b9067c034944ea5788e33364cedf0cff0f851ad507ffa86a1d0ff6cc5d",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-078.json",
+      "sha256": "b271d268d0351752bef5be9f9f143d64302ec7fdd2f343e5a76141f41dc5fc82",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-079.json",
+      "sha256": "09de83ef71ff14e6d6e968c0ba74f8d6dd04a3db46673cb5ed36f99d7494849d",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-080.json",
+      "sha256": "fb3a3cfe965d94839c4763e7d2f6b510741f7b078cce9c6833e94b55494d73eb",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-081.json",
+      "sha256": "532ad0bb5faab804320fc102b5df2486ba19e367cf6ca2b5059d4b02fc1a6de6",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-082.json",
+      "sha256": "2efe6eacb57cc3c8a86ff1ae1ee279fca6f65865ea94b95b4b9c9a413528efa9",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-083.json",
+      "sha256": "87704022355b51210681632d8d59cbda08e6396a46262c4d924bb74e6b89c1cd",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-084.json",
+      "sha256": "c5f02d46b32d8f921d870105bd1cf17f7a2da00ef032ac9817fb073ab99423d7",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-085.json",
+      "sha256": "de89ea483df8a0545ea0332fe58528e8b598b51cb195018306f49e5901c0ffae",
+      "task_type": "multi_turn_error_recovery",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-086.json",
+      "sha256": "71530181c1323cdc1bcb30ff958226e2d9dc0f793b9b823a65fd8175307e715f",
+      "task_type": "multi_turn_req_change",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-087.json",
+      "sha256": "151cf0683eac6b77accad0f38d49ffce0cf2903013bf19b89a7587a17bceb117",
+      "task_type": "multi_turn_insufficient_result",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-088.json",
+      "sha256": "8b2f690e8317ab7cc7e38ec8afe36c14505a21116da82f7af2f74926b7d2c4bc",
+      "task_type": "multi_turn_tool_not_available",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-089.json",
+      "sha256": "791e8210f8e14cce44c10355d5f22fcfaca6b4aa6130f231537e021af8def29f",
+      "task_type": "multi_turn_clarification",
+      "split": "test"
+    },
+    {
+      "path": "test/d2-test-090.json",
+      "sha256": "27c97604257aac30e78f23ee29a8f3b0076ca7b62ff6ec11d2ff326070cb0a16",
+      "task_type": "multi_turn_tool_chain",
+      "split": "test"
+    }
+  ]
+}

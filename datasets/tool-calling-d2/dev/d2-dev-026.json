@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0",
+  "id": "d2-dev-026",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant with tool access."
+    },
+    {
+      "role": "user",
+      "content": "帮我查一下深圳的天气。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-tmp-0446-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"深圳\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "深圳 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-tmp-0446-0001",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "user",
+      "content": "算了，改成查北京的天气吧。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-dev-026-tmp-0446-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"北京\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "北京 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-dev-026-tmp-0446-0002",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "assistant",
+      "content": "北京天气：北京 当前天气：晴，22°C，微风。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-dev-026-tmp-0446-0002",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "北京"
+      },
+      "expected_result": "北京 当前天气：晴，22°C，微风。",
+      "depends_on": []
+    }
+  ],
+  "expected_answer": "按最新要求：北京 当前天气：晴，22°C，微风。",
+  "metadata": {
+    "source": "d2-synthetic-template",
+    "license": "project-internal",
+    "task_type": "multi_turn_req_change",
+    "task_template": "req_change_to_beijing",
+    "data_version": "D2",
+    "pipeline_version": "generate_d2_dataset.py/v1.0",
+    "created_at": "2026-08-27T00:07:26+00:00",
+    "validation": {
+      "schema_valid": true,
+      "tool_execution_valid": true,
+      "answer_valid": true,
+      "quality_passed": true
+    },
+    "split": "dev"
+  }
+}

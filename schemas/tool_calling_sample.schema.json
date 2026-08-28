@@ -194,7 +194,13 @@
             "multi_tool",
             "tool_error",
             "insufficient_result",
-            "requirement_change"
+            "requirement_change",
+            "multi_turn_tool_chain",
+            "multi_turn_error_recovery",
+            "multi_turn_req_change",
+            "multi_turn_insufficient_result",
+            "multi_turn_tool_not_available",
+            "multi_turn_clarification"
           ]
         },
         "data_version": {

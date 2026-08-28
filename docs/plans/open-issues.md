@@ -730,7 +730,7 @@ docs/
 
 D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于探索性诊断，但不是独立 held-out split，不能作为正式泛化质量结论。
 
-**状态：已部分解决。** P2 阶段交付了 offline reward 校验（reward_signal schema v1.0 + CLI + 37 单测 + stage0 集成 + 5 ckpt × 13 = 65 reward_signal 全 schema 校验通过），详见 `docs/experiments/p2-evaluator/README.md` 与 `docs/plans/reviews/stage-p2-evaluator.md`。但独立 IID held-out split 未产出，留作 P3 交付。
+**状态：已部分解决。** P2 + P3 联合交付：P2 完成 offline reward 校验（reward_signal schema v1.0 + CLI + 37 单测 + stage0 集成 + 5 ckpt × D1 dev 13 = 65 reward_signal 全 schema 校验通过），P3 交付了 D2 多轮对话数据集（600 样本、train/dev/test = 420/90/90 IID split、MockExecutor 多轮端到端验证、`tests/test_d2_dataset.py` 17 单测、`docs/protocols/d2-multi-turn.md`）。P2-05 定义的“独立 IID held-out split”已由 P3 交付：D2 dev 90 样本是首个有统计意义的 reward split。但 D2 dev 上的“真实推理 reward 评测”仍待 P5-02 公开模型 + Transformers backend 后才能做。
 
 后续 P3 需要：
 
@@ -760,9 +760,42 @@ D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于�
 
 P3/P4 后续动作：
 
-- P3：D2 多轮对话数据集（生成器 + MockExecutor 多轮支持 + IID held-out split）；
-- P4 GRPO：等 P3 + P5-02 就位后实现 advantage 计算 + policy 更新；
+- P3 D2 多轮对话数据集已交付，详见 `### P3-01` 决策记录 + `docs/protocols/d2-multi-turn.md` + `docs/plans/reviews/stage-p3-d2-multi-turn.md`；
+- P4 GRPO：等 P5-02 就位后实现 advantage 计算 + policy 更新；
 - P3/P4 的 P2 前置已全部满足（reward_signal schema v1.0 + offline reward CLI + 与 P1-05 classifier 一致性）。
+
+### P3-01 D2 多轮对话数据集 + IID held-out split（2026-08-28）
+
+**状态：已解决。**
+
+决策：实现 D2 多轮数据版本，作为 P4 GRPO 的数据集基础；为 P2-05 显式未解决的“独立 IID held-out split”提供首个有统计意义的 reward split。
+
+交付：
+
+- `schemas/tool_calling_sample.schema.json` 扩展 task_type enum = 6 类多轮：multi_turn_tool_chain / multi_turn_error_recovery / multi_turn_req_change / multi_turn_insufficient_result / multi_turn_tool_not_available / multi_turn_clarification；向后兼容 D1 / D1.1 样本。
+- `scripts/generate_d2_dataset.py`：
+  - 默认生成 600 样本（6 类各 100），train/dev/test = 420/90/90 IID split；
+  - `--seed 2026` 确定性；确定性 id 命名空间前缀（`d2-train-NNNN` / `d2-dev-NNN` / `d2-test-NNN`）；call_id 命名空间与 sample id 一致（reviewer r1 W1 修复）；
+  - MockExecutor 多轮端到端验证：position-paired `expected_result == mock(**arguments)`；
+  - per-split `aggregate_sha256`（按 split 内 id 排序后的 hash）+ per-file sha256；
+  - MANIFEST-{train,dev,test}.json 含 count + aggregate + samples[]。
+- `tests/test_d2_dataset.py`：**17** 单测分 5 组：
+  - `D2DatasetSchemaTests` (3)：schema 合法、6 类 task_type 覆盖、每 split 含 6 类；
+  - `D2MultiTurnStructureTests` (4)：multi-turn messages 结构 + tool_call_id 显式存在 + expected_tool_calls call_id 与 transcript 一致；
+  - `D2MockExecutorReplayTests` (1)：mock(**args) == expected_result；
+  - `D2SplitDisjointnessTests` (6)：train/dev/test id 不重叠、path 不重叠、与 D1/D1.1 train id 互斥、MANIFEST count / aggregate / per-file sha 一致；
+  - `D2IdFormatTests` (3)：id 前缀约束。
+- `docs/protocols/d2-multi-turn.md`：D2 schema 与 D1 / D1.1 差异 + 6 类任务定义 + call_id 依赖链 + held-out split 互斥保证 + 与 P2 reward offline + P4 GRPO + P5-02 衔接。
+- `docs/experiments/p2-evaluator/README.md`：引用 D2 dev 90 样本作为首个有统计意义的 reward benchmark；`artifacts/d2-mock-reward-d2dev.json` 验证 reward_offline 能消费 D2 dev 多轮 transcript（90/90 reward_binary=1.0）。
+- `docs/plans/roadmap.md`：P3 加入已完成阶段表；当前阶段仍 P5。
+- `docs/plans/reviews/stage-p3-d2-multi-turn.md`：阶段审查记录（reviewer r1 PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）；4 warnings 已修：call_id 命名空间一致性、req_change 保留首轮废弃轨迹并标记 abandoned、open-issues.md 本条目同步、第 9 节表格双 `|` 修正。
+
+验证：scripts/run_tests.py full → Ran **244** tests OK（227 → 244 = +17 P3 单测）；scripts/validate_stage0.py --examples → 7/7 PASS；600 D2 样本 MockExecutor 端到端验证零错误；D2 dev mock transcript pipeline 90/90 reward_binary=1.0；reviewer r1 通过。
+
+遗留：
+
+- 自研 5 ckpt（单轮训练）尚未在 D2 dev 上跑实际推理 reward 评测——需 P5-02 公开模型 + Transformers backend 后才能验证。
+- D2 数据规模 600（420 train / 90 dev / 90 test）属 MVP；正式 GRPO rollout 池需 D2 扩样到 5000+。
 
 ---
 

@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "id": "d2-test-003",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant with tool access."
+    },
+    {
+      "role": "user",
+      "content": "搜索 'vLLM 部署' 的资料；如不够请追问我。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-test-003-tmp-0513-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"vLLM 部署\", \"limit\": 1}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「vLLM 部署」找到 1 条结果。",
+      "tool_call_id": "call-d2-test-003-tmp-0513-0001",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "只找到 1 条结果：关于「vLLM 部署」找到 1 条结果。。能告诉我你具体关心哪方面吗？"
+    },
+    {
+      "role": "user",
+      "content": "我关注 2026 年的最新进展。"
+    },
+    {
+      "role": "assistant",
+      "content": "好的，了解了；我可以基于这条结果继续回答（如果有 2026 年的具体问题欢迎追问）。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "Search the web for information.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-test-003-tmp-0513-0001",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "vLLM 部署",
+        "limit": 1
+      },
+      "expected_result": "关于「vLLM 部署」找到 1 条结果。",
+      "depends_on": []
+    }
+  ],
+  "expected_answer": "结果有限：关于「vLLM 部署」找到 1 条结果。；已追问用户补充 2026 最新进展。",
+  "metadata": {
+    "source": "d2-synthetic-template",
+    "license": "project-internal",
+    "task_type": "multi_turn_insufficient_result",
+    "task_template": "insufficient_clarify",
+    "data_version": "D2",
+    "pipeline_version": "generate_d2_dataset.py/v1.0",
+    "created_at": "2026-08-27T00:08:33+00:00",
+    "validation": {
+      "schema_valid": true,
+      "tool_execution_valid": true,
+      "answer_valid": true,
+      "quality_passed": true
+    },
+    "split": "test"
+  }
+}

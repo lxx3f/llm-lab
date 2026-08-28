@@ -1,0 +1,140 @@
+{
+  "schema_version": "1.0",
+  "id": "d2-train-0216",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant with tool access."
+    },
+    {
+      "role": "user",
+      "content": "先计算 (8 - 3) * 6，然后搜索结果 'result 30' 的相关背景。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0216-tmp-0216-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_calculate",
+            "arguments": "{\"expression\": \"(8 - 3) * 6\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "30",
+      "tool_call_id": "call-d2-train-0216-tmp-0216-0001",
+      "name": "d1_calculate"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0216-tmp-0216-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"result 30\", \"limit\": 3}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「result 30」找到 3 条结果。",
+      "tool_call_id": "call-d2-train-0216-tmp-0216-0002",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "计算 (8 - 3) * 6 = 30；搜索结果：关于「result 30」找到 3 条结果。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "Search the web for information.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-train-0216-tmp-0216-0001",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "(8 - 3) * 6"
+      },
+      "expected_result": "30",
+      "depends_on": []
+    },
+    {
+      "call_id": "call-d2-train-0216-tmp-0216-0002",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "result 30",
+        "limit": 3
+      },
+      "depends_on": [
+        "call-d2-train-0216-tmp-0216-0001"
+      ],
+      "expected_result": "关于「result 30」找到 3 条结果。"
+    }
+  ],
+  "expected_answer": "30 + 搜索: 关于「result 30」找到 3 条结果。",
+  "metadata": {
+    "source": "d2-synthetic-template",
+    "license": "project-internal",
+    "task_type": "multi_turn_tool_chain",
+    "task_template": "chain_calc_search",
+    "data_version": "D2",
+    "pipeline_version": "generate_d2_dataset.py/v1.0",
+    "created_at": "2026-08-27T00:03:36+00:00",
+    "validation": {
+      "schema_valid": true,
+      "tool_execution_valid": true,
+      "answer_valid": true,
+      "quality_passed": true
+    },
+    "split": "train"
+  }
+}

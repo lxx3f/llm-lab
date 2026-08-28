@@ -2,7 +2,7 @@
 
 > 状态：阶段交付（2026-08-28）。
 >
-> 本实验在 D1 dev 13 样本上对 SFT MVP 的 5 个 checkpoint 跑 `scripts/reward_offline.py`，把 P1-05 八级分类器的结果映射为可训练 reward 信号（含 reward_type 主导通道 + reward_binary + reward_layered）。结果用于：(a) 验证 P2 协议的语义一致性；(b) 量化每个 checkpoint 在 held-out split 上的 reward 分布；(c) 作为 P4 GRPO 的前置信号校验。
+> 本实验在 **D1 dev 13 样本** 与 **D2 dev 90 样本**两个 split 上对 SFT MVP 的 5 个 checkpoint 跑 `scripts/reward_offline.py`，把 P1-05 八级分类器的结果映射为可训练 reward 信号（含 reward_type 主导通道 + reward_binary + reward_layered）。结果用于：(a) 验证 P2 协议的语义一致性；(b) 量化每个 checkpoint 在 held-out split 上的 reward 分布；(c) 作为 P4 GRPO 的前置信号校验；(d) 验证 reward_offline 在多轮 transcript pipeline 上的可移植性。
 
 ## 1. 评测对象（5 × 13 = 65 个 reward_signal）
 
@@ -58,9 +58,10 @@
 ### 2.4 已知边界
 
 - **D1 dev 仅 13 样本，5 checkpoint × 13 = 65 signals 不是一个有统计意义的 reward benchmark**；
-- 真正的 reward 验证需建立在**独立的 IID held-out split**（P3 阶段产出）；
+- **D2 dev 90 样本** 是首个有统计意义的 held-out reward split（详见 `docs/protocols/d2-multi-turn.md`）。本轮已验证 reward_offline 在 D2 dev 多轮 transcript pipeline 上工作正常：mock transcript (手工重建 D2 dev 中 expected_tool_calls 的成功执行轨迹) → reward_offline → **90/90 reward_binary=1.0、reward_layered=1.0**（`artifacts/d2-mock-reward-d2dev.json`）。该 mock pipeline 验证仅证明 reward_offline 能消费 D2 dev 多轮 transcript，不等同于在 D2 dev 上跑模型推理的 reward 评测。
 - D1.1 train 50-sample 聚合不是 held-out split，不能用于正式 reward 分布对比；
-- 5 ckpt 之外的多 seed 聚合（d256 5k × 3 seeds）属 SFT MVP 阶段的多 seed 协议（P1-03）产出，本表不重复列举。
+- 5 ckpt 之外的多 seed 聚合（d256 5k × 3 seeds）属 SFT MVP 阶段的多 seed 协议（P1-03）产出，本表不重复列举；
+- 下一阶段：5 ckpt 实际在 D2 dev 上跑推理（需先确保 checkpoint 接受多轮 messages；当前自研 12M 模型均为单轮训练，D2 dev 跨多轮场景尚未生成实际 transcript）。P5-02 公开 instruction-tuned 模型可以直接接受 D2 dev 多轮 messages，是首个能在 D2 dev 上跑实际 reward 评测的场景。
 
 ## 3. 文件
 
@@ -76,6 +77,7 @@
 | `docs/protocols/p2-evaluator.md` | P2 协议文档 |
 | `docs/experiments/p2-evaluator/README.md` | 本文件 |
 | `artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d1dev-reward.json` | 5 ckpt × D1 dev 13 = **65** reward_signal + aggregate（gitignored）|
+| `artifacts/d2-mock-reward-d2dev.json` | mock transcript pipeline 验证：reward_offline 在 D2 dev 90 多轮 transcript 上输出 90/90 reward_binary=1.0（gitignored）|
 
 ## 4. 复现
 
