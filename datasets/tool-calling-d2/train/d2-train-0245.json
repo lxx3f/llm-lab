@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请先算出 2 + 3，随后查找这个数字为 5 的资料。（场景是数据治理，额外要求是优先保留可复现性。）"
+      "content": "请调用天气工具查询厦门。"
     },
     {
       "role": "assistant",
@@ -18,17 +18,21 @@
           "id": "call-d2-train-0245-0001",
           "type": "function",
           "function": {
-            "name": "d1_calculate",
-            "arguments": "{\"expression\": \"2 + 3\"}"
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"厦门\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "5",
+      "content": "厦门 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0245-0001",
-      "name": "d1_calculate"
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "user",
+      "content": "请把查询目标改为天津。"
     },
     {
       "role": "assistant",
@@ -38,60 +42,38 @@
           "id": "call-d2-train-0245-0002",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"这个数字 5\", \"limit\": 2}"
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"天津\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「这个数字 5」找到 2 条结果。",
+      "content": "天津 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0245-0002",
-      "name": "d1_web_search"
+      "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "第一步结果为 5；随后搜索得到：关于「这个数字 5」找到 2 条结果。（场景是数据治理，额外要求是优先保留可复现性。）"
+      "content": "忽略之前的厦门，当前结果是天津 当前天气：晴，22°C，微风。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
         "parameters": {
           "type": "object",
           "properties": {
-            "expression": {
+            "city": {
               "type": "string"
             }
           },
           "required": [
-            "expression"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_web_search",
-        "description": "Search the web for information.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string"
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1
-            }
-          },
-          "required": [
-            "query"
+            "city"
           ]
         }
       }
@@ -100,32 +82,31 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0245-0001",
-      "name": "d1_calculate",
+      "name": "d1_get_weather",
       "arguments": {
-        "expression": "2 + 3"
+        "city": "厦门"
       },
-      "expected_result": 5,
+      "expected_result": "厦门 当前天气：晴，22°C，微风。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0245-0002",
-      "name": "d1_web_search",
+      "name": "d1_get_weather",
       "arguments": {
-        "query": "这个数字 5",
-        "limit": 2
+        "city": "天津"
       },
       "depends_on": [
         "call-d2-train-0245-0001"
       ],
-      "expected_result": "关于「这个数字 5」找到 2 条结果。"
+      "expected_result": "天津 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "第一步结果为 5；随后搜索得到：关于「这个数字 5」找到 2 条结果。（场景是数据治理，额外要求是优先保留可复现性。）",
+  "expected_answer": "忽略之前的厦门，当前结果是天津 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "multi_tool_sequential",
-    "task_template": "calc_then_search",
+    "task_type": "req_change_city",
+    "task_template": "abandoned_old_city_then_retry",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:57:51Z",
@@ -135,6 +116,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 245
   }
 }

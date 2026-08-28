@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我搜集 MoE 路由 相关内容，若只有少量结果就先询问我的关注点。（场景是离线环境，额外要求是记录关键中间结果。）"
+      "content": "请查找关于 MoE 路由 的信息；资料过少时向我确认范围。"
     },
     {
       "role": "assistant",
@@ -19,28 +19,28 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"MoE 路由\", \"limit\": 2}"
+            "arguments": "{\"query\": \"MoE 路由\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「MoE 路由」找到 2 条结果。",
+      "content": "关于「MoE 路由」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0171-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "仅找到 2 条结果：关于「MoE 路由」找到 2 条结果。。请补充你关注的方向。"
+      "content": "已有初步结果：关于「MoE 路由」找到 1 条结果。。为了继续整理，请补充具体关注点。"
     },
     {
       "role": "user",
-      "content": "请优先整理开源实现方面的信息。"
+      "content": "我关注 2026 年的最新进展。"
     },
     {
       "role": "assistant",
-      "content": "收到，我会按这个方向继续。（场景是离线环境，额外要求是记录关键中间结果。）"
+      "content": "好的，我会按你的关注点继续检索。"
     }
   ],
   "tools": [
@@ -73,13 +73,13 @@
       "name": "d1_web_search",
       "arguments": {
         "query": "MoE 路由",
-        "limit": 2
+        "limit": 1
       },
-      "expected_result": "关于「MoE 路由」找到 2 条结果。",
+      "expected_result": "关于「MoE 路由」找到 1 条结果。",
       "depends_on": []
     }
   ],
-  "expected_answer": "仅找到 2 条结果：关于「MoE 路由」找到 2 条结果。。请补充你关注的方向。（场景是离线环境，额外要求是记录关键中间结果。）",
+  "expected_answer": "已有初步结果：关于「MoE 路由」找到 1 条结果。。为了继续整理，请补充具体关注点。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -94,6 +94,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 171
   }
 }

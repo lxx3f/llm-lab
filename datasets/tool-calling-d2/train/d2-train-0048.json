@@ -8,58 +8,50 @@
     },
     {
       "role": "user",
-      "content": "搜索 KV cache 的 推理优化近期研究；结果不足时请调整查询。（场景是客服工单，额外要求是关注输入边界。）"
+      "content": "请处理下面这项请求：把机房的温度报警门槛调到 28 度。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0048-0001",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"KV cache\", \"limit\": 1}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「KV cache」找到 1 条结果。",
-      "tool_call_id": "call-d2-train-0048-0001",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "“KV cache”结果过少，我会细化关键词后重试。"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0048-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"KV cache 压缩 2025 进展\", \"limit\": 3}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「KV cache 压缩 2025 进展」找到 3 条结果。",
-      "tool_call_id": "call-d2-train-0048-0002",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "针对推理优化近期研究，初始关键词『KV cache』命中有限，细化为『KV cache 压缩 2025 进展』的结果是：关于「KV cache 压缩 2025 进展」找到 3 条结果。（场景是客服工单，额外要求是关注输入边界。）"
+      "content": "当前工具列表不包含机房报警阈值设置能力，因此无法执行该请求。"
     }
   ],
   "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
     {
       "type": "function",
       "function": {
@@ -83,36 +75,13 @@
       }
     }
   ],
-  "expected_tool_calls": [
-    {
-      "call_id": "call-d2-train-0048-0001",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "KV cache",
-        "limit": 1
-      },
-      "expected_result": "关于「KV cache」找到 1 条结果。",
-      "depends_on": []
-    },
-    {
-      "call_id": "call-d2-train-0048-0002",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "KV cache 压缩 2025 进展",
-        "limit": 3
-      },
-      "depends_on": [
-        "call-d2-train-0048-0001"
-      ],
-      "expected_result": "关于「KV cache 压缩 2025 进展」找到 3 条结果。"
-    }
-  ],
-  "expected_answer": "针对推理优化近期研究，初始关键词『KV cache』命中有限，细化为『KV cache 压缩 2025 进展』的结果是：关于「KV cache 压缩 2025 进展」找到 3 条结果。（场景是客服工单，额外要求是关注输入边界。）",
+  "expected_tool_calls": [],
+  "expected_answer": "当前工具列表不包含机房报警阈值设置能力，因此无法执行该请求。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "error_recovery",
-    "task_template": "refine_query_after_insufficient_result",
+    "task_type": "tool_not_available",
+    "task_template": "missing_机房阈值",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:34Z",
@@ -122,6 +91,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 48
   }
 }

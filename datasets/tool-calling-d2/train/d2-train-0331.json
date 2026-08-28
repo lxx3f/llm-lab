@@ -8,11 +8,51 @@
     },
     {
       "role": "user",
-      "content": "请处理下面这项请求：请帮我创建一个新的 IT 工单。 我今天就要用到结果。（场景是高并发服务，额外要求是优先保留可复现性。）"
+      "content": "请先算出 72 / 8，随后查找这个数字为 9 的资料。"
     },
     {
       "role": "assistant",
-      "content": "可用工具无法支持工单创建；本次请求不能由工具链完成。（场景是高并发服务，额外要求是优先保留可复现性。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0331-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_calculate",
+            "arguments": "{\"expression\": \"72 / 8\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "9",
+      "tool_call_id": "call-d2-train-0331-0001",
+      "name": "d1_calculate"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0331-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"这个数字 9\", \"limit\": 2}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「这个数字 9」找到 2 条结果。",
+      "tool_call_id": "call-d2-train-0331-0002",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "第一步结果为 9；随后搜索得到：关于「这个数字 9」找到 2 条结果。"
     }
   ],
   "tools": [
@@ -30,24 +70,6 @@
           },
           "required": [
             "expression"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "city": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "city"
           ]
         }
       }
@@ -73,37 +95,37 @@
           ]
         }
       }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_translate",
-        "description": "Translate text to a target language.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string"
-            },
-            "target_lang": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "text",
-            "target_lang"
-          ]
-        }
-      }
     }
   ],
-  "expected_tool_calls": [],
-  "expected_answer": "可用工具无法支持工单创建；本次请求不能由工具链完成。（场景是高并发服务，额外要求是优先保留可复现性。）",
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-train-0331-0001",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "72 / 8"
+      },
+      "expected_result": 9,
+      "depends_on": []
+    },
+    {
+      "call_id": "call-d2-train-0331-0002",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "这个数字 9",
+        "limit": 2
+      },
+      "depends_on": [
+        "call-d2-train-0331-0001"
+      ],
+      "expected_result": "关于「这个数字 9」找到 2 条结果。"
+    }
+  ],
+  "expected_answer": "第一步结果为 9；随后搜索得到：关于「这个数字 9」找到 2 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "tool_not_available",
-    "task_template": "missing_工单创建",
+    "task_type": "multi_tool_sequential",
+    "task_template": "calc_then_search",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:59:17Z",
@@ -113,6 +135,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 331
   }
 }

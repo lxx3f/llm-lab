@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "围绕 长上下文训练 做一次检索；不充分时不要臆测，请回来提问。（场景是小模型推理，额外要求是关注输入边界。）"
+      "content": "我想了解 Mamba 状态空间模型，请先搜索，结果不足再向我澄清需求。"
     },
     {
       "role": "assistant",
@@ -19,28 +19,28 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"长上下文训练\", \"limit\": 2}"
+            "arguments": "{\"query\": \"Mamba 状态空间模型\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「长上下文训练」找到 2 条结果。",
+      "content": "关于「Mamba 状态空间模型」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0195-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "仅找到 2 条结果：关于「长上下文训练」找到 2 条结果。。请补充你关注的方向。"
+      "content": "这次搜索范围较窄，仅返回 关于「Mamba 状态空间模型」找到 2 条结果。；请进一步说明筛选条件。"
     },
     {
       "role": "user",
-      "content": "请优先整理开源实现方面的信息。"
+      "content": "我关注训练稳定性与可复现性。"
     },
     {
       "role": "assistant",
-      "content": "收到，我会按这个方向继续。（场景是小模型推理，额外要求是关注输入边界。）"
+      "content": "了解，我将优先筛选符合该条件的资料。"
     }
   ],
   "tools": [
@@ -72,14 +72,14 @@
       "call_id": "call-d2-train-0195-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "长上下文训练",
+        "query": "Mamba 状态空间模型",
         "limit": 2
       },
-      "expected_result": "关于「长上下文训练」找到 2 条结果。",
+      "expected_result": "关于「Mamba 状态空间模型」找到 2 条结果。",
       "depends_on": []
     }
   ],
-  "expected_answer": "仅找到 2 条结果：关于「长上下文训练」找到 2 条结果。。请补充你关注的方向。（场景是小模型推理，额外要求是关注输入边界。）",
+  "expected_answer": "这次搜索范围较窄，仅返回 关于「Mamba 状态空间模型」找到 2 条结果。；请进一步说明筛选条件。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -94,6 +94,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 195
   }
 }

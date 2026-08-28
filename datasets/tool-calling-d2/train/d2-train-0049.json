@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "查一下比特币现在的价格。 我今天就要用到结果。（场景是客服工单，额外要求是记录关键中间结果。）"
+      "content": "帮我在公司 1 公里内找一家能彩打的店。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": "当前工具列表不包含加密货币价格能力，因此无法执行该请求。（场景是客服工单，额外要求是记录关键中间结果。）"
+      "content": "可用工具无法支持附近打印店；本次请求不能由工具链完成。"
     }
   ],
   "tools": [
@@ -76,12 +76,12 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前工具列表不包含加密货币价格能力，因此无法执行该请求。（场景是客服工单，额外要求是记录关键中间结果。）",
+  "expected_answer": "可用工具无法支持附近打印店；本次请求不能由工具链完成。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_加密货币",
+    "task_template": "missing_打印店",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:35Z",
@@ -91,6 +91,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 49
   }
 }

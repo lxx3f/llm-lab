@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 transformers 的 训练库版本变化；结果不足时请调整查询。（场景是边缘设备，额外要求是避免臆造无法验证的信息。）"
+      "content": "搜索 RoPE 的 位置编码；结果不足时请调整查询。"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"transformers\", \"limit\": 1}"
+            "arguments": "{\"query\": \"RoPE\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「transformers」找到 1 条结果。",
+      "content": "关于「RoPE」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0390-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "这个搜索范围太宽，我先调整检索词。"
+      "content": "初次检索不充分，接下来我会收窄到更具体的关键词。"
     },
     {
       "role": "assistant",
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"transformers 4.40 主要变更\", \"limit\": 4}"
+            "arguments": "{\"query\": \"RoPE 外推 2025\", \"limit\": 3}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「transformers 4.40 主要变更」找到 4 条结果。",
+      "content": "关于「RoPE 外推 2025」找到 3 条结果。",
       "tool_call_id": "call-d2-train-0390-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "『transformers』的初步结果不够，我将训练库版本变化聚焦到『transformers 4.40 主要变更』，返回：关于「transformers 4.40 主要变更」找到 4 条结果。（场景是边缘设备，额外要求是避免臆造无法验证的信息。）"
+      "content": "初次搜索『RoPE』结果过少（位置编码），已重试为『RoPE 外推 2025』并扩大 limit，得到：关于「RoPE 外推 2025」找到 3 条结果。"
     }
   ],
   "tools": [
@@ -88,26 +88,26 @@
       "call_id": "call-d2-train-0390-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "transformers",
-        "limit": 1
+        "query": "RoPE",
+        "limit": 2
       },
-      "expected_result": "关于「transformers」找到 1 条结果。",
+      "expected_result": "关于「RoPE」找到 2 条结果。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0390-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "transformers 4.40 主要变更",
-        "limit": 4
+        "query": "RoPE 外推 2025",
+        "limit": 3
       },
       "depends_on": [
         "call-d2-train-0390-0001"
       ],
-      "expected_result": "关于「transformers 4.40 主要变更」找到 4 条结果。"
+      "expected_result": "关于「RoPE 外推 2025」找到 3 条结果。"
     }
   ],
-  "expected_answer": "『transformers』的初步结果不够，我将训练库版本变化聚焦到『transformers 4.40 主要变更』，返回：关于「transformers 4.40 主要变更」找到 4 条结果。（场景是边缘设备，额外要求是避免臆造无法验证的信息。）",
+  "expected_answer": "初次搜索『RoPE』结果过少（位置编码），已重试为『RoPE 外推 2025』并扩大 limit，得到：关于「RoPE 外推 2025」找到 3 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -122,6 +122,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 390
   }
 }

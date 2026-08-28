@@ -8,42 +8,50 @@
     },
     {
       "role": "user",
-      "content": "请查找关于 MoE 路由 的信息；资料过少时向我确认范围。（场景是企业知识库，额外要求是记录关键中间结果。）"
+      "content": "帮我在明天下午 3 点创建一个会议日程。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0021-0001",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"MoE 路由\", \"limit\": 1}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「MoE 路由」找到 1 条结果。",
-      "tool_call_id": "call-d2-train-0021-0001",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "已有初步结果：关于「MoE 路由」找到 1 条结果。。为了继续整理，请补充具体关注点。"
-    },
-    {
-      "role": "user",
-      "content": "我关注 2026 年的最新进展。"
-    },
-    {
-      "role": "assistant",
-      "content": "好的，我会按你的关注点继续检索。（场景是企业知识库，额外要求是记录关键中间结果。）"
+      "content": "当前可用工具中没有创建日历日程功能，无法完成此任务。"
     }
   ],
   "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
     {
       "type": "function",
       "function": {
@@ -67,24 +75,13 @@
       }
     }
   ],
-  "expected_tool_calls": [
-    {
-      "call_id": "call-d2-train-0021-0001",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "MoE 路由",
-        "limit": 1
-      },
-      "expected_result": "关于「MoE 路由」找到 1 条结果。",
-      "depends_on": []
-    }
-  ],
-  "expected_answer": "已有初步结果：关于「MoE 路由」找到 1 条结果。。为了继续整理，请补充具体关注点。（场景是企业知识库，额外要求是记录关键中间结果。）",
+  "expected_tool_calls": [],
+  "expected_answer": "当前可用工具中没有创建日历日程功能，无法完成此任务。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "insufficient_result_search",
-    "task_template": "search_then_clarify",
+    "task_type": "tool_not_available",
+    "task_template": "missing_日历日程",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:07Z",
@@ -94,6 +91,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 21
   }
 }

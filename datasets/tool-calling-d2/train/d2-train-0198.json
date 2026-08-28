@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 JAX 的 深度学习框架最新进展；结果不足时请调整查询。（场景是小模型推理，额外要求是关注输入边界。）"
+      "content": "请查找关于 多 seed 实验 的信息；资料过少时向我确认范围。"
     },
     {
       "role": "assistant",
@@ -19,44 +19,28 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"JAX\", \"limit\": 2}"
+            "arguments": "{\"query\": \"多 seed 实验\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「JAX」找到 2 条结果。",
+      "content": "关于「多 seed 实验」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0198-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "初次检索不充分，接下来我会收窄到更具体的关键词。"
+      "content": "已有初步结果：关于「多 seed 实验」找到 2 条结果。。为了继续整理，请补充具体关注点。"
+    },
+    {
+      "role": "user",
+      "content": "我关注 2026 年的最新进展。"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0198-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"JAX v0.4.20 主要改进\", \"limit\": 3}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「JAX v0.4.20 主要改进」找到 3 条结果。",
-      "tool_call_id": "call-d2-train-0198-0002",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "针对深度学习框架最新进展，初始关键词『JAX』命中有限，细化为『JAX v0.4.20 主要改进』的结果是：关于「JAX v0.4.20 主要改进」找到 3 条结果。（场景是小模型推理，额外要求是关注输入边界。）"
+      "content": "好的，我会按你的关注点继续检索。"
     }
   ],
   "tools": [
@@ -88,31 +72,19 @@
       "call_id": "call-d2-train-0198-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "JAX",
+        "query": "多 seed 实验",
         "limit": 2
       },
-      "expected_result": "关于「JAX」找到 2 条结果。",
+      "expected_result": "关于「多 seed 实验」找到 2 条结果。",
       "depends_on": []
-    },
-    {
-      "call_id": "call-d2-train-0198-0002",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "JAX v0.4.20 主要改进",
-        "limit": 3
-      },
-      "depends_on": [
-        "call-d2-train-0198-0001"
-      ],
-      "expected_result": "关于「JAX v0.4.20 主要改进」找到 3 条结果。"
     }
   ],
-  "expected_answer": "针对深度学习框架最新进展，初始关键词『JAX』命中有限，细化为『JAX v0.4.20 主要改进』的结果是：关于「JAX v0.4.20 主要改进」找到 3 条结果。（场景是小模型推理，额外要求是关注输入边界。）",
+  "expected_answer": "已有初步结果：关于「多 seed 实验」找到 2 条结果。。为了继续整理，请补充具体关注点。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "error_recovery",
-    "task_template": "refine_query_after_insufficient_result",
+    "task_type": "insufficient_result_search",
+    "task_template": "search_then_clarify",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:57:04Z",
@@ -122,6 +94,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 198
   }
 }

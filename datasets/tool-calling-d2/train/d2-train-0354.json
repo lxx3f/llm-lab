@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 paged attention 的 推理优化；结果不足时请调整查询。（场景是高并发服务，额外要求是记录关键中间结果。）"
+      "content": "搜索 quantization 的 模型量化研究；结果不足时请调整查询。"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"paged attention\", \"limit\": 2}"
+            "arguments": "{\"query\": \"quantization\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「paged attention」找到 2 条结果。",
+      "content": "关于「quantization」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0354-0001",
       "name": "d1_web_search"
     },
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"PagedAttention 性能\", \"limit\": 3}"
+            "arguments": "{\"query\": \"INT4 quantization 论文\", \"limit\": 3}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「PagedAttention 性能」找到 3 条结果。",
+      "content": "关于「INT4 quantization 论文」找到 3 条结果。",
       "tool_call_id": "call-d2-train-0354-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "搜索『paged attention』后发现信息不足，我按推理优化调整到『PagedAttention 性能』：关于「PagedAttention 性能」找到 3 条结果。（场景是高并发服务，额外要求是记录关键中间结果。）"
+      "content": "第一次检索『quantization』不够充分；围绕模型量化研究改用『INT4 quantization 论文』后得到：关于「INT4 quantization 论文」找到 3 条结果。"
     }
   ],
   "tools": [
@@ -88,26 +88,26 @@
       "call_id": "call-d2-train-0354-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "paged attention",
+        "query": "quantization",
         "limit": 2
       },
-      "expected_result": "关于「paged attention」找到 2 条结果。",
+      "expected_result": "关于「quantization」找到 2 条结果。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0354-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "PagedAttention 性能",
+        "query": "INT4 quantization 论文",
         "limit": 3
       },
       "depends_on": [
         "call-d2-train-0354-0001"
       ],
-      "expected_result": "关于「PagedAttention 性能」找到 3 条结果。"
+      "expected_result": "关于「INT4 quantization 论文」找到 3 条结果。"
     }
   ],
-  "expected_answer": "搜索『paged attention』后发现信息不足，我按推理优化调整到『PagedAttention 性能』：关于「PagedAttention 性能」找到 3 条结果。（场景是高并发服务，额外要求是记录关键中间结果。）",
+  "expected_answer": "第一次检索『quantization』不够充分；围绕模型量化研究改用『INT4 quantization 论文』后得到：关于「INT4 quantization 论文」找到 3 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -122,6 +122,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 354
   }
 }

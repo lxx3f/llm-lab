@@ -8,50 +8,42 @@
     },
     {
       "role": "user",
-      "content": "我现在有一个实际需求：请帮我创建一个新的 IT 工单。 我今天就要用到结果。（场景是小模型推理，额外要求是需要清楚说明限制。）"
+      "content": "帮我搜集 vLLM 部署 相关内容，若只有少量结果就先询问我的关注点。"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有工单创建功能，无法完成此任务。（场景是小模型推理，额外要求是需要清楚说明限制。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0187-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"vLLM 部署\", \"limit\": 1}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「vLLM 部署」找到 1 条结果。",
+      "tool_call_id": "call-d2-train-0187-0001",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "仅找到 1 条结果：关于「vLLM 部署」找到 1 条结果。。请补充你关注的方向。"
+    },
+    {
+      "role": "user",
+      "content": "请把重点放在小模型场景。"
+    },
+    {
+      "role": "assistant",
+      "content": "收到，我会按这个方向继续。"
     }
   ],
   "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "expression"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "city": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "city"
-          ]
-        }
-      }
-    },
     {
       "type": "function",
       "function": {
@@ -73,37 +65,26 @@
           ]
         }
       }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_translate",
-        "description": "Translate text to a target language.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string"
-            },
-            "target_lang": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "text",
-            "target_lang"
-          ]
-        }
-      }
     }
   ],
-  "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有工单创建功能，无法完成此任务。（场景是小模型推理，额外要求是需要清楚说明限制。）",
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-train-0187-0001",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "vLLM 部署",
+        "limit": 1
+      },
+      "expected_result": "关于「vLLM 部署」找到 1 条结果。",
+      "depends_on": []
+    }
+  ],
+  "expected_answer": "仅找到 1 条结果：关于「vLLM 部署」找到 1 条结果。。请补充你关注的方向。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "tool_not_available",
-    "task_template": "missing_工单创建",
+    "task_type": "insufficient_result_search",
+    "task_template": "search_then_clarify",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:56:53Z",
@@ -113,6 +94,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 187
   }
 }

@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "我想了解 BPE tokenizer，请先搜索，结果不足再向我澄清需求。（场景是小模型推理，额外要求是需要清楚说明限制。）"
+      "content": "请检索 RAG 评测，如果命中有限，请询问我更具体的方向。"
     },
     {
       "role": "assistant",
@@ -19,28 +19,28 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"BPE tokenizer\", \"limit\": 2}"
+            "arguments": "{\"query\": \"RAG 评测\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「BPE tokenizer」找到 2 条结果。",
+      "content": "关于「RAG 评测」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0189-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "已有初步结果：关于「BPE tokenizer」找到 2 条结果。。为了继续整理，请补充具体关注点。"
+      "content": "已有初步结果：关于「RAG 评测」找到 2 条结果。。为了继续整理，请补充具体关注点。"
     },
     {
       "role": "user",
-      "content": "请优先整理开源实现方面的信息。"
+      "content": "请补充论文和实验结论。"
     },
     {
       "role": "assistant",
-      "content": "好的，我会按你的关注点继续检索。（场景是小模型推理，额外要求是需要清楚说明限制。）"
+      "content": "好的，我会按你的关注点继续检索。"
     }
   ],
   "tools": [
@@ -72,14 +72,14 @@
       "call_id": "call-d2-train-0189-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "BPE tokenizer",
+        "query": "RAG 评测",
         "limit": 2
       },
-      "expected_result": "关于「BPE tokenizer」找到 2 条结果。",
+      "expected_result": "关于「RAG 评测」找到 2 条结果。",
       "depends_on": []
     }
   ],
-  "expected_answer": "已有初步结果：关于「BPE tokenizer」找到 2 条结果。。为了继续整理，请补充具体关注点。（场景是小模型推理，额外要求是需要清楚说明限制。）",
+  "expected_answer": "已有初步结果：关于「RAG 评测」找到 2 条结果。。为了继续整理，请补充具体关注点。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -94,6 +94,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 189
   }
 }

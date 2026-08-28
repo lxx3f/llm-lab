@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 agent 的 智能体工具使用；结果不足时请调整查询。（场景是成本控制，额外要求是记录关键中间结果。）"
+      "content": "请先算出 125 / 5，随后查找所得数值为 25 的资料。"
     },
     {
       "role": "assistant",
@@ -18,21 +18,17 @@
           "id": "call-d2-train-0324-0001",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"agent\", \"limit\": 2}"
+            "name": "d1_calculate",
+            "arguments": "{\"expression\": \"125 / 5\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「agent」找到 2 条结果。",
+      "content": "25",
       "tool_call_id": "call-d2-train-0324-0001",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "初次检索不充分，接下来我会收窄到更具体的关键词。"
+      "name": "d1_calculate"
     },
     {
       "role": "assistant",
@@ -43,23 +39,41 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"agent tool-use 2025\", \"limit\": 3}"
+            "arguments": "{\"query\": \"所得数值 25\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「agent tool-use 2025」找到 3 条结果。",
+      "content": "关于「所得数值 25」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0324-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "搜索『agent』后发现信息不足，我按智能体工具使用调整到『agent tool-use 2025』：关于「agent tool-use 2025」找到 3 条结果。（场景是成本控制，额外要求是记录关键中间结果。）"
+      "content": "计算输出是 25。相关检索结果为：关于「所得数值 25」找到 2 条结果。"
     }
   ],
   "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
     {
       "type": "function",
       "function": {
@@ -86,33 +100,32 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0324-0001",
-      "name": "d1_web_search",
+      "name": "d1_calculate",
       "arguments": {
-        "query": "agent",
-        "limit": 2
+        "expression": "125 / 5"
       },
-      "expected_result": "关于「agent」找到 2 条结果。",
+      "expected_result": 25,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0324-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "agent tool-use 2025",
-        "limit": 3
+        "query": "所得数值 25",
+        "limit": 2
       },
       "depends_on": [
         "call-d2-train-0324-0001"
       ],
-      "expected_result": "关于「agent tool-use 2025」找到 3 条结果。"
+      "expected_result": "关于「所得数值 25」找到 2 条结果。"
     }
   ],
-  "expected_answer": "搜索『agent』后发现信息不足，我按智能体工具使用调整到『agent tool-use 2025』：关于「agent tool-use 2025」找到 3 条结果。（场景是成本控制，额外要求是记录关键中间结果。）",
+  "expected_answer": "计算输出是 25。相关检索结果为：关于「所得数值 25」找到 2 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "error_recovery",
-    "task_template": "refine_query_after_insufficient_result",
+    "task_type": "multi_tool_sequential",
+    "task_template": "calc_then_search",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:59:10Z",
@@ -122,6 +135,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 324
   }
 }

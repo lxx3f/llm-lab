@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "我需要英文版本，请翻译：The result is reproducible.（场景是多语言内容，额外要求是优先保留可复现性。）"
+      "content": "请调用天气工具查询上海。"
     },
     {
       "role": "assistant",
@@ -18,42 +18,62 @@
           "id": "call-d2-train-0212-0001",
           "type": "function",
           "function": {
-            "name": "d1_translate",
-            "arguments": "{\"text\": \"The result is reproducible.\", \"target_lang\": \"en\"}"
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"上海\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='The result is reproducible.', target_lang='en')",
+      "content": "上海 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0212-0001",
-      "name": "d1_translate"
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "user",
+      "content": "改成查武汉的天气吧。"
     },
     {
       "role": "assistant",
-      "content": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='The result is reproducible.', target_lang='en')。（场景是多语言内容，额外要求是优先保留可复现性。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0212-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"武汉\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "武汉 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-train-0212-0002",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "assistant",
+      "content": "按最新要求，武汉天气：武汉 当前天气：晴，22°C，微风。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_translate",
-        "description": "Translate text to a target language.",
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
         "parameters": {
           "type": "object",
           "properties": {
-            "text": {
-              "type": "string"
-            },
-            "target_lang": {
+            "city": {
               "type": "string"
             }
           },
           "required": [
-            "text",
-            "target_lang"
+            "city"
           ]
         }
       }
@@ -62,21 +82,31 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0212-0001",
-      "name": "d1_translate",
+      "name": "d1_get_weather",
       "arguments": {
-        "text": "The result is reproducible.",
-        "target_lang": "en"
+        "city": "上海"
       },
-      "expected_result": "ERROR: translation service unavailable (text='The result is reproducible.', target_lang='en')",
+      "expected_result": "上海 当前天气：晴，22°C，微风。",
       "depends_on": []
+    },
+    {
+      "call_id": "call-d2-train-0212-0002",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "武汉"
+      },
+      "depends_on": [
+        "call-d2-train-0212-0001"
+      ],
+      "expected_result": "武汉 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='The result is reproducible.', target_lang='en')。（场景是多语言内容，额外要求是优先保留可复现性。）",
+  "expected_answer": "按最新要求，武汉天气：武汉 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "tool_error_response",
-    "task_template": "translate_error_report",
+    "task_type": "req_change_city",
+    "task_template": "abandoned_old_city_then_retry",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:57:18Z",
@@ -86,6 +116,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 212
   }
 }

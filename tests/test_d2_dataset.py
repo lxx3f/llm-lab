@@ -341,6 +341,132 @@ class D2DependencyGraphTests(unittest.TestCase):
 
 
 @unittest.skipUnless(_dataset_present(), "D2 dataset not generated yet")
+class D2TranscriptWellFormednessTests(unittest.TestCase):
+    """Round 10 cross-message invariants beyond JSON Schema's reach.
+
+    These checks run on every split (not only train) so a regression in
+    the IID split cannot hide split-specific transcript corruption.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.train = _load_split("train")
+        cls.dev = _load_split("dev")
+        cls.test = _load_split("test")
+        cls.all_samples = cls.train + cls.dev + cls.test
+
+    def _call_validator(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "_well_formedness_module", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_every_assistant_tool_call_has_corresponding_tool_message(self) -> None:
+        """Every assistant tool_call.id must be referenced by a tool message
+        in the same sample; no orphan tool messages either."""
+        module = self._call_validator()
+        for sample in self.all_samples:
+            errors = module.transcript_well_formedness_errors(sample)
+            self.assertEqual(
+                [], errors,
+                f"{sample['id']} transcript well-formedness: {errors}",
+            )
+
+    def test_tool_messages_appear_in_assistant_call_order(self) -> None:
+        """The tool messages must follow the assistant tool calls in order,
+        with no two consecutive assistant tool calls without an
+        intervening tool response.
+        """
+        for sample in self.all_samples:
+            asst_ids: list[str] = []
+            tool_ids: list[str] = []
+            for message in sample["messages"]:
+                if message["role"] == "assistant":
+                    asst_ids.extend(
+                        call["id"] for call in message.get("tool_calls", [])
+                    )
+                elif message["role"] == "tool":
+                    tool_ids.append(message["tool_call_id"])
+            if not asst_ids:
+                continue
+            self.assertEqual(
+                asst_ids, tool_ids,
+                f"{sample['id']} tool order {tool_ids} != asst order {asst_ids}",
+            )
+
+    def test_assistant_tool_call_arguments_match_expected(self) -> None:
+        """For each assistant tool call, the parsed function.arguments
+        must equal the expected_tool_calls entry's ``arguments``.
+        """
+        import json
+        expected_by_id = {}
+        for sample in self.all_samples:
+            for call in sample.get("expected_tool_calls", []):
+                expected_by_id.setdefault(sample["id"], {})[call["call_id"]] = call
+        for sample in self.all_samples:
+            expected = expected_by_id.get(sample["id"], {})
+            for message in sample["messages"]:
+                if message["role"] != "assistant":
+                    continue
+                for call in message.get("tool_calls", []):
+                    cid = call["id"]
+                    self.assertIn(cid, expected,
+                                  f"{sample['id']} unknown asst call {cid}")
+                    exp = expected[cid]
+                    self.assertEqual(
+                        call["function"]["name"], exp["name"],
+                        f"{sample['id']} {cid} name mismatch",
+                    )
+                    parsed = json.loads(call["function"]["arguments"])
+                    self.assertEqual(
+                        parsed, exp["arguments"],
+                        f"{sample['id']} {cid} arguments mismatch",
+                    )
+
+    def test_transcript_well_formedness_errors_catches_orphan_tool_message(self) -> None:
+        """Injecting an orphan tool message must be reported."""
+        module = self._call_validator()
+        sample = deepcopy(self.train[0])
+        sample["messages"].append({
+            "role": "tool",
+            "content": "orphan",
+            "tool_call_id": "call-d2-train-9999-0001",
+            "name": "d1_calculate",
+        })
+        errors = module.transcript_well_formedness_errors(sample)
+        self.assertTrue(
+            any("tool message references unknown tool_call_id" in e for e in errors),
+            f"orphan tool message not flagged: {errors}",
+        )
+
+    def test_transcript_well_formedness_errors_catches_argument_mismatch(self) -> None:
+        """An assistant tool call whose arguments differ from expected must be reported."""
+        module = self._call_validator()
+        sample = deepcopy(self.train[0])
+        asst_calls = [
+            call for message in sample["messages"]
+            if message["role"] == "assistant"
+            for call in message.get("tool_calls", [])
+        ]
+        if not asst_calls:
+            self.skipTest("train[0] has no assistant tool calls")
+        original = asst_calls[0]["function"]["arguments"]
+        asst_calls[0]["function"]["arguments"] = '{"expression": "999 + 1"}'
+        try:
+            errors = module.transcript_well_formedness_errors(sample)
+            self.assertTrue(
+                any("arguments mismatch" in e for e in errors),
+                f"argument mismatch not flagged: {errors}",
+            )
+        finally:
+            asst_calls[0]["function"]["arguments"] = original
+
+
+@unittest.skipUnless(_dataset_present(), "D2 dataset not generated yet")
 class D2SplitDisjointnessTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -433,6 +559,123 @@ class D2SplitDisjointnessTests(unittest.TestCase):
             any("duplicate canonical semantic content" in error for error in errors),
             f"duplicate content was not rejected: {errors}",
         )
+
+    def test_split_assignment_uses_iid_stratified_shuffle(self) -> None:
+        """Round 10: per-task variants must be evenly distributed 70/15/15.
+
+        Under the previous contiguous slicing implementation, every
+        task_type assigned the first 70 % of its variants to train, the
+        next 15 % to dev, and the final 15 % to test. The new
+        ``assign_split_ids`` does a seeded stratified shuffle per
+        task_type so the dev/test slices sample the same per-task
+        variant pool as train.
+        """
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_iid_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        # Replay the build path with the default seed.
+        import random
+        samples = module.assign_split_ids(
+            module.build_samples(600, random.Random(2026), seed=2026),
+            seed=2026,
+        )
+        from collections import Counter
+        per_type = {
+            task: {"train": 0, "dev": 0, "test": 0}
+            for task in EXPECTED_TASK_TYPES
+        }
+        for s in samples:
+            per_type[s["metadata"]["task_type"]][s["metadata"]["split"]] += 1
+        for task, splits in per_type.items():
+            self.assertEqual(
+                {"train": 70, "dev": 15, "test": 15},
+                splits,
+                f"{task} split distribution not 70/15/15: {splits}",
+            )
+
+    def test_split_assignment_is_deterministic_for_same_seed(self) -> None:
+        """Round 10: two invocations with the same seed must produce the
+        same per-(task_type, variant) split assignment.
+        """
+        import importlib.util
+        import random
+
+        def _assignment():
+            spec = importlib.util.spec_from_file_location(
+                "generate_d2_for_determinism", GENERATOR)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            samples = module.assign_split_ids(
+                module.build_samples(600, random.Random(2026), seed=2026),
+                seed=2026,
+            )
+            # Bucket each sample by its (task_type, first user message
+            # content) so we compare content groups, not ids.
+            return sorted(
+                (s["metadata"]["task_type"],
+                 s["messages"][1]["content"] if len(s["messages"]) > 1 else "",
+                 s["metadata"]["split"])
+                for s in samples
+            )
+
+        first = _assignment()
+        second = _assignment()
+        self.assertEqual(first, second)
+
+    def test_canonical_content_unique_within_dataset(self) -> None:
+        """Round 10: every row's canonical semantic signature must be unique."""
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_unique_test", GENERATOR)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        all_samples = self.train + self.dev + self.test
+        seen: dict[str, str] = {}
+        for s in all_samples:
+            sig = module.canonical_content_signature(s)
+            previous = seen.get(sig)
+            self.assertIsNone(
+                previous,
+                f"duplicate canonical content: {s['id']} and {previous}",
+            )
+            seen[sig] = s["id"]
+
+    def test_canonical_content_disjoint_across_splits(self) -> None:
+        """Round 10: per-task canonical signatures must not leak across splits."""
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_disjoint_test", GENERATOR)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        signatures = {
+            split: {module.canonical_content_signature(s)
+                    for s in samples}
+            for split, samples in (("train", self.train),
+                                   ("dev", self.dev),
+                                   ("test", self.test))
+        }
+        for task in EXPECTED_TASK_TYPES:
+            task_sigs = {
+                split: {module.canonical_content_signature(s)
+                        for s in samples
+                        if s["metadata"]["task_type"] == task}
+                for split, samples in (("train", self.train),
+                                       ("dev", self.dev),
+                                       ("test", self.test))
+            }
+            for a, b in (("train", "dev"), ("train", "test"), ("dev", "test")):
+                self.assertEqual(
+                    set(), task_sigs[a] & task_sigs[b],
+                    f"{task} {a}/{b} canonical overlap",
+                )
 
     def test_split_counts_match_manifest(self) -> None:
         for split, samples in (("train", self.train),
@@ -551,28 +794,21 @@ exact string equality check guards against off-by-one drift and the
                          "same seed+index must produce byte-identical timestamps")
 
     def test_on_disk_samples_use_canonical_formula(self) -> None:
-        # The generator's sample index is global across all three splits:
-        # train takes positions 1..train_n, dev takes train_n+1..train_n+dev_n,
-        # test takes the remainder. Sample id encodes the 1-based split-local
-        # number, so we recover the global index from the manifest counts.
-        manifest_train = json.loads(
-            (D2 / "MANIFEST-train.json").read_text(encoding="utf-8"))
-        manifest_dev = json.loads(
-            (D2 / "MANIFEST-dev.json").read_text(encoding="utf-8"))
-        train_n = manifest_train["count"]
-        dev_offset = train_n
+        # Round 10: each split's sample id is 1-based within the split
+        # (d2-train-0001 .. d2-train-0420, d2-dev-0001 .. d2-dev-0090,
+        # d2-test-0001 .. d2-test-0090), and ``created_at`` uses that
+        # split-local position as the index into the canonical formula.
+        # This is independent of the global build-time variant identity.
         for split_name in ("train", "dev", "test"):
             split = _load_split(split_name)
             for sample in split:
                 number = int(sample["id"].rsplit("-", 1)[-1])
-                if split_name == "train":
-                    index = number
-                elif split_name == "dev":
-                    index = dev_offset + number
-                else:
-                    index = dev_offset + manifest_dev["count"] + number
+                self.assertEqual(
+                    number, sample["metadata"]["created_at_pos"],
+                    f"{sample['id']} created_at_pos does not match id number",
+                )
                 expected = (
-                    datetime.fromtimestamp(1785000000 + 2026 + index,
+                    datetime.fromtimestamp(1785000000 + 2026 + number,
                                            tz=timezone.utc)
                     .isoformat()
                     .replace("+00:00", "Z")

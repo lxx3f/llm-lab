@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "把 11 + 29 算出来，再围绕上面的答案 40 做一次搜索。（场景是版本升级，额外要求是优先保留可复现性。）"
+      "content": "搜索 FlashAttention 的 注意力优化近期；结果不足时请调整查询。"
     },
     {
       "role": "assistant",
@@ -18,17 +18,21 @@
           "id": "call-d2-train-0395-0001",
           "type": "function",
           "function": {
-            "name": "d1_calculate",
-            "arguments": "{\"expression\": \"11 + 29\"}"
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"FlashAttention\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "40",
+      "content": "关于「FlashAttention」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0395-0001",
-      "name": "d1_calculate"
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "“FlashAttention”结果过少，我会细化关键词后重试。"
     },
     {
       "role": "assistant",
@@ -39,41 +43,23 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"上面的答案 40\", \"limit\": 2}"
+            "arguments": "{\"query\": \"FlashAttention-3 性能数据\", \"limit\": 3}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「上面的答案 40」找到 2 条结果。",
+      "content": "关于「FlashAttention-3 性能数据」找到 3 条结果。",
       "tool_call_id": "call-d2-train-0395-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "第一步结果为 40；随后搜索得到：关于「上面的答案 40」找到 2 条结果。（场景是版本升级，额外要求是优先保留可复现性。）"
+      "content": "搜索『FlashAttention』后发现信息不足，我按注意力优化近期调整到『FlashAttention-3 性能数据』：关于「FlashAttention-3 性能数据」找到 3 条结果。"
     }
   ],
   "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "expression"
-          ]
-        }
-      }
-    },
     {
       "type": "function",
       "function": {
@@ -100,32 +86,33 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0395-0001",
-      "name": "d1_calculate",
+      "name": "d1_web_search",
       "arguments": {
-        "expression": "11 + 29"
+        "query": "FlashAttention",
+        "limit": 1
       },
-      "expected_result": 40,
+      "expected_result": "关于「FlashAttention」找到 1 条结果。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0395-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "上面的答案 40",
-        "limit": 2
+        "query": "FlashAttention-3 性能数据",
+        "limit": 3
       },
       "depends_on": [
         "call-d2-train-0395-0001"
       ],
-      "expected_result": "关于「上面的答案 40」找到 2 条结果。"
+      "expected_result": "关于「FlashAttention-3 性能数据」找到 3 条结果。"
     }
   ],
-  "expected_answer": "第一步结果为 40；随后搜索得到：关于「上面的答案 40」找到 2 条结果。（场景是版本升级，额外要求是优先保留可复现性。）",
+  "expected_answer": "搜索『FlashAttention』后发现信息不足，我按注意力优化近期调整到『FlashAttention-3 性能数据』：关于「FlashAttention-3 性能数据」找到 3 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "multi_tool_sequential",
-    "task_template": "calc_then_search",
+    "task_type": "error_recovery",
+    "task_template": "refine_query_after_insufficient_result",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T18:00:21Z",
@@ -135,6 +122,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 395
   }
 }

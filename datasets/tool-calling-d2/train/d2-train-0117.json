@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "我想了解 PagedAttention，请先搜索，结果不足再向我澄清需求。（场景是教学演示，额外要求是避免臆造无法验证的信息。）"
+      "content": "请调用翻译服务处理这段文本，目标语言是中文：Today is a sunny day."
     },
     {
       "role": "assistant",
@@ -18,50 +18,42 @@
           "id": "call-d2-train-0117-0001",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"PagedAttention\", \"limit\": 1}"
+            "name": "d1_translate",
+            "arguments": "{\"text\": \"Today is a sunny day.\", \"target_lang\": \"zh\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「PagedAttention」找到 1 条结果。",
+      "content": "ERROR: translation service unavailable (text='Today is a sunny day.', target_lang='zh')",
       "tool_call_id": "call-d2-train-0117-0001",
-      "name": "d1_web_search"
+      "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "已有初步结果：关于「PagedAttention」找到 1 条结果。。为了继续整理，请补充具体关注点。"
-    },
-    {
-      "role": "user",
-      "content": "我更想看工程实践和性能数据。"
-    },
-    {
-      "role": "assistant",
-      "content": "好的，我会按你的关注点继续检索。（场景是教学演示，额外要求是避免臆造无法验证的信息。）"
+      "content": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='Today is a sunny day.', target_lang='zh')。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_web_search",
-        "description": "Search the web for information.",
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
         "parameters": {
           "type": "object",
           "properties": {
-            "query": {
+            "text": {
               "type": "string"
             },
-            "limit": {
-              "type": "integer",
-              "minimum": 1
+            "target_lang": {
+              "type": "string"
             }
           },
           "required": [
-            "query"
+            "text",
+            "target_lang"
           ]
         }
       }
@@ -70,21 +62,21 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0117-0001",
-      "name": "d1_web_search",
+      "name": "d1_translate",
       "arguments": {
-        "query": "PagedAttention",
-        "limit": 1
+        "text": "Today is a sunny day.",
+        "target_lang": "zh"
       },
-      "expected_result": "关于「PagedAttention」找到 1 条结果。",
+      "expected_result": "ERROR: translation service unavailable (text='Today is a sunny day.', target_lang='zh')",
       "depends_on": []
     }
   ],
-  "expected_answer": "已有初步结果：关于「PagedAttention」找到 1 条结果。。为了继续整理，请补充具体关注点。（场景是教学演示，额外要求是避免臆造无法验证的信息。）",
+  "expected_answer": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='Today is a sunny day.', target_lang='zh')。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "insufficient_result_search",
-    "task_template": "search_then_clarify",
+    "task_type": "tool_error_response",
+    "task_template": "translate_error_report",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:55:43Z",
@@ -94,6 +86,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 117
   }
 }

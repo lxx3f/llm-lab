@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 4 ** 3 + 2，再搜索这个数字 66。（场景是高并发服务，额外要求是需要清楚说明限制。）"
+      "content": "先计算 6 ** 2，再搜索所得数值 36。"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_calculate",
-            "arguments": "{\"expression\": \"4 ** 3 + 2\"}"
+            "arguments": "{\"expression\": \"6 ** 2\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "66",
+      "content": "36",
       "tool_call_id": "call-d2-train-0341-0001",
       "name": "d1_calculate"
     },
@@ -39,20 +39,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"这个数字 66\", \"limit\": 2}"
+            "arguments": "{\"query\": \"所得数值 36\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「这个数字 66」找到 2 条结果。",
+      "content": "关于「所得数值 36」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0341-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "第一步结果为 66；随后搜索得到：关于「这个数字 66」找到 2 条结果。（场景是高并发服务，额外要求是需要清楚说明限制。）"
+      "content": "计算输出是 36。相关检索结果为：关于「所得数值 36」找到 2 条结果。"
     }
   ],
   "tools": [
@@ -102,25 +102,25 @@
       "call_id": "call-d2-train-0341-0001",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "4 ** 3 + 2"
+        "expression": "6 ** 2"
       },
-      "expected_result": 66,
+      "expected_result": 36,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0341-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "这个数字 66",
+        "query": "所得数值 36",
         "limit": 2
       },
       "depends_on": [
         "call-d2-train-0341-0001"
       ],
-      "expected_result": "关于「这个数字 66」找到 2 条结果。"
+      "expected_result": "关于「所得数值 36」找到 2 条结果。"
     }
   ],
-  "expected_answer": "第一步结果为 66；随后搜索得到：关于「这个数字 66」找到 2 条结果。（场景是高并发服务，额外要求是需要清楚说明限制。）",
+  "expected_answer": "计算输出是 36。相关检索结果为：关于「所得数值 36」找到 2 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -135,6 +135,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 341
   }
 }

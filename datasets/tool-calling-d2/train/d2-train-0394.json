@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "可以查查重庆的当前天气吗？（场景是版本升级，额外要求是优先保留可复现性。）"
+      "content": "搜索 LoRA 的 参数高效微调最新研究；结果不足时请调整查询。"
     },
     {
       "role": "assistant",
@@ -18,21 +18,21 @@
           "id": "call-d2-train-0394-0001",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"重庆\"}"
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"LoRA\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "重庆 当前天气：晴，22°C，微风。",
+      "content": "关于「LoRA」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0394-0001",
-      "name": "d1_get_weather"
+      "name": "d1_web_search"
     },
     {
-      "role": "user",
-      "content": "现在优先给我南京的天气。"
+      "role": "assistant",
+      "content": "“LoRA”结果过少，我会细化关键词后重试。"
     },
     {
       "role": "assistant",
@@ -42,38 +42,42 @@
           "id": "call-d2-train-0394-0002",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"南京\"}"
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"LoRA 微调 2025 综述\", \"limit\": 3}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "南京 当前天气：晴，22°C，微风。",
+      "content": "关于「LoRA 微调 2025 综述」找到 3 条结果。",
       "tool_call_id": "call-d2-train-0394-0002",
-      "name": "d1_get_weather"
+      "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "最新指定城市为南京，天气信息如下：南京 当前天气：晴，22°C，微风。（场景是版本升级，额外要求是优先保留可复现性。）"
+      "content": "第一次检索『LoRA』不够充分；围绕参数高效微调最新研究改用『LoRA 微调 2025 综述』后得到：关于「LoRA 微调 2025 综述」找到 3 条结果。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
+        "name": "d1_web_search",
+        "description": "Search the web for information.",
         "parameters": {
           "type": "object",
           "properties": {
-            "city": {
+            "query": {
               "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
             }
           },
           "required": [
-            "city"
+            "query"
           ]
         }
       }
@@ -82,31 +86,33 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0394-0001",
-      "name": "d1_get_weather",
+      "name": "d1_web_search",
       "arguments": {
-        "city": "重庆"
+        "query": "LoRA",
+        "limit": 1
       },
-      "expected_result": "重庆 当前天气：晴，22°C，微风。",
+      "expected_result": "关于「LoRA」找到 1 条结果。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0394-0002",
-      "name": "d1_get_weather",
+      "name": "d1_web_search",
       "arguments": {
-        "city": "南京"
+        "query": "LoRA 微调 2025 综述",
+        "limit": 3
       },
       "depends_on": [
         "call-d2-train-0394-0001"
       ],
-      "expected_result": "南京 当前天气：晴，22°C，微风。"
+      "expected_result": "关于「LoRA 微调 2025 综述」找到 3 条结果。"
     }
   ],
-  "expected_answer": "最新指定城市为南京，天气信息如下：南京 当前天气：晴，22°C，微风。（场景是版本升级，额外要求是优先保留可复现性。）",
+  "expected_answer": "第一次检索『LoRA』不够充分；围绕参数高效微调最新研究改用『LoRA 微调 2025 综述』后得到：关于「LoRA 微调 2025 综述」找到 3 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "req_change_city",
-    "task_template": "abandoned_old_city_then_retry",
+    "task_type": "error_recovery",
+    "task_template": "refine_query_after_insufficient_result",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T18:00:20Z",
@@ -116,6 +122,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 394
   }
 }

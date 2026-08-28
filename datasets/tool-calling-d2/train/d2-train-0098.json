@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我将下面这句话转换为中文：欢迎参加本次讨论。（场景是教学演示，额外要求是需要清楚说明限制。）"
+      "content": "帮我将下面这句话转换为日文：Good morning."
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"欢迎参加本次讨论。\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"ja\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='欢迎参加本次讨论。', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='ja')",
       "tool_call_id": "call-d2-train-0098-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='欢迎参加本次讨论。', target_lang='zh')。无法完成本次翻译。（场景是教学演示，额外要求是需要清楚说明限制。）"
+      "content": "翻译服务暂不可用（ERROR: translation service unavailable (text='Good morning.', target_lang='ja')），因此没有生成译文。"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-train-0098-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "欢迎参加本次讨论。",
-        "target_lang": "zh"
+        "text": "Good morning.",
+        "target_lang": "ja"
       },
-      "expected_result": "ERROR: translation service unavailable (text='欢迎参加本次讨论。', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='ja')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='欢迎参加本次讨论。', target_lang='zh')。无法完成本次翻译。（场景是教学演示，额外要求是需要清楚说明限制。）",
+  "expected_answer": "翻译服务暂不可用（ERROR: translation service unavailable (text='Good morning.', target_lang='ja')），因此没有生成译文。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -86,6 +86,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 98
   }
 }

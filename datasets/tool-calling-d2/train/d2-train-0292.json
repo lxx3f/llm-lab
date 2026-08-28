@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下昆明的天气。（场景是安全审查，额外要求是记录关键中间结果。）"
+      "content": "先计算 (20 - 6) * 3，再搜索这个数字 42。"
     },
     {
       "role": "assistant",
@@ -18,21 +18,17 @@
           "id": "call-d2-train-0292-0001",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"昆明\"}"
+            "name": "d1_calculate",
+            "arguments": "{\"expression\": \"(20 - 6) * 3\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "昆明 当前天气：晴，22°C，微风。",
+      "content": "42",
       "tool_call_id": "call-d2-train-0292-0001",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "user",
-      "content": "请把查询目标改为厦门。"
+      "name": "d1_calculate"
     },
     {
       "role": "assistant",
@@ -42,38 +38,60 @@
           "id": "call-d2-train-0292-0002",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"厦门\"}"
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"这个数字 42\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "厦门 当前天气：晴，22°C，微风。",
+      "content": "关于「这个数字 42」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0292-0002",
-      "name": "d1_get_weather"
+      "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "最新指定城市为厦门，天气信息如下：厦门 当前天气：晴，22°C，微风。（场景是安全审查，额外要求是记录关键中间结果。）"
+      "content": "先得到 42，再完成相关检索：关于「这个数字 42」找到 2 条结果。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
         "parameters": {
           "type": "object",
           "properties": {
-            "city": {
+            "expression": {
               "type": "string"
             }
           },
           "required": [
-            "city"
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "Search the web for information.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
           ]
         }
       }
@@ -82,31 +100,32 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0292-0001",
-      "name": "d1_get_weather",
+      "name": "d1_calculate",
       "arguments": {
-        "city": "昆明"
+        "expression": "(20 - 6) * 3"
       },
-      "expected_result": "昆明 当前天气：晴，22°C，微风。",
+      "expected_result": 42,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0292-0002",
-      "name": "d1_get_weather",
+      "name": "d1_web_search",
       "arguments": {
-        "city": "厦门"
+        "query": "这个数字 42",
+        "limit": 2
       },
       "depends_on": [
         "call-d2-train-0292-0001"
       ],
-      "expected_result": "厦门 当前天气：晴，22°C，微风。"
+      "expected_result": "关于「这个数字 42」找到 2 条结果。"
     }
   ],
-  "expected_answer": "最新指定城市为厦门，天气信息如下：厦门 当前天气：晴，22°C，微风。（场景是安全审查，额外要求是记录关键中间结果。）",
+  "expected_answer": "先得到 42，再完成相关检索：关于「这个数字 42」找到 2 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "req_change_city",
-    "task_template": "abandoned_old_city_then_retry",
+    "task_type": "multi_tool_sequential",
+    "task_template": "calc_then_search",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:58:38Z",
@@ -116,6 +135,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 292
   }
 }

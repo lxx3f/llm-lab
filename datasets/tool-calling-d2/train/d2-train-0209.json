@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请按顺序处理 13 * 7 和后续搜索，搜索关键词使用 计算结果 91。（场景是小模型推理，额外要求是避免臆造无法验证的信息。）"
+      "content": "我想了解 BPE tokenizer，请先搜索，结果不足再向我澄清需求。"
     },
     {
       "role": "assistant",
@@ -18,62 +18,32 @@
           "id": "call-d2-train-0209-0001",
           "type": "function",
           "function": {
-            "name": "d1_calculate",
-            "arguments": "{\"expression\": \"13 * 7\"}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "91",
-      "tool_call_id": "call-d2-train-0209-0001",
-      "name": "d1_calculate"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0209-0002",
-          "type": "function",
-          "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"计算结果 91\", \"limit\": 2}"
+            "arguments": "{\"query\": \"BPE tokenizer\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「计算结果 91」找到 2 条结果。",
-      "tool_call_id": "call-d2-train-0209-0002",
+      "content": "关于「BPE tokenizer」找到 1 条结果。",
+      "tool_call_id": "call-d2-train-0209-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "已完成计算（91），并根据该结果搜索：关于「计算结果 91」找到 2 条结果。（场景是小模型推理，额外要求是避免臆造无法验证的信息。）"
+      "content": "这次搜索范围较窄，仅返回 关于「BPE tokenizer」找到 1 条结果。；请进一步说明筛选条件。"
+    },
+    {
+      "role": "user",
+      "content": "我关注 2026 年的最新进展。"
+    },
+    {
+      "role": "assistant",
+      "content": "了解，我将优先筛选符合该条件的资料。"
     }
   ],
   "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "expression"
-          ]
-        }
-      }
-    },
     {
       "type": "function",
       "function": {
@@ -100,32 +70,21 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0209-0001",
-      "name": "d1_calculate",
-      "arguments": {
-        "expression": "13 * 7"
-      },
-      "expected_result": 91,
-      "depends_on": []
-    },
-    {
-      "call_id": "call-d2-train-0209-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "计算结果 91",
-        "limit": 2
+        "query": "BPE tokenizer",
+        "limit": 1
       },
-      "depends_on": [
-        "call-d2-train-0209-0001"
-      ],
-      "expected_result": "关于「计算结果 91」找到 2 条结果。"
+      "expected_result": "关于「BPE tokenizer」找到 1 条结果。",
+      "depends_on": []
     }
   ],
-  "expected_answer": "已完成计算（91），并根据该结果搜索：关于「计算结果 91」找到 2 条结果。（场景是小模型推理，额外要求是避免臆造无法验证的信息。）",
+  "expected_answer": "这次搜索范围较窄，仅返回 关于「BPE tokenizer」找到 1 条结果。；请进一步说明筛选条件。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "multi_tool_sequential",
-    "task_template": "calc_then_search",
+    "task_type": "insufficient_result_search",
+    "task_template": "search_then_clarify",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:57:15Z",
@@ -135,6 +94,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 209
   }
 }

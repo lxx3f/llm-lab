@@ -225,8 +225,22 @@ def _sample(
         },
     }
 
+def _variant_index_from_build_pos(build_pos: int) -> int:
+    """Return the zero-based per-task variant index from a build position.
+
+    ``build_pos`` is the 0-based position of the sample inside the
+    round-robin ``build_samples`` output (so position ``6 * k + t`` is
+    variant ``k`` of ``TASK_TYPES[t]``). This decouples variant identity
+    from the final split id, so IID stratified shuffling can reshuffle
+    variants across train / dev / test without rewriting semantic content.
+    """
+    return build_pos // len(TASK_TYPES)
+
+
+# ``_variant_index`` is retained as a thin alias so the previous round-9
+# tests can still call it on a fully-built sample id (it is no longer used
+# by the builders themselves; see ``build_samples`` for the new contract).
 def _variant_index(sample_id: str) -> int:
-    """Return the zero-based per-task variant index from a local sample id."""
     local_number = int(sample_id.rsplit("-", 1)[-1])
     return (local_number - 1) // len(TASK_TYPES)
 
@@ -246,36 +260,6 @@ _SEMANTIC_CONTEXTS = tuple(
     for domain in _SEMANTIC_DOMAINS
     for focus in _SEMANTIC_FOCUSES
 )
-
-
-def _semantic_context(variant: int) -> str:
-    """Return one of 100 meaningful, deterministic scenario contexts."""
-    return _SEMANTIC_CONTEXTS[variant % len(_SEMANTIC_CONTEXTS)]
-
-
-def _apply_semantic_context(sample: dict[str, Any], variant: int) -> dict[str, Any]:
-    """Add a meaningful scenario constraint to the transcript.
-
-    This is intentionally semantic content rather than an identifier or
-    timestamp: it changes the user's operational requirement and is retained
-    by the canonical-content overlap check. The same context is reflected in
-    the final answer so the expected transcript remains internally coherent.
-    """
-    context = _semantic_context(variant)
-    user_messages = [m for m in sample["messages"] if m.get("role") == "user"]
-    if not user_messages:
-        raise ValueError(f"sample {sample.get('id')} has no user message")
-    user_messages[0]["content"] = (
-        f"{user_messages[0].get('content', '')}（{context}。）"
-    )
-    expected = sample.get("expected_answer")
-    if isinstance(expected, str):
-        sample["expected_answer"] = f"{expected}（{context}。）"
-    for message in reversed(sample["messages"]):
-        if message.get("role") == "assistant" and isinstance(message.get("content"), str):
-            message["content"] = f"{message['content']}（{context}。）"
-            break
-    return sample
 
 
 def canonical_content_signature(sample: dict[str, Any]) -> str:
@@ -307,7 +291,7 @@ def canonical_content_signature(sample: dict[str, Any]) -> str:
     return json.dumps(projection, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def _multi_tool_sequential(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
+def _multi_tool_sequential(rng: random.Random, sid: str, created: str, variant: int) -> dict[str, Any]:
     expressions = [
         "2 + 3", "17 * 4", "100 / 5", "3 ** 4", "(8 - 3) * 6",
         "11 + 29", "144 / 12", "7 * 8 - 9", "2 ** 6", "81 / 9 + 1",
@@ -326,7 +310,6 @@ def _multi_tool_sequential(rng: random.Random, sid: str, created: str) -> dict[s
         "依次完成：计算 {expr}，然后检索{topic}等于 {result} 的内容。",
         "请按顺序处理 {expr} 和后续搜索，搜索关键词使用 {topic} {result}。",
     ]
-    variant = _variant_index(sid)
     expr = expressions[variant % len(expressions)]
     first_args = {"expression": expr}
     first_result = _mock_result("d1_calculate", first_args)
@@ -386,8 +369,7 @@ _TRANSLATE_REQUESTS = [
 _TRANSLATE_LANG_NAMES = {"zh": "中文", "en": "英文", "ja": "日文", "fr": "法文", "de": "德文"}
 
 
-def _tool_error_response(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
-    variant = _variant_index(sid)
+def _tool_error_response(rng: random.Random, sid: str, created: str, variant: int) -> dict[str, Any]:
     text = _TRANSLATE_TEXTS[variant % len(_TRANSLATE_TEXTS)]
     target_lang = _TRANSLATE_LANGS[(variant // len(_TRANSLATE_TEXTS)) % len(_TRANSLATE_LANGS)]
     args = {"text": text, "target_lang": target_lang}
@@ -417,7 +399,7 @@ def _tool_error_response(rng: random.Random, sid: str, created: str) -> dict[str
     )
 
 
-def _insufficient_result_search(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
+def _insufficient_result_search(rng: random.Random, sid: str, created: str, variant: int) -> dict[str, Any]:
     queries = [
         "LLM 评测", "GRPO 强化学习", "vLLM 部署", "MoE 路由", "MLA 注意力",
         "GQA 推理", "BPE tokenizer", "长上下文训练", "RAG 评测", "DPO 对齐",
@@ -444,7 +426,6 @@ def _insufficient_result_search(rng: random.Random, sid: str, created: str) -> d
         "请补充论文和实验结论。",
         "我主要关心部署成本。",
     ]
-    variant = _variant_index(sid)
     query = queries[variant % len(queries)]
     limit = 1 + ((variant // len(queries)) % 2)
     args = {"query": query, "limit": limit}
@@ -483,12 +464,21 @@ def _insufficient_result_search(rng: random.Random, sid: str, created: str) -> d
     )
 
 
-def _req_change_city(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
+def _req_change_city(rng: random.Random, sid: str, created: str, variant: int) -> dict[str, Any]:
     cities = [
         "上海", "深圳", "广州", "杭州", "成都", "南京", "武汉", "西安",
         "厦门", "青岛", "苏州", "重庆", "天津", "昆明", "郑州", "福州",
     ]
-    old_city, new_city = rng.sample(cities, 2)
+    # Pick distinct old/new city pairs deterministically from ``variant`` so
+    # the 100 req_change_city rows do not collapse onto the small set the
+    # rng.sample(cities, 2) call would otherwise produce. ``cities`` has 16
+    # entries, so 16*15/2 = 120 ordered pairs; ``variant % 120`` indexes one.
+    ordered_pairs = [(a, b) for i, a in enumerate(cities)
+                     for b in cities[i + 1:]]
+    old_city, new_city = ordered_pairs[variant % len(ordered_pairs)]
+    first_style_index = variant % 6
+    change_style_index = (variant // 6) % 6
+    answer_index = (variant // 36) % 4
     old_args, new_args = {"city": old_city}, {"city": new_city}
     old_result = _mock_result("d1_get_weather", old_args)
     new_result = _mock_result("d1_get_weather", new_args)
@@ -509,20 +499,20 @@ def _req_change_city(rng: random.Random, sid: str, created: str) -> dict[str, An
         "刚才城市不对，重新查询{city}。",
         "现在优先给我{city}的天气。",
     ]
-    answer = rng.choice([
+    answer = [
         f"按最新要求，{new_city}天气：{new_result}",
         f"已按你的新要求查询{new_city}：{new_result}",
         f"忽略之前的{old_city}，当前结果是{new_result}",
         f"最新指定城市为{new_city}，天气信息如下：{new_result}",
-    ])
+    ][answer_index]
     return _sample(
         sid,
         [
             {"role": "system", "content": "You are a helpful assistant with tool access."},
-            {"role": "user", "content": rng.choice(first_styles).format(city=old_city)},
+            {"role": "user", "content": first_styles[first_style_index].format(city=old_city)},
             _assistant_call(c1, "d1_get_weather", old_args),
             _tool_message(c1, "d1_get_weather", old_result),
-            {"role": "user", "content": rng.choice(change_styles).format(city=new_city)},
+            {"role": "user", "content": change_styles[change_style_index].format(city=new_city)},
             _assistant_call(c2, "d1_get_weather", new_args),
             _tool_message(c2, "d1_get_weather", new_result),
             {"role": "assistant", "content": answer},
@@ -661,7 +651,7 @@ _NOT_AVAILABLE_VARIANTS: tuple[tuple[str, list[dict[str, Any]], str, str, tuple[
 )
 
 
-def _tool_not_available(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
+def _tool_not_available(rng: random.Random, sid: str, created: str, variant: int) -> dict[str, Any]:
     """Generate a semantically varied unavailable-capability refusal.
 
     The 24 capability records are combined with independent request,
@@ -669,7 +659,6 @@ def _tool_not_available(rng: random.Random, sid: str, created: str) -> dict[str,
     index. This gives 100 distinct semantic combinations for the default
     count instead of sampling a small pool with replacement.
     """
-    variant = _variant_index(sid)
     capability, tools_subset, request, rationale, capability_tag = (
         _NOT_AVAILABLE_VARIANTS[variant % len(_NOT_AVAILABLE_VARIANTS)])
     request_styles = (
@@ -744,9 +733,8 @@ _ERROR_RECOVERY_VARIANTS: tuple[tuple[str, str, str], ...] = (
 )
 
 
-def _error_recovery(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
+def _error_recovery(rng: random.Random, sid: str, created: str, variant: int) -> dict[str, Any]:
     """Generate one deterministic, semantically distinct recovery trace."""
-    variant = _variant_index(sid)
     first_query, refined_query, intent = _ERROR_RECOVERY_VARIANTS[
         variant % len(_ERROR_RECOVERY_VARIANTS)]
     first_limit = 1 + ((variant // len(_ERROR_RECOVERY_VARIANTS)) % 2)
@@ -799,7 +787,7 @@ def _error_recovery(rng: random.Random, sid: str, created: str) -> dict[str, Any
     )
 
 
-BUILDERS: tuple[tuple[str, Callable[[random.Random, str, str], dict[str, Any]]], ...] = (
+BUILDERS: tuple[tuple[str, Callable[[random.Random, str, str, int], dict[str, Any]]], ...] = (
     ("tool_not_available", _tool_not_available),
     ("tool_error_response", _tool_error_response),
     ("insufficient_result_search", _insufficient_result_search),
@@ -810,65 +798,125 @@ BUILDERS: tuple[tuple[str, Callable[[random.Random, str, str], dict[str, Any]]],
 
 
 def build_samples(count: int, rng: random.Random, *, seed: int) -> list[dict[str, Any]]:
+    """Generate ``count`` D2 samples in a fixed round-robin order.
+
+    The ``build_pos`` (0-based) is the only stable identity used by the
+    builders to derive ``variant``; the final sample id (and therefore
+    the call ids and ``created_at`` timestamp) is assigned later by
+    :func:`assign_split_ids` so the IID stratified split reshuffle can
+    rewrite only the bookkeeping fields.
+    """
+    if count < 6:
+        raise ValueError(f"--count must be >= 6, got {count}")
+    if count % len(TASK_TYPES) != 0:
+        raise ValueError(
+            f"--count {count} must be a multiple of {len(TASK_TYPES)} to keep "
+            f"per-task variant counts balanced"
+        )
     samples: list[dict[str, Any]] = []
-    for index in range(count):
-        sid = f"d2-local-{index + 1:04d}"
-        task_type, builder = BUILDERS[index % len(BUILDERS)]
-        sample = builder(rng, sid, _now_ts(seed, index + 1))
-        sample = _apply_semantic_context(sample, _variant_index(sid))
+    for build_pos in range(count):
+        task_type, builder = BUILDERS[build_pos % len(BUILDERS)]
+        variant = _variant_index_from_build_pos(build_pos)
+        build_sid = f"d2-build-{build_pos:04d}"
+        sample = builder(rng, build_sid, _now_ts(seed, build_pos + 1), variant)
         if sample["metadata"]["task_type"] != task_type:
-            raise AssertionError(f"builder/type mismatch: {task_type} != {sample['metadata']}")
+            raise AssertionError(
+                f"builder/type mismatch at build_pos={build_pos}: "
+                f"{task_type} != {sample['metadata']['task_type']}"
+            )
         samples.append(sample)
     return samples
 
 
 def assign_split_ids(samples: list[dict[str, Any]], *, seed: int) -> list[dict[str, Any]]:
-    total = len(samples)
-    train_n = int(total * 0.7)
-    dev_n = int(total * 0.15)
-    output: list[dict[str, Any]] = []
-    for index, original in enumerate(samples):
-        if index < train_n:
-            split, number = "train", index + 1
-            final_id = f"d2-train-{number:04d}"
-        elif index < train_n + dev_n:
-            split, number = "dev", index - train_n + 1
-            final_id = f"d2-dev-{number:03d}"
-        else:
-            split, number = "test", index - train_n - dev_n + 1
-            final_id = f"d2-test-{number:03d}"
-        sample = json.loads(json.dumps(original, ensure_ascii=False))
-        old_id = sample["id"]
-        sample["id"] = final_id
-        sample["metadata"]["split"] = split
-        sample["metadata"]["created_at"] = _now_ts(seed, index + 1)
+    """IID stratified shuffle + per-split renumbering.
 
-        old_to_new: dict[str, str] = {}
-        all_call_ids: list[str] = []
-        for call in sample["expected_tool_calls"]:
-            all_call_ids.append(call["call_id"])
-        for message in sample["messages"]:
-            if message["role"] == "assistant":
-                all_call_ids.extend(
-                    tool_call["id"] for tool_call in message.get("tool_calls", []))
-        for old_call_id in dict.fromkeys(all_call_ids):
-            suffix = old_call_id.rsplit("-", 1)[-1]
-            old_to_new[old_call_id] = _call_id(final_id, int(suffix))
-        for call in sample["expected_tool_calls"]:
-            call["call_id"] = old_to_new[call["call_id"]]
-            call["depends_on"] = [old_to_new.get(dep, dep) for dep in call.get("depends_on", [])]
-        for message in sample["messages"]:
-            if message["role"] == "assistant":
-                for tool_call in message.get("tool_calls", []):
-                    if tool_call["id"] in old_to_new:
-                        tool_call["id"] = old_to_new[tool_call["id"]]
-            elif message["role"] == "tool":
-                if message.get("tool_call_id") in old_to_new:
-                    message["tool_call_id"] = old_to_new[message["tool_call_id"]]
-        # ``old_id`` is intentionally retained only in this local variable;
-        # no original identifier is written into D2 artifacts.
-        del old_id
-        output.append(sample)
+    For each ``task_type``, the per-task variants are deterministically
+    shuffled with ``seed`` and the first 70 / next 15 / final 15 are
+    assigned to ``train`` / ``dev`` / ``test``. The final sample id
+    (e.g. ``d2-train-0001``) is 1-based within its split so the
+    timestamp contract ``1785000000 + seed + index`` stays globally
+    unique across all 600 rows while every split now sees a uniform
+    slice of the per-task variants.
+
+    Sample content (messages, tool_calls' arguments, expected_answer,
+    semantic context) is unchanged: only ``id``, ``metadata.split``,
+    ``metadata.created_at``, and the per-message ``call_id`` /
+    ``tool_call_id`` / ``depends_on`` strings are rewritten so they
+    match the new public id.
+    """
+    rng = random.Random(seed)
+    by_type: dict[str, list[dict[str, Any]]] = {task: [] for task in TASK_TYPES}
+    for sample in samples:
+        task_type = sample["metadata"]["task_type"]
+        if task_type not in by_type:
+            raise AssertionError(f"unexpected task_type {task_type!r}")
+        by_type[task_type].append(sample)
+    for task_type, type_samples in by_type.items():
+        if len(type_samples) == 0:
+            raise AssertionError(f"task_type {task_type!r} has no samples")
+        rng.shuffle(type_samples)
+
+    counts = {task: len(items) for task, items in by_type.items()}
+    if len(set(counts.values())) != 1:
+        raise AssertionError(
+            f"unbalanced task_type counts: {counts}"
+        )
+    per_type_n = next(iter(counts.values()))
+    train_per_type = int(per_type_n * 0.70)
+    dev_per_type = int(per_type_n * 0.15)
+    test_per_type = per_type_n - train_per_type - dev_per_type
+    if train_per_type + dev_per_type + test_per_type != per_type_n:
+        raise AssertionError(
+            f"split sum mismatch: {train_per_type}+{dev_per_type}+{test_per_type} != {per_type_n}"
+        )
+
+    assigned: dict[str, list[dict[str, Any]]] = {"train": [], "dev": [], "test": []}
+    for task_type, type_samples in by_type.items():
+        assigned["train"].extend(type_samples[:train_per_type])
+        assigned["dev"].extend(type_samples[train_per_type:train_per_type + dev_per_type])
+        assigned["test"].extend(type_samples[train_per_type + dev_per_type:])
+
+    output: list[dict[str, Any]] = []
+    for split_name in ("train", "dev", "test"):
+        for split_pos, original in enumerate(assigned[split_name], start=1):
+            sample = json.loads(json.dumps(original, ensure_ascii=False))
+            old_id = sample["id"]
+            sample["id"] = f"d2-{split_name}-{split_pos:04d}"
+            sample["metadata"]["split"] = split_name
+            sample["metadata"]["created_at"] = _now_ts(seed, split_pos)
+            sample["metadata"]["created_at_pos"] = split_pos
+
+            old_to_new: dict[str, str] = {}
+            all_call_ids: list[str] = []
+            for call in sample["expected_tool_calls"]:
+                all_call_ids.append(call["call_id"])
+            for message in sample["messages"]:
+                if message["role"] == "assistant":
+                    all_call_ids.extend(
+                        tool_call["id"] for tool_call in message.get("tool_calls", [])
+                    )
+            for old_call_id in dict.fromkeys(all_call_ids):
+                suffix = old_call_id.rsplit("-", 1)[-1]
+                old_to_new[old_call_id] = _call_id(sample["id"], int(suffix))
+            for call in sample["expected_tool_calls"]:
+                call["call_id"] = old_to_new[call["call_id"]]
+                call["depends_on"] = [
+                    old_to_new.get(dep, dep) for dep in call.get("depends_on", [])
+                ]
+            for message in sample["messages"]:
+                if message["role"] == "assistant":
+                    for tool_call in message.get("tool_calls", []):
+                        if tool_call["id"] in old_to_new:
+                            tool_call["id"] = old_to_new[tool_call["id"]]
+                elif message["role"] == "tool":
+                    if message.get("tool_call_id") in old_to_new:
+                        message["tool_call_id"] = old_to_new[message["tool_call_id"]]
+            # ``old_id`` is intentionally not retained in the artifact;
+            # the build-time id has been fully translated to the new
+            # public id by the rename above.
+            del old_id
+            output.append(sample)
     return output
 
 
@@ -920,6 +968,111 @@ def validate_semantics(sample: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _parse_assistant_arguments(arguments: Any) -> Any:
+    """Assistant tool call ``arguments`` is stored as a JSON string. Return
+    the parsed object so it can be compared structurally against the
+    ``expected_tool_calls`` rows which carry dict arguments.
+    """
+    if isinstance(arguments, str):
+        try:
+            return json.loads(arguments)
+        except (TypeError, ValueError):
+            return arguments
+    return arguments
+
+
+def transcript_well_formedness_errors(sample: dict[str, Any]) -> list[str]:
+    """Round 10 cross-message invariants that JSON Schema cannot express.
+
+    Checks performed for every multi-turn sample:
+
+    1. Every assistant ``tool_call.id`` is referenced by a subsequent
+       tool message's ``tool_call_id`` (and vice versa, no orphan tool
+       messages).
+    2. Assistant tool calls are emitted in the same order as their
+       matching tool messages (``assistant ... tool ... assistant ... tool``).
+    3. Every assistant tool call's ``function.name`` and parsed
+       ``function.arguments`` match the ``expected_tool_calls`` entry
+       with the same ``call_id``.
+    4. Every assistant message is followed by a tool response before the
+       next assistant message emits another tool call (no two consecutive
+       assistant tool calls without an intervening tool message).
+    """
+    errors: list[str] = []
+    messages = sample.get("messages", [])
+    expected_calls = sample.get("expected_tool_calls", [])
+    expected_by_id = {call["call_id"]: call for call in expected_calls}
+
+    asst_calls: list[tuple[str, str, Any]] = []  # (call_id, name, parsed_arguments)
+    for message in messages:
+        if message.get("role") != "assistant":
+            continue
+        for call in message.get("tool_calls", []) or []:
+            asst_calls.append((
+                call["id"],
+                call["function"]["name"],
+                _parse_assistant_arguments(call["function"].get("arguments")),
+            ))
+
+    tool_refs: list[str] = []
+    for message in messages:
+        if message.get("role") != "tool":
+            continue
+        tool_refs.append(message["tool_call_id"])
+
+    asst_ids = [cid for cid, _, _ in asst_calls]
+    if asst_ids != tool_refs:
+        missing_in_tool = set(asst_ids) - set(tool_refs)
+        extra_in_tool = set(tool_refs) - set(asst_ids)
+        if missing_in_tool:
+            errors.append(
+                f"assistant tool_call.id without matching tool message: "
+                f"{sorted(missing_in_tool)}"
+            )
+        if extra_in_tool:
+            errors.append(
+                f"tool message references unknown tool_call_id: "
+                f"{sorted(extra_in_tool)}"
+            )
+
+    for asst_index in range(len(asst_calls) - 1):
+        cid = asst_calls[asst_index][0]
+        if cid not in tool_refs:
+            continue
+        tool_index = tool_refs.index(cid)
+        if tool_index >= len(messages) - 1:
+            continue
+        next_role = messages[tool_index + 1].get("role")
+        if next_role == "assistant":
+            next_asst = messages[tool_index + 1]
+            next_calls = next_asst.get("tool_calls", []) or []
+            if next_calls:
+                errors.append(
+                    f"consecutive assistant tool_calls without intervening "
+                    f"tool response after {cid}"
+                )
+
+    for call_id, name, parsed_args in asst_calls:
+        expected = expected_by_id.get(call_id)
+        if expected is None:
+            errors.append(
+                f"assistant tool_call.id {call_id!r} missing from expected_tool_calls"
+            )
+            continue
+        if expected["name"] != name:
+            errors.append(
+                f"assistant tool_call.name mismatch for {call_id!r}: "
+                f"got {name!r}, expected {expected['name']!r}"
+            )
+        if expected["arguments"] != parsed_args:
+            errors.append(
+                f"assistant tool_call.arguments mismatch for {call_id!r}: "
+                f"got {parsed_args!r}, expected {expected['arguments']!r}"
+            )
+
+    return errors
+
+
 def execute_through_mock_executor(sample: dict[str, Any]) -> list[str]:
     """Replay all expected calls through the real executor sequence API."""
     errors = dependency_errors(sample.get("expected_tool_calls", []))
@@ -957,6 +1110,7 @@ def _validate_samples(samples: list[dict[str, Any]]) -> list[str]:
     for sample in samples:
         errors.extend(f"{sample['id']}: {error.message}" for error in validator.iter_errors(sample))
         errors.extend(f"{sample['id']}: {error}" for error in validate_semantics(sample))
+        errors.extend(f"{sample['id']}: {error}" for error in transcript_well_formedness_errors(sample))
         errors.extend(f"{sample['id']}: {error}" for error in execute_through_mock_executor(sample))
         signature = canonical_content_signature(sample)
         previous_id = signatures.get(signature)

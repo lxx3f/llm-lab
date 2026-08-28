@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "把 7 * 8 - 9 算出来，再围绕这个数字 47 做一次搜索。（场景是安全审查，额外要求是关注输入边界。）"
+      "content": "第一步求 7 * 8 - 9；计算得到 47 后，搜索result。"
     },
     {
       "role": "assistant",
@@ -39,20 +39,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"这个数字 47\", \"limit\": 2}"
+            "arguments": "{\"query\": \"result 47\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「这个数字 47」找到 2 条结果。",
+      "content": "关于「result 47」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0287-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "先得到 47，再完成相关检索：关于「这个数字 47」找到 2 条结果。（场景是安全审查，额外要求是关注输入边界。）"
+      "content": "先得到 47，再完成相关检索：关于「result 47」找到 2 条结果。"
     }
   ],
   "tools": [
@@ -111,16 +111,16 @@
       "call_id": "call-d2-train-0287-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "这个数字 47",
+        "query": "result 47",
         "limit": 2
       },
       "depends_on": [
         "call-d2-train-0287-0001"
       ],
-      "expected_result": "关于「这个数字 47」找到 2 条结果。"
+      "expected_result": "关于「result 47」找到 2 条结果。"
     }
   ],
-  "expected_answer": "先得到 47，再完成相关检索：关于「这个数字 47」找到 2 条结果。（场景是安全审查，额外要求是关注输入边界。）",
+  "expected_answer": "先得到 47，再完成相关检索：关于「result 47」找到 2 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -135,6 +135,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 287
   }
 }

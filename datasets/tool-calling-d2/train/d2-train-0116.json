@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请调用翻译服务处理这段文本，目标语言是中文：请把这段话翻译一下。（场景是教学演示，额外要求是避免臆造无法验证的信息。）"
+      "content": "请把“Thank you for your help.”翻译成日文。"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"请把这段话翻译一下。\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"Thank you for your help.\", \"target_lang\": \"ja\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='请把这段话翻译一下。', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='Thank you for your help.', target_lang='ja')",
       "tool_call_id": "call-d2-train-0116-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='请把这段话翻译一下。', target_lang='zh')。（场景是教学演示，额外要求是避免臆造无法验证的信息。）"
+      "content": "翻译服务暂不可用（ERROR: translation service unavailable (text='Thank you for your help.', target_lang='ja')），因此没有生成译文。"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-train-0116-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "请把这段话翻译一下。",
-        "target_lang": "zh"
+        "text": "Thank you for your help.",
+        "target_lang": "ja"
       },
-      "expected_result": "ERROR: translation service unavailable (text='请把这段话翻译一下。', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='Thank you for your help.', target_lang='ja')",
       "depends_on": []
     }
   ],
-  "expected_answer": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='请把这段话翻译一下。', target_lang='zh')。（场景是教学演示，额外要求是避免臆造无法验证的信息。）",
+  "expected_answer": "翻译服务暂不可用（ERROR: translation service unavailable (text='Thank you for your help.', target_lang='ja')），因此没有生成译文。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -86,6 +86,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 116
   }
 }

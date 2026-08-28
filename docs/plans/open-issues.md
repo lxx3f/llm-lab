@@ -810,6 +810,13 @@ P3/P4 后续动作：
   - `tool_not_available` 与其余 task builder 通过 600/600 canonical semantic uniqueness 校验；
   - `docs/experiments/p2-evaluator/README.md` 用真实 5 ckpt × D2 dev 结果替换 mock 主表（mock 降为管线兼容性验证）。
 
+### 审计 round 10 修复
+
+- **根因**：`assign_split_ids()` 用 contiguous slicing（`samples[:train_n]`），dev/test 拿到每个 task_type 的 variant 70-99 连续切片，与 train 的 0-69 不交叠。train/dev/test 在 14 vs 3 vs 3 个 semantic domains 上分布完全不一致，并非 IID。`validate_semantics()` 只检查 expected ⊆ transcript，未验证跨 message ID 双向引用、name/arguments、ordering。
+- **修复**：`build_samples()` 按 build_pos 显式计算 variant（与样本 id 解耦）；六个 builder 接收 `variant: int` 参数；`assign_split_ids()` 改为按 task_type 分组的 seeded shuffle（`random.Random(seed).shuffle()` per-task-type），per-task 严格 70/15/15。`_req_change_city` 改用 16 城市 120 个有序对组合取代 `rng.sample(cities, 2)`。新增 `transcript_well_formedness_errors()` 验证跨 message ID 双向引用、order、name/arguments 匹配，并接入 `_validate_samples()`。
+- **测试**：`D2SplitDisjointnessTests` 新增 4 个 IID / canonical uniqueness / per-task disjoint 测试；新增 `D2TranscriptWellFormednessTests` 5 例（含 orphan tool + argument mismatch 反向断言）。`scripts/run_tests.py full` → Ran **264** tests OK；D2 专项 42 tests OK。
+- **数据重生成 + 5 ckpt × D2 dev reward 重跑**：清理磁盘残留旧 3-digit 文件后重生成；5 ckpt 重新跑 multi_turn 推理；reward_offline 产出 450 signals schema 合法。最终：large-v1 `reward_layered=0.0099`（87 parse_success + 3 argument_correct），其余 4 个 ckpt `0.0000`；全部 `reward_binary=0.0`。
+
 遗留：
 
 - ~~自研 5 ckpt（单轮训练）尚未在 D2 dev 上跑实际推理 reward 评测——需 P5-02 公开模型 + Transformers backend 后才能验证。~~（已于 round 7 完成：5 ckpt × D2 dev 90 = 450 reward_signal；最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。）

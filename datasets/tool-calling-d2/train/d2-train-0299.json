@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "依次完成：计算 81 / 9 + 1，然后检索这个数字等于 10 的内容。（场景是安全审查，额外要求是避免臆造无法验证的信息。）"
+      "content": "请先算出 4 ** 3 + 2，随后查找上面的答案为 66 的资料。"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_calculate",
-            "arguments": "{\"expression\": \"81 / 9 + 1\"}"
+            "arguments": "{\"expression\": \"4 ** 3 + 2\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "10",
+      "content": "66",
       "tool_call_id": "call-d2-train-0299-0001",
       "name": "d1_calculate"
     },
@@ -39,20 +39,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"这个数字 10\", \"limit\": 2}"
+            "arguments": "{\"query\": \"上面的答案 66\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「这个数字 10」找到 2 条结果。",
+      "content": "关于「上面的答案 66」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0299-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "第一步结果为 10；随后搜索得到：关于「这个数字 10」找到 2 条结果。（场景是安全审查，额外要求是避免臆造无法验证的信息。）"
+      "content": "计算输出是 66。相关检索结果为：关于「上面的答案 66」找到 2 条结果。"
     }
   ],
   "tools": [
@@ -102,25 +102,25 @@
       "call_id": "call-d2-train-0299-0001",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "81 / 9 + 1"
+        "expression": "4 ** 3 + 2"
       },
-      "expected_result": 10,
+      "expected_result": 66,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0299-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "这个数字 10",
+        "query": "上面的答案 66",
         "limit": 2
       },
       "depends_on": [
         "call-d2-train-0299-0001"
       ],
-      "expected_result": "关于「这个数字 10」找到 2 条结果。"
+      "expected_result": "关于「上面的答案 66」找到 2 条结果。"
     }
   ],
-  "expected_answer": "第一步结果为 10；随后搜索得到：关于「这个数字 10」找到 2 条结果。（场景是安全审查，额外要求是避免臆造无法验证的信息。）",
+  "expected_answer": "计算输出是 66。相关检索结果为：关于「上面的答案 66」找到 2 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -135,6 +135,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 299
   }
 }

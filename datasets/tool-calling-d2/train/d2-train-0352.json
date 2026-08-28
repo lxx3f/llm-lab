@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下杭州的天气。（场景是高并发服务，额外要求是记录关键中间结果。）"
+      "content": "搜索 PyTorch 的 深度学习框架最新进展；结果不足时请调整查询。"
     },
     {
       "role": "assistant",
@@ -18,21 +18,21 @@
           "id": "call-d2-train-0352-0001",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"杭州\"}"
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"PyTorch\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "杭州 当前天气：晴，22°C，微风。",
+      "content": "关于「PyTorch」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0352-0001",
-      "name": "d1_get_weather"
+      "name": "d1_web_search"
     },
     {
-      "role": "user",
-      "content": "现在优先给我武汉的天气。"
+      "role": "assistant",
+      "content": "这个搜索范围太宽，我先调整检索词。"
     },
     {
       "role": "assistant",
@@ -42,38 +42,42 @@
           "id": "call-d2-train-0352-0002",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"武汉\"}"
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"PyTorch 2.x 新特性\", \"limit\": 4}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "武汉 当前天气：晴，22°C，微风。",
+      "content": "关于「PyTorch 2.x 新特性」找到 4 条结果。",
       "tool_call_id": "call-d2-train-0352-0002",
-      "name": "d1_get_weather"
+      "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "已按你的新要求查询武汉：武汉 当前天气：晴，22°C，微风。（场景是高并发服务，额外要求是记录关键中间结果。）"
+      "content": "初次搜索『PyTorch』结果过少（深度学习框架最新进展），已重试为『PyTorch 2.x 新特性』并扩大 limit，得到：关于「PyTorch 2.x 新特性」找到 4 条结果。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
+        "name": "d1_web_search",
+        "description": "Search the web for information.",
         "parameters": {
           "type": "object",
           "properties": {
-            "city": {
+            "query": {
               "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
             }
           },
           "required": [
-            "city"
+            "query"
           ]
         }
       }
@@ -82,31 +86,33 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0352-0001",
-      "name": "d1_get_weather",
+      "name": "d1_web_search",
       "arguments": {
-        "city": "杭州"
+        "query": "PyTorch",
+        "limit": 1
       },
-      "expected_result": "杭州 当前天气：晴，22°C，微风。",
+      "expected_result": "关于「PyTorch」找到 1 条结果。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0352-0002",
-      "name": "d1_get_weather",
+      "name": "d1_web_search",
       "arguments": {
-        "city": "武汉"
+        "query": "PyTorch 2.x 新特性",
+        "limit": 4
       },
       "depends_on": [
         "call-d2-train-0352-0001"
       ],
-      "expected_result": "武汉 当前天气：晴，22°C，微风。"
+      "expected_result": "关于「PyTorch 2.x 新特性」找到 4 条结果。"
     }
   ],
-  "expected_answer": "已按你的新要求查询武汉：武汉 当前天气：晴，22°C，微风。（场景是高并发服务，额外要求是记录关键中间结果。）",
+  "expected_answer": "初次搜索『PyTorch』结果过少（深度学习框架最新进展），已重试为『PyTorch 2.x 新特性』并扩大 limit，得到：关于「PyTorch 2.x 新特性」找到 4 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "req_change_city",
-    "task_template": "abandoned_old_city_then_retry",
+    "task_type": "error_recovery",
+    "task_template": "refine_query_after_insufficient_result",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:59:38Z",
@@ -116,6 +122,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 352
   }
 }

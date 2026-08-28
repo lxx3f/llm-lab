@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我将下面这句话转换为中文：Metrics should be recorded.（场景是教学演示，额外要求是关注输入边界。）"
+      "content": "请把“Use a deterministic seed.”翻译成中文。"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Metrics should be recorded.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"Use a deterministic seed.\", \"target_lang\": \"zh\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Metrics should be recorded.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='zh')",
       "tool_call_id": "call-d2-train-0104-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译服务暂不可用（ERROR: translation service unavailable (text='Metrics should be recorded.', target_lang='zh')），因此没有生成译文。（场景是教学演示，额外要求是关注输入边界。）"
+      "content": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='zh')。请稍后重试。"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-train-0104-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Metrics should be recorded.",
+        "text": "Use a deterministic seed.",
         "target_lang": "zh"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Metrics should be recorded.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='zh')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译服务暂不可用（ERROR: translation service unavailable (text='Metrics should be recorded.', target_lang='zh')），因此没有生成译文。（场景是教学演示，额外要求是关注输入边界。）",
+  "expected_answer": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='zh')。请稍后重试。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -86,6 +86,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 104
   }
 }

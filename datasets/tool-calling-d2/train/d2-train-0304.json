@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "我想知道郑州现在的天气，请查询一下。（场景是成本控制，额外要求是优先保留可复现性。）"
+      "content": "先计算 72 / 8，再搜索计算结果 9。"
     },
     {
       "role": "assistant",
@@ -18,21 +18,17 @@
           "id": "call-d2-train-0304-0001",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"郑州\"}"
+            "name": "d1_calculate",
+            "arguments": "{\"expression\": \"72 / 8\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "郑州 当前天气：晴，22°C，微风。",
+      "content": "9",
       "tool_call_id": "call-d2-train-0304-0001",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "user",
-      "content": "请把查询目标改为西安。"
+      "name": "d1_calculate"
     },
     {
       "role": "assistant",
@@ -42,38 +38,60 @@
           "id": "call-d2-train-0304-0002",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"西安\"}"
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"计算结果 9\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "西安 当前天气：晴，22°C，微风。",
+      "content": "关于「计算结果 9」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0304-0002",
-      "name": "d1_get_weather"
+      "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "最新指定城市为西安，天气信息如下：西安 当前天气：晴，22°C，微风。（场景是成本控制，额外要求是优先保留可复现性。）"
+      "content": "计算输出是 9。相关检索结果为：关于「计算结果 9」找到 2 条结果。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
         "parameters": {
           "type": "object",
           "properties": {
-            "city": {
+            "expression": {
               "type": "string"
             }
           },
           "required": [
-            "city"
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "Search the web for information.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
           ]
         }
       }
@@ -82,31 +100,32 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0304-0001",
-      "name": "d1_get_weather",
+      "name": "d1_calculate",
       "arguments": {
-        "city": "郑州"
+        "expression": "72 / 8"
       },
-      "expected_result": "郑州 当前天气：晴，22°C，微风。",
+      "expected_result": 9,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0304-0002",
-      "name": "d1_get_weather",
+      "name": "d1_web_search",
       "arguments": {
-        "city": "西安"
+        "query": "计算结果 9",
+        "limit": 2
       },
       "depends_on": [
         "call-d2-train-0304-0001"
       ],
-      "expected_result": "西安 当前天气：晴，22°C，微风。"
+      "expected_result": "关于「计算结果 9」找到 2 条结果。"
     }
   ],
-  "expected_answer": "最新指定城市为西安，天气信息如下：西安 当前天气：晴，22°C，微风。（场景是成本控制，额外要求是优先保留可复现性。）",
+  "expected_answer": "计算输出是 9。相关检索结果为：关于「计算结果 9」找到 2 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "req_change_city",
-    "task_template": "abandoned_old_city_then_retry",
+    "task_type": "multi_tool_sequential",
+    "task_template": "calc_then_search",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:58:50Z",
@@ -116,6 +135,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 304
   }
 }

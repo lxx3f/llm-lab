@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "第一步求 17 * 4；计算得到 68 后，搜索上面的答案。（场景是边缘设备，额外要求是需要清楚说明限制。）"
+      "content": "搜索 RoPE 的 位置编码；结果不足时请调整查询。"
     },
     {
       "role": "assistant",
@@ -18,17 +18,21 @@
           "id": "call-d2-train-0371-0001",
           "type": "function",
           "function": {
-            "name": "d1_calculate",
-            "arguments": "{\"expression\": \"17 * 4\"}"
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"RoPE\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "68",
+      "content": "关于「RoPE」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0371-0001",
-      "name": "d1_calculate"
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "“RoPE”结果过少，我会细化关键词后重试。"
     },
     {
       "role": "assistant",
@@ -39,41 +43,23 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"上面的答案 68\", \"limit\": 2}"
+            "arguments": "{\"query\": \"RoPE 外推 2025\", \"limit\": 3}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「上面的答案 68」找到 2 条结果。",
+      "content": "关于「RoPE 外推 2025」找到 3 条结果。",
       "tool_call_id": "call-d2-train-0371-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "计算输出是 68。相关检索结果为：关于「上面的答案 68」找到 2 条结果。（场景是边缘设备，额外要求是需要清楚说明限制。）"
+      "content": "初次搜索『RoPE』结果过少（位置编码），已重试为『RoPE 外推 2025』并扩大 limit，得到：关于「RoPE 外推 2025」找到 3 条结果。"
     }
   ],
   "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "expression"
-          ]
-        }
-      }
-    },
     {
       "type": "function",
       "function": {
@@ -100,32 +86,33 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0371-0001",
-      "name": "d1_calculate",
+      "name": "d1_web_search",
       "arguments": {
-        "expression": "17 * 4"
+        "query": "RoPE",
+        "limit": 1
       },
-      "expected_result": 68,
+      "expected_result": "关于「RoPE」找到 1 条结果。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0371-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "上面的答案 68",
-        "limit": 2
+        "query": "RoPE 外推 2025",
+        "limit": 3
       },
       "depends_on": [
         "call-d2-train-0371-0001"
       ],
-      "expected_result": "关于「上面的答案 68」找到 2 条结果。"
+      "expected_result": "关于「RoPE 外推 2025」找到 3 条结果。"
     }
   ],
-  "expected_answer": "计算输出是 68。相关检索结果为：关于「上面的答案 68」找到 2 条结果。（场景是边缘设备，额外要求是需要清楚说明限制。）",
+  "expected_answer": "初次搜索『RoPE』结果过少（位置编码），已重试为『RoPE 外推 2025』并扩大 limit，得到：关于「RoPE 外推 2025」找到 3 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "multi_tool_sequential",
-    "task_template": "calc_then_search",
+    "task_type": "error_recovery",
+    "task_template": "refine_query_after_insufficient_result",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:59:57Z",
@@ -135,6 +122,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 371
   }
 }

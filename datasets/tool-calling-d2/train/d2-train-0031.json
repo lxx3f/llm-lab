@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "帮我找一份番茄炒蛋的做法。 我今天就要用到结果。（场景是客服工单，额外要求是优先保留可复现性。）"
+      "content": "请处理下面这项请求：帮我比一下同一款耳机在京东和淘宝的当前售价。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有食谱查询功能，无法完成此任务。（场景是客服工单，额外要求是优先保留可复现性。）"
+      "content": "当前可用工具中没有商品比价功能，无法完成此任务。"
     }
   ],
   "tools": [
@@ -55,28 +55,6 @@
     {
       "type": "function",
       "function": {
-        "name": "d1_web_search",
-        "description": "Search the web for information.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string"
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1
-            }
-          },
-          "required": [
-            "query"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
         "name": "d1_translate",
         "description": "Translate text to a target language.",
         "parameters": {
@@ -98,12 +76,12 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有食谱查询功能，无法完成此任务。（场景是客服工单，额外要求是优先保留可复现性。）",
+  "expected_answer": "当前可用工具中没有商品比价功能，无法完成此任务。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_食谱查询",
+    "task_template": "missing_商品比价",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:17Z",
@@ -113,6 +91,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 31
   }
 }

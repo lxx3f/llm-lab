@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "id": "d2-dev-0027",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant with tool access."
+    },
+    {
+      "role": "user",
+      "content": "请调用翻译服务处理这段文本，目标语言是日文：The result is reproducible."
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-dev-0027-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_translate",
+            "arguments": "{\"text\": \"The result is reproducible.\", \"target_lang\": \"ja\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "ERROR: translation service unavailable (text='The result is reproducible.', target_lang='ja')",
+      "tool_call_id": "call-d2-dev-0027-0001",
+      "name": "d1_translate"
+    },
+    {
+      "role": "assistant",
+      "content": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='The result is reproducible.', target_lang='ja')。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "target_lang"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-dev-0027-0001",
+      "name": "d1_translate",
+      "arguments": {
+        "text": "The result is reproducible.",
+        "target_lang": "ja"
+      },
+      "expected_result": "ERROR: translation service unavailable (text='The result is reproducible.', target_lang='ja')",
+      "depends_on": []
+    }
+  ],
+  "expected_answer": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='The result is reproducible.', target_lang='ja')。",
+  "metadata": {
+    "source": "d2-synthetic-template",
+    "license": "project-internal",
+    "task_type": "tool_error_response",
+    "task_template": "translate_error_report",
+    "data_version": "D2",
+    "pipeline_version": "generate_d2_dataset.py/v2.0",
+    "created_at": "2026-07-25T17:54:13Z",
+    "validation": {
+      "schema_valid": true,
+      "tool_execution_valid": true,
+      "answer_valid": true,
+      "quality_passed": true
+    },
+    "split": "dev",
+    "created_at_pos": 27
+  }
+}

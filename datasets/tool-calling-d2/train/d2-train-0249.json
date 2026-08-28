@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我搜集 RoPE 外推 相关内容，若只有少量结果就先询问我的关注点。（场景是数据治理，额外要求是需要清楚说明限制。）"
+      "content": "先帮我获取深圳的天气信息。"
     },
     {
       "role": "assistant",
@@ -18,50 +18,62 @@
           "id": "call-d2-train-0249-0001",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"RoPE 外推\", \"limit\": 2}"
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"深圳\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「RoPE 外推」找到 2 条结果。",
+      "content": "深圳 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0249-0001",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "目前检索到的结果有限（关于「RoPE 外推」找到 2 条结果。），请告诉我你想深入的角度。"
+      "name": "d1_get_weather"
     },
     {
       "role": "user",
-      "content": "我关注训练稳定性与可复现性。"
+      "content": "刚才城市不对，重新查询郑州。"
     },
     {
       "role": "assistant",
-      "content": "明白，我会据此收窄后续整理范围。（场景是数据治理，额外要求是需要清楚说明限制。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0249-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"郑州\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "郑州 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-train-0249-0002",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "assistant",
+      "content": "按最新要求，郑州天气：郑州 当前天气：晴，22°C，微风。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_web_search",
-        "description": "Search the web for information.",
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
         "parameters": {
           "type": "object",
           "properties": {
-            "query": {
+            "city": {
               "type": "string"
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1
             }
           },
           "required": [
-            "query"
+            "city"
           ]
         }
       }
@@ -70,21 +82,31 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0249-0001",
-      "name": "d1_web_search",
+      "name": "d1_get_weather",
       "arguments": {
-        "query": "RoPE 外推",
-        "limit": 2
+        "city": "深圳"
       },
-      "expected_result": "关于「RoPE 外推」找到 2 条结果。",
+      "expected_result": "深圳 当前天气：晴，22°C，微风。",
       "depends_on": []
+    },
+    {
+      "call_id": "call-d2-train-0249-0002",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "郑州"
+      },
+      "depends_on": [
+        "call-d2-train-0249-0001"
+      ],
+      "expected_result": "郑州 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "目前检索到的结果有限（关于「RoPE 外推」找到 2 条结果。），请告诉我你想深入的角度。（场景是数据治理，额外要求是需要清楚说明限制。）",
+  "expected_answer": "按最新要求，郑州天气：郑州 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "insufficient_result_search",
-    "task_template": "search_then_clarify",
+    "task_type": "req_change_city",
+    "task_template": "abandoned_old_city_then_retry",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:57:55Z",
@@ -94,6 +116,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 249
   }
 }

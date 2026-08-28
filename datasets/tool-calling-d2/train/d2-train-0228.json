@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 KV cache 的 推理优化近期研究；结果不足时请调整查询。（场景是多语言内容，额外要求是关注输入边界。）"
+      "content": "我想知道深圳现在的天气，请查询一下。"
     },
     {
       "role": "assistant",
@@ -18,21 +18,21 @@
           "id": "call-d2-train-0228-0001",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"KV cache\", \"limit\": 2}"
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"深圳\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「KV cache」找到 2 条结果。",
+      "content": "深圳 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0228-0001",
-      "name": "d1_web_search"
+      "name": "d1_get_weather"
     },
     {
-      "role": "assistant",
-      "content": "初次检索不充分，接下来我会收窄到更具体的关键词。"
+      "role": "user",
+      "content": "刚才城市不对，重新查询昆明。"
     },
     {
       "role": "assistant",
@@ -42,42 +42,38 @@
           "id": "call-d2-train-0228-0002",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"KV cache 压缩 2025 进展\", \"limit\": 3}"
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"昆明\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「KV cache 压缩 2025 进展」找到 3 条结果。",
+      "content": "昆明 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0228-0002",
-      "name": "d1_web_search"
+      "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "针对推理优化近期研究，初始关键词『KV cache』命中有限，细化为『KV cache 压缩 2025 进展』的结果是：关于「KV cache 压缩 2025 进展」找到 3 条结果。（场景是多语言内容，额外要求是关注输入边界。）"
+      "content": "按最新要求，昆明天气：昆明 当前天气：晴，22°C，微风。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_web_search",
-        "description": "Search the web for information.",
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
         "parameters": {
           "type": "object",
           "properties": {
-            "query": {
+            "city": {
               "type": "string"
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1
             }
           },
           "required": [
-            "query"
+            "city"
           ]
         }
       }
@@ -86,33 +82,31 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0228-0001",
-      "name": "d1_web_search",
+      "name": "d1_get_weather",
       "arguments": {
-        "query": "KV cache",
-        "limit": 2
+        "city": "深圳"
       },
-      "expected_result": "关于「KV cache」找到 2 条结果。",
+      "expected_result": "深圳 当前天气：晴，22°C，微风。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0228-0002",
-      "name": "d1_web_search",
+      "name": "d1_get_weather",
       "arguments": {
-        "query": "KV cache 压缩 2025 进展",
-        "limit": 3
+        "city": "昆明"
       },
       "depends_on": [
         "call-d2-train-0228-0001"
       ],
-      "expected_result": "关于「KV cache 压缩 2025 进展」找到 3 条结果。"
+      "expected_result": "昆明 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "针对推理优化近期研究，初始关键词『KV cache』命中有限，细化为『KV cache 压缩 2025 进展』的结果是：关于「KV cache 压缩 2025 进展」找到 3 条结果。（场景是多语言内容，额外要求是关注输入边界。）",
+  "expected_answer": "按最新要求，昆明天气：昆明 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "error_recovery",
-    "task_template": "refine_query_after_insufficient_result",
+    "task_type": "req_change_city",
+    "task_template": "abandoned_old_city_then_retry",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:57:34Z",
@@ -122,6 +116,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 228
   }
 }

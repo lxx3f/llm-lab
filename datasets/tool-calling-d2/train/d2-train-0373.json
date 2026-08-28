@@ -8,32 +8,58 @@
     },
     {
       "role": "user",
-      "content": "请处理下面这项请求：查一下我车牌京A12345 最近的违章记录。 我今天就要用到结果。（场景是边缘设备，额外要求是关注输入边界。）"
+      "content": "搜索 ALiBi 的 位置编码变体；结果不足时请调整查询。"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有车辆违章查询功能，无法完成此任务。（场景是边缘设备，额外要求是关注输入边界。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0373-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"ALiBi\", \"limit\": 1}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「ALiBi」找到 1 条结果。",
+      "tool_call_id": "call-d2-train-0373-0001",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "“ALiBi”结果过少，我会细化关键词后重试。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0373-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"ALiBi 位置编码\", \"limit\": 3}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「ALiBi 位置编码」找到 3 条结果。",
+      "tool_call_id": "call-d2-train-0373-0002",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "针对位置编码变体，初始关键词『ALiBi』命中有限，细化为『ALiBi 位置编码』的结果是：关于「ALiBi 位置编码」找到 3 条结果。"
     }
   ],
   "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "expression"
-          ]
-        }
-      }
-    },
     {
       "type": "function",
       "function": {
@@ -55,37 +81,38 @@
           ]
         }
       }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_translate",
-        "description": "Translate text to a target language.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string"
-            },
-            "target_lang": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "text",
-            "target_lang"
-          ]
-        }
-      }
     }
   ],
-  "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有车辆违章查询功能，无法完成此任务。（场景是边缘设备，额外要求是关注输入边界。）",
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-train-0373-0001",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "ALiBi",
+        "limit": 1
+      },
+      "expected_result": "关于「ALiBi」找到 1 条结果。",
+      "depends_on": []
+    },
+    {
+      "call_id": "call-d2-train-0373-0002",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "ALiBi 位置编码",
+        "limit": 3
+      },
+      "depends_on": [
+        "call-d2-train-0373-0001"
+      ],
+      "expected_result": "关于「ALiBi 位置编码」找到 3 条结果。"
+    }
+  ],
+  "expected_answer": "针对位置编码变体，初始关键词『ALiBi』命中有限，细化为『ALiBi 位置编码』的结果是：关于「ALiBi 位置编码」找到 3 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "tool_not_available",
-    "task_template": "missing_违章查询",
+    "task_type": "error_recovery",
+    "task_template": "refine_query_after_insufficient_result",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:59:59Z",
@@ -95,6 +122,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 373
   }
 }

@@ -8,32 +8,58 @@
     },
     {
       "role": "user",
-      "content": "我现在有一个实际需求：帮访客生成一个今天有效的小区门禁临时密码。 我今天就要用到结果。（场景是数据治理，额外要求是关注输入边界。）"
+      "content": "我想知道杭州现在的天气，请查询一下。"
     },
     {
       "role": "assistant",
-      "content": "我没有可用于小区门禁临时密码的工具，不能假装已经完成这项操作。（场景是数据治理，额外要求是关注输入边界。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0253-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"杭州\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "杭州 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-train-0253-0001",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "user",
+      "content": "我改变主意了，改看天津的天气。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0253-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"天津\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "天津 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-train-0253-0002",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "assistant",
+      "content": "已按你的新要求查询天津：天津 当前天气：晴，22°C，微风。"
     }
   ],
   "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "expression"
-          ]
-        }
-      }
-    },
     {
       "type": "function",
       "function": {
@@ -51,59 +77,36 @@
           ]
         }
       }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_web_search",
-        "description": "Search the web for information.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string"
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1
-            }
-          },
-          "required": [
-            "query"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_translate",
-        "description": "Translate text to a target language.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string"
-            },
-            "target_lang": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "text",
-            "target_lang"
-          ]
-        }
-      }
     }
   ],
-  "expected_tool_calls": [],
-  "expected_answer": "我没有可用于小区门禁临时密码的工具，不能假装已经完成这项操作。（场景是数据治理，额外要求是关注输入边界。）",
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-train-0253-0001",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "杭州"
+      },
+      "expected_result": "杭州 当前天气：晴，22°C，微风。",
+      "depends_on": []
+    },
+    {
+      "call_id": "call-d2-train-0253-0002",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "天津"
+      },
+      "depends_on": [
+        "call-d2-train-0253-0001"
+      ],
+      "expected_result": "天津 当前天气：晴，22°C，微风。"
+    }
+  ],
+  "expected_answer": "已按你的新要求查询天津：天津 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "tool_not_available",
-    "task_template": "missing_门禁密码",
+    "task_type": "req_change_city",
+    "task_template": "abandoned_old_city_then_retry",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:57:59Z",
@@ -113,6 +116,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 253
   }
 }

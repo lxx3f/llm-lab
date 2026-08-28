@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下青岛的天气。（场景是教学演示，额外要求是避免臆造无法验证的信息。）"
+      "content": "帮我将下面这句话转换为中文：The result is reproducible."
     },
     {
       "role": "assistant",
@@ -18,62 +18,42 @@
           "id": "call-d2-train-0118-0001",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"青岛\"}"
+            "name": "d1_translate",
+            "arguments": "{\"text\": \"The result is reproducible.\", \"target_lang\": \"zh\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "青岛 当前天气：晴，22°C，微风。",
+      "content": "ERROR: translation service unavailable (text='The result is reproducible.', target_lang='zh')",
       "tool_call_id": "call-d2-train-0118-0001",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "user",
-      "content": "改成查昆明的天气吧。"
+      "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0118-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"昆明\"}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "昆明 当前天气：晴，22°C，微风。",
-      "tool_call_id": "call-d2-train-0118-0002",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "assistant",
-      "content": "忽略之前的青岛，当前结果是昆明 当前天气：晴，22°C，微风。（场景是教学演示，额外要求是避免臆造无法验证的信息。）"
+      "content": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='The result is reproducible.', target_lang='zh')。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
         "parameters": {
           "type": "object",
           "properties": {
-            "city": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
               "type": "string"
             }
           },
           "required": [
-            "city"
+            "text",
+            "target_lang"
           ]
         }
       }
@@ -82,31 +62,21 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0118-0001",
-      "name": "d1_get_weather",
+      "name": "d1_translate",
       "arguments": {
-        "city": "青岛"
+        "text": "The result is reproducible.",
+        "target_lang": "zh"
       },
-      "expected_result": "青岛 当前天气：晴，22°C，微风。",
+      "expected_result": "ERROR: translation service unavailable (text='The result is reproducible.', target_lang='zh')",
       "depends_on": []
-    },
-    {
-      "call_id": "call-d2-train-0118-0002",
-      "name": "d1_get_weather",
-      "arguments": {
-        "city": "昆明"
-      },
-      "depends_on": [
-        "call-d2-train-0118-0001"
-      ],
-      "expected_result": "昆明 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "忽略之前的青岛，当前结果是昆明 当前天气：晴，22°C，微风。（场景是教学演示，额外要求是避免臆造无法验证的信息。）",
+  "expected_answer": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='The result is reproducible.', target_lang='zh')。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "req_change_city",
-    "task_template": "abandoned_old_city_then_retry",
+    "task_type": "tool_error_response",
+    "task_template": "translate_error_report",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:55:44Z",
@@ -116,6 +86,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 118
   }
 }

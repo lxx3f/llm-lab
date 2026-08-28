@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我搜集 结构化剪枝 相关内容，若只有少量结果就先询问我的关注点。（场景是数据治理，额外要求是优先保留可复现性。）"
+      "content": "帮我查一下深圳的天气。"
     },
     {
       "role": "assistant",
@@ -18,50 +18,62 @@
           "id": "call-d2-train-0243-0001",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"结构化剪枝\", \"limit\": 2}"
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"深圳\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「结构化剪枝」找到 2 条结果。",
+      "content": "深圳 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0243-0001",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "仅找到 2 条结果：关于「结构化剪枝」找到 2 条结果。。请补充你关注的方向。"
+      "name": "d1_get_weather"
     },
     {
       "role": "user",
-      "content": "我关注训练稳定性与可复现性。"
+      "content": "请把查询目标改为南京。"
     },
     {
       "role": "assistant",
-      "content": "收到，我会按这个方向继续。（场景是数据治理，额外要求是优先保留可复现性。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0243-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"南京\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "南京 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-train-0243-0002",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "assistant",
+      "content": "按最新要求，南京天气：南京 当前天气：晴，22°C，微风。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_web_search",
-        "description": "Search the web for information.",
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
         "parameters": {
           "type": "object",
           "properties": {
-            "query": {
+            "city": {
               "type": "string"
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1
             }
           },
           "required": [
-            "query"
+            "city"
           ]
         }
       }
@@ -70,21 +82,31 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0243-0001",
-      "name": "d1_web_search",
+      "name": "d1_get_weather",
       "arguments": {
-        "query": "结构化剪枝",
-        "limit": 2
+        "city": "深圳"
       },
-      "expected_result": "关于「结构化剪枝」找到 2 条结果。",
+      "expected_result": "深圳 当前天气：晴，22°C，微风。",
       "depends_on": []
+    },
+    {
+      "call_id": "call-d2-train-0243-0002",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "南京"
+      },
+      "depends_on": [
+        "call-d2-train-0243-0001"
+      ],
+      "expected_result": "南京 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "仅找到 2 条结果：关于「结构化剪枝」找到 2 条结果。。请补充你关注的方向。（场景是数据治理，额外要求是优先保留可复现性。）",
+  "expected_answer": "按最新要求，南京天气：南京 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "insufficient_result_search",
-    "task_template": "search_then_clarify",
+    "task_type": "req_change_city",
+    "task_template": "abandoned_old_city_then_retry",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:57:49Z",
@@ -94,6 +116,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 243
   }
 }

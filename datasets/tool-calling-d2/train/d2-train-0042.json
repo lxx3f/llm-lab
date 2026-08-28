@@ -8,58 +8,50 @@
     },
     {
       "role": "user",
-      "content": "搜索 LoRA 的 参数高效微调最新研究；结果不足时请调整查询。（场景是客服工单，额外要求是需要清楚说明限制。）"
+      "content": "如果可以的话，麻烦帮我完成：请帮我给 luna@example.com 发一封提醒邮件。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0042-0001",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"LoRA\", \"limit\": 1}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「LoRA」找到 1 条结果。",
-      "tool_call_id": "call-d2-train-0042-0001",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "“LoRA”结果过少，我会细化关键词后重试。"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0042-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"LoRA 微调 2025 综述\", \"limit\": 3}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「LoRA 微调 2025 综述」找到 3 条结果。",
-      "tool_call_id": "call-d2-train-0042-0002",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "第一次检索『LoRA』不够充分；围绕参数高效微调最新研究改用『LoRA 微调 2025 综述』后得到：关于「LoRA 微调 2025 综述」找到 3 条结果。（场景是客服工单，额外要求是需要清楚说明限制。）"
+      "content": "我没有可用于发送邮件的工具，不能假装已经完成这项操作。"
     }
   ],
   "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
     {
       "type": "function",
       "function": {
@@ -81,38 +73,37 @@
           ]
         }
       }
-    }
-  ],
-  "expected_tool_calls": [
-    {
-      "call_id": "call-d2-train-0042-0001",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "LoRA",
-        "limit": 1
-      },
-      "expected_result": "关于「LoRA」找到 1 条结果。",
-      "depends_on": []
     },
     {
-      "call_id": "call-d2-train-0042-0002",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "LoRA 微调 2025 综述",
-        "limit": 3
-      },
-      "depends_on": [
-        "call-d2-train-0042-0001"
-      ],
-      "expected_result": "关于「LoRA 微调 2025 综述」找到 3 条结果。"
+      "type": "function",
+      "function": {
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "target_lang"
+          ]
+        }
+      }
     }
   ],
-  "expected_answer": "第一次检索『LoRA』不够充分；围绕参数高效微调最新研究改用『LoRA 微调 2025 综述』后得到：关于「LoRA 微调 2025 综述」找到 3 条结果。（场景是客服工单，额外要求是需要清楚说明限制。）",
+  "expected_tool_calls": [],
+  "expected_answer": "我没有可用于发送邮件的工具，不能假装已经完成这项操作。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "error_recovery",
-    "task_template": "refine_query_after_insufficient_result",
+    "task_type": "tool_not_available",
+    "task_template": "missing_发送邮件",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:28Z",
@@ -122,6 +113,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 42
   }
 }

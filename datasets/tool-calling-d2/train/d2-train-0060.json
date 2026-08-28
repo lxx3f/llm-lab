@@ -8,58 +8,50 @@
     },
     {
       "role": "user",
-      "content": "搜索 MoE 的 混合专家机制；结果不足时请调整查询。（场景是客服工单，额外要求是避免臆造无法验证的信息。）"
+      "content": "请处理下面这项请求：查一下离我最近的 24 小时便利店。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0060-0001",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"MoE\", \"limit\": 1}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「MoE」找到 1 条结果。",
-      "tool_call_id": "call-d2-train-0060-0001",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "“MoE”结果过少，我会细化关键词后重试。"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0060-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"Mixture-of-Experts 路由 2025\", \"limit\": 3}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「Mixture-of-Experts 路由 2025」找到 3 条结果。",
-      "tool_call_id": "call-d2-train-0060-0002",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "『MoE』的初步结果不够，我将混合专家机制聚焦到『Mixture-of-Experts 路由 2025』，返回：关于「Mixture-of-Experts 路由 2025」找到 3 条结果。（场景是客服工单，额外要求是避免臆造无法验证的信息。）"
+      "content": "当前可用工具中没有附近便利店查询功能，无法完成此任务。"
     }
   ],
   "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
     {
       "type": "function",
       "function": {
@@ -81,38 +73,37 @@
           ]
         }
       }
-    }
-  ],
-  "expected_tool_calls": [
-    {
-      "call_id": "call-d2-train-0060-0001",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "MoE",
-        "limit": 1
-      },
-      "expected_result": "关于「MoE」找到 1 条结果。",
-      "depends_on": []
     },
     {
-      "call_id": "call-d2-train-0060-0002",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "Mixture-of-Experts 路由 2025",
-        "limit": 3
-      },
-      "depends_on": [
-        "call-d2-train-0060-0001"
-      ],
-      "expected_result": "关于「Mixture-of-Experts 路由 2025」找到 3 条结果。"
+      "type": "function",
+      "function": {
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "target_lang"
+          ]
+        }
+      }
     }
   ],
-  "expected_answer": "『MoE』的初步结果不够，我将混合专家机制聚焦到『Mixture-of-Experts 路由 2025』，返回：关于「Mixture-of-Experts 路由 2025」找到 3 条结果。（场景是客服工单，额外要求是避免臆造无法验证的信息。）",
+  "expected_tool_calls": [],
+  "expected_answer": "当前可用工具中没有附近便利店查询功能，无法完成此任务。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "error_recovery",
-    "task_template": "refine_query_after_insufficient_result",
+    "task_type": "tool_not_available",
+    "task_template": "missing_便利店",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:46Z",
@@ -122,6 +113,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 60
   }
 }

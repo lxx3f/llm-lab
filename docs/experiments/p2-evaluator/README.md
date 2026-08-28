@@ -115,23 +115,23 @@ P3 阶段交付 D2 dev（90 多轮样本，独立 IID held-out split，与 D1.1 
 - 再用 `scripts/reward_offline.py` 计算 90 个 reward_signal（`artifacts/sft-<name>-eval-d2dev-reward.json`）；
 - `schemas/reward_signal.schema.json` 的 task_type enum 已扩展 D2 六类，450 个新 signal 全部通过 Draft202012 校验。
 
-### 6.2 结果（5 ckpt × 90 = 450 reward_signal）
+### 6.2 结果（5 ckpt × 90 = 450 reward_signal，round 10 IID 重生成后）
 
 | # | Checkpoint | reward_binary | reward_layered | reward_type 分布 |
 |---|---|---:|---:|---|
-| 1 | `sft-tool-large-v1` | 0.0000 | 0.0162 | parse_success × 86；argument_correct × 4（argument_value_correct × 3，tool_name_correct × 1） |
+| 1 | `sft-tool-large-v1` | 0.0000 | 0.0099 | parse_success × 87；argument_correct × 3（argument_value_correct × 2，tool_name_correct × 1） |
 | 2 | `sft-tool-large-night` | 0.0000 | 0.0000 | parse_success × 90 |
 | 3 | `sft-tool-d256-5k-seed42` | 0.0000 | 0.0000 | parse_success × 90 |
-| 4 | `sft-tool-d256-20k-seed42` | 0.0000 | 0.0042 | parse_success × 89；argument_correct × 1（tool_name_correct） |
+| 4 | `sft-tool-d256-20k-seed42` | 0.0000 | 0.0000 | parse_success × 90 |
 | 5 | `sft-moe-v1` | 0.0000 | 0.0000 | parse_success × 90 |
 
 ### 6.3 解读（诚实负结果）
 
 - **450/450 reward_binary=0.0**：没有 checkpoint 在 D2 dev 上完整通过八级分类；整体仍是诚实负结果。
-- 生成结果中 445/450 首次失败为 `parse_success`；large-v1 有 4 个样本、d256-20k 有 1 个样本越过解析层，但分别在参数值/工具名层失败，因此 reward_type 为 `argument_correct`。
+- round 10 引入 IID stratified split 后样本内容变化，4 个 ckpt 的 reward_layered 由原来的非零值变为 0.0000；large-v1 仍保留 3 个越过解析层的样本，最终 reward_layered=0.0099、reward_type=`argument_correct`。
 - 自研单轮 SFT 模型面对 D2 多轮 transcript（含历史 assistant 工具调用 + tool 结果）仍无法完成正确的多轮工具调用；`reward_layered` 的非零值只表示诊断层部分通过，不代表任务成功。
-- D2 dev 是**首个有统计意义的 held-out split**（90 样本 vs 13 样本）；新的语义唯一性校验保证 600/600 canonical content 唯一、三 split 之间无 canonical overlap，因而该结果不再是重复模板 proxy。
-- 该结果不贬低 D2 数据集本身：D2 dev 的 expected_tool_calls / depends_on / multi-turn 结构均经 MockExecutor 与 schema 校验正确（见 `docs/protocols/d2-multi-turn.md`）；退化分布源于模型能力，而非数据或评测管线。
+- D2 dev 是**首个有统计意义的 held-out split**（90 样本 vs 13 样本）；round 10 引入分层 seeded shuffle 后，train/dev/test 三 split 在每个 task_type 上都是严格的 70/15/15 均匀抽样（参见 `docs/protocols/d2-multi-turn.md` §1.1），且 canonical semantic content 600/600 唯一、三 split 交集为空；因此该结果不再是连续语义 slice 的 proxy，而是真实 IID held-out 评测。
+- 该结果不贬低 D2 数据集本身：D2 dev 的 expected_tool_calls / depends_on / multi-turn 结构均经 MockExecutor 与 schema 校验正确；round 10 进一步在生成器写盘前验证每个 assistant `tool_call.id` 与对应 tool 消息 `tool_call_id` 双向引用 + name/arguments 匹配 + ordering 正确（见 `docs/plans/reviews/stage-p3-d2-multi-turn.md` Round 10）。
 - **后续动作**：P5-02 公开 instruction-tuned 模型（可直接消费多轮 messages）是首个能在 D2 dev 上获得非退化 reward 分布的场景；或先训练自研多轮 SFT（messages 含 assistant + tool 角色）。
 
 ### 6.4 复现

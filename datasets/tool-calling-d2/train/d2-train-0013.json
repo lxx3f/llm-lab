@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "请帮我给 luna@example.com 发一封提醒邮件。 我今天就要用到结果。（场景是企业知识库，额外要求是关注输入边界。）"
+      "content": "帮我预约周三晚上的动感单车课。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有发送邮件功能，无法完成此任务。（场景是企业知识库，额外要求是关注输入边界。）"
+      "content": "可用工具无法支持健身房课程预约；本次请求不能由工具链完成。"
     }
   ],
   "tools": [
@@ -98,12 +98,12 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有发送邮件功能，无法完成此任务。（场景是企业知识库，额外要求是关注输入边界。）",
+  "expected_answer": "可用工具无法支持健身房课程预约；本次请求不能由工具链完成。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_发送邮件",
+    "task_template": "missing_课程预约",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:53:59Z",
@@ -113,6 +113,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 13
   }
 }

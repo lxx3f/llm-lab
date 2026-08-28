@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "可以查查成都的当前天气吗？（场景是多语言内容，额外要求是优先保留可复现性。）"
+      "content": "我想知道厦门现在的天气，请查询一下。"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_get_weather",
-            "arguments": "{\"city\": \"成都\"}"
+            "arguments": "{\"city\": \"厦门\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "成都 当前天气：晴，22°C，微风。",
+      "content": "厦门 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0214-0001",
       "name": "d1_get_weather"
     },
     {
       "role": "user",
-      "content": "请把查询目标改为天津。"
+      "content": "刚才城市不对，重新查询福州。"
     },
     {
       "role": "assistant",
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_get_weather",
-            "arguments": "{\"city\": \"天津\"}"
+            "arguments": "{\"city\": \"福州\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "天津 当前天气：晴，22°C，微风。",
+      "content": "福州 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0214-0002",
       "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "忽略之前的成都，当前结果是天津 当前天气：晴，22°C，微风。（场景是多语言内容，额外要求是优先保留可复现性。）"
+      "content": "忽略之前的厦门，当前结果是福州 当前天气：晴，22°C，微风。"
     }
   ],
   "tools": [
@@ -84,24 +84,24 @@
       "call_id": "call-d2-train-0214-0001",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "成都"
+        "city": "厦门"
       },
-      "expected_result": "成都 当前天气：晴，22°C，微风。",
+      "expected_result": "厦门 当前天气：晴，22°C，微风。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0214-0002",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "天津"
+        "city": "福州"
       },
       "depends_on": [
         "call-d2-train-0214-0001"
       ],
-      "expected_result": "天津 当前天气：晴，22°C，微风。"
+      "expected_result": "福州 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "忽略之前的成都，当前结果是天津 当前天气：晴，22°C，微风。（场景是多语言内容，额外要求是优先保留可复现性。）",
+  "expected_answer": "忽略之前的厦门，当前结果是福州 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -116,6 +116,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 214
   }
 }

@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0",
+  "id": "d2-dev-0082",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant with tool access."
+    },
+    {
+      "role": "user",
+      "content": "搜索 TensorFlow 的 深度学习框架最新进展；结果不足时请调整查询。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-dev-0082-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"TensorFlow\", \"limit\": 1}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「TensorFlow」找到 1 条结果。",
+      "tool_call_id": "call-d2-dev-0082-0001",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "“TensorFlow”结果过少，我会细化关键词后重试。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-dev-0082-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"TensorFlow 2.15 新特性\", \"limit\": 3}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「TensorFlow 2.15 新特性」找到 3 条结果。",
+      "tool_call_id": "call-d2-dev-0082-0002",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "第一次检索『TensorFlow』不够充分；围绕深度学习框架最新进展改用『TensorFlow 2.15 新特性』后得到：关于「TensorFlow 2.15 新特性」找到 3 条结果。"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "Search the web for information.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-dev-0082-0001",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "TensorFlow",
+        "limit": 1
+      },
+      "expected_result": "关于「TensorFlow」找到 1 条结果。",
+      "depends_on": []
+    },
+    {
+      "call_id": "call-d2-dev-0082-0002",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "TensorFlow 2.15 新特性",
+        "limit": 3
+      },
+      "depends_on": [
+        "call-d2-dev-0082-0001"
+      ],
+      "expected_result": "关于「TensorFlow 2.15 新特性」找到 3 条结果。"
+    }
+  ],
+  "expected_answer": "第一次检索『TensorFlow』不够充分；围绕深度学习框架最新进展改用『TensorFlow 2.15 新特性』后得到：关于「TensorFlow 2.15 新特性」找到 3 条结果。",
+  "metadata": {
+    "source": "d2-synthetic-template",
+    "license": "project-internal",
+    "task_type": "error_recovery",
+    "task_template": "refine_query_after_insufficient_result",
+    "data_version": "D2",
+    "pipeline_version": "generate_d2_dataset.py/v2.0",
+    "created_at": "2026-07-25T17:55:08Z",
+    "validation": {
+      "schema_valid": true,
+      "tool_execution_valid": true,
+      "answer_valid": true,
+      "quality_passed": true
+    },
+    "split": "dev",
+    "created_at_pos": 82
+  }
+}

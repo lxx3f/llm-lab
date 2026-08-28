@@ -8,58 +8,32 @@
     },
     {
       "role": "user",
-      "content": "搜索 MLA 的 新型注意力机制；结果不足时请调整查询。（场景是科研复现，额外要求是优先保留可复现性。）"
+      "content": "帮我订阅明天北京的大风预警。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0066-0001",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"MLA\", \"limit\": 1}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「MLA」找到 1 条结果。",
-      "tool_call_id": "call-d2-train-0066-0001",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "“MLA”结果过少，我会细化关键词后重试。"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0066-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"Multi-head Latent Attention 解析\", \"limit\": 3}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「Multi-head Latent Attention 解析」找到 3 条结果。",
-      "tool_call_id": "call-d2-train-0066-0002",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "初次搜索『MLA』结果过少（新型注意力机制），已重试为『Multi-head Latent Attention 解析』并扩大 limit，得到：关于「Multi-head Latent Attention 解析」找到 3 条结果。（场景是科研复现，额外要求是优先保留可复现性。）"
+      "content": "当前工具列表不包含天气预警能力，因此无法执行该请求。"
     }
   ],
   "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
     {
       "type": "function",
       "function": {
@@ -81,38 +55,37 @@
           ]
         }
       }
-    }
-  ],
-  "expected_tool_calls": [
-    {
-      "call_id": "call-d2-train-0066-0001",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "MLA",
-        "limit": 1
-      },
-      "expected_result": "关于「MLA」找到 1 条结果。",
-      "depends_on": []
     },
     {
-      "call_id": "call-d2-train-0066-0002",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "Multi-head Latent Attention 解析",
-        "limit": 3
-      },
-      "depends_on": [
-        "call-d2-train-0066-0001"
-      ],
-      "expected_result": "关于「Multi-head Latent Attention 解析」找到 3 条结果。"
+      "type": "function",
+      "function": {
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "target_lang"
+          ]
+        }
+      }
     }
   ],
-  "expected_answer": "初次搜索『MLA』结果过少（新型注意力机制），已重试为『Multi-head Latent Attention 解析』并扩大 limit，得到：关于「Multi-head Latent Attention 解析」找到 3 条结果。（场景是科研复现，额外要求是优先保留可复现性。）",
+  "expected_tool_calls": [],
+  "expected_answer": "当前工具列表不包含天气预警能力，因此无法执行该请求。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "error_recovery",
-    "task_template": "refine_query_after_insufficient_result",
+    "task_type": "tool_not_available",
+    "task_template": "missing_天气预警",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:52Z",
@@ -122,6 +95,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 66
   }
 }

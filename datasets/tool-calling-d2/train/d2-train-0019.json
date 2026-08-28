@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "帮我在明天下午 3 点创建一个会议日程。 我今天就要用到结果。（场景是企业知识库，额外要求是记录关键中间结果。）"
+      "content": "如果可以的话，麻烦帮我完成：帮我预约周三晚上的动感单车课。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有创建日历日程功能，无法完成此任务。（场景是企业知识库，额外要求是记录关键中间结果。）"
+      "content": "当前工具列表不包含健身房课程预约能力，因此无法执行该请求。"
     }
   ],
   "tools": [
@@ -73,15 +73,37 @@
           ]
         }
       }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "target_lang"
+          ]
+        }
+      }
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有创建日历日程功能，无法完成此任务。（场景是企业知识库，额外要求是记录关键中间结果。）",
+  "expected_answer": "当前工具列表不包含健身房课程预约能力，因此无法执行该请求。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_日历日程",
+    "task_template": "missing_课程预约",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:05Z",
@@ -91,6 +113,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 19
   }
 }

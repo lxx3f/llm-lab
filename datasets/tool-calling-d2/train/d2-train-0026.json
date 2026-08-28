@@ -8,75 +8,80 @@
     },
     {
       "role": "user",
-      "content": "帮我将下面这句话转换为中文：The meeting starts at nine.（场景是企业知识库，额外要求是避免臆造无法验证的信息。）"
+      "content": "我现在有一个实际需求：请帮我核验一下这个身份证号的归属地。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0026-0001",
-          "type": "function",
-          "function": {
-            "name": "d1_translate",
-            "arguments": "{\"text\": \"The meeting starts at nine.\", \"target_lang\": \"zh\"}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "ERROR: translation service unavailable (text='The meeting starts at nine.', target_lang='zh')",
-      "tool_call_id": "call-d2-train-0026-0001",
-      "name": "d1_translate"
-    },
-    {
-      "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='The meeting starts at nine.', target_lang='zh')。无法完成本次翻译。（场景是企业知识库，额外要求是避免臆造无法验证的信息。）"
+      "content": "当前工具列表不包含身份证信息核验能力，因此无法执行该请求。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_translate",
-        "description": "Translate text to a target language.",
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
         "parameters": {
           "type": "object",
           "properties": {
-            "text": {
-              "type": "string"
-            },
-            "target_lang": {
+            "expression": {
               "type": "string"
             }
           },
           "required": [
-            "text",
-            "target_lang"
+            "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_web_search",
+        "description": "Search the web for information.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "query"
           ]
         }
       }
     }
   ],
-  "expected_tool_calls": [
-    {
-      "call_id": "call-d2-train-0026-0001",
-      "name": "d1_translate",
-      "arguments": {
-        "text": "The meeting starts at nine.",
-        "target_lang": "zh"
-      },
-      "expected_result": "ERROR: translation service unavailable (text='The meeting starts at nine.', target_lang='zh')",
-      "depends_on": []
-    }
-  ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='The meeting starts at nine.', target_lang='zh')。无法完成本次翻译。（场景是企业知识库，额外要求是避免臆造无法验证的信息。）",
+  "expected_tool_calls": [],
+  "expected_answer": "当前工具列表不包含身份证信息核验能力，因此无法执行该请求。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "tool_error_response",
-    "task_template": "translate_error_report",
+    "task_type": "tool_not_available",
+    "task_template": "missing_身份核验",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:12Z",
@@ -86,6 +91,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 26
   }
 }

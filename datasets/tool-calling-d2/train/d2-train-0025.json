@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "查一下后天北京到上海的航班。 我今天就要用到结果。（场景是企业知识库，额外要求是避免臆造无法验证的信息。）"
+      "content": "我现在有一个实际需求：请帮我查一下美元兑人民币的实时汇率。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有航班查询功能，无法完成此任务。（场景是企业知识库，额外要求是避免臆造无法验证的信息。）"
+      "content": "可用工具无法支持实时汇率查询；本次请求不能由工具链完成。"
     }
   ],
   "tools": [
@@ -76,12 +76,12 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有航班查询功能，无法完成此任务。（场景是企业知识库，额外要求是避免臆造无法验证的信息。）",
+  "expected_answer": "可用工具无法支持实时汇率查询；本次请求不能由工具链完成。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_航班查询",
+    "task_template": "missing_实时汇率",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:11Z",
@@ -91,6 +91,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 25
   }
 }

@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请调用天气工具查询郑州。（场景是教学演示，额外要求是需要清楚说明限制。）"
+      "content": "我需要德文版本，请翻译：Use a deterministic seed."
     },
     {
       "role": "assistant",
@@ -18,62 +18,42 @@
           "id": "call-d2-train-0100-0001",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"郑州\"}"
+            "name": "d1_translate",
+            "arguments": "{\"text\": \"Use a deterministic seed.\", \"target_lang\": \"de\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "郑州 当前天气：晴，22°C，微风。",
+      "content": "ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='de')",
       "tool_call_id": "call-d2-train-0100-0001",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "user",
-      "content": "刚才城市不对，重新查询苏州。"
+      "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0100-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"苏州\"}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "苏州 当前天气：晴，22°C，微风。",
-      "tool_call_id": "call-d2-train-0100-0002",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "assistant",
-      "content": "最新指定城市为苏州，天气信息如下：苏州 当前天气：晴，22°C，微风。（场景是教学演示，额外要求是需要清楚说明限制。）"
+      "content": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='de')。请稍后重试。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
         "parameters": {
           "type": "object",
           "properties": {
-            "city": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
               "type": "string"
             }
           },
           "required": [
-            "city"
+            "text",
+            "target_lang"
           ]
         }
       }
@@ -82,31 +62,21 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0100-0001",
-      "name": "d1_get_weather",
+      "name": "d1_translate",
       "arguments": {
-        "city": "郑州"
+        "text": "Use a deterministic seed.",
+        "target_lang": "de"
       },
-      "expected_result": "郑州 当前天气：晴，22°C，微风。",
+      "expected_result": "ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='de')",
       "depends_on": []
-    },
-    {
-      "call_id": "call-d2-train-0100-0002",
-      "name": "d1_get_weather",
-      "arguments": {
-        "city": "苏州"
-      },
-      "depends_on": [
-        "call-d2-train-0100-0001"
-      ],
-      "expected_result": "苏州 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "最新指定城市为苏州，天气信息如下：苏州 当前天气：晴，22°C，微风。（场景是教学演示，额外要求是需要清楚说明限制。）",
+  "expected_answer": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Use a deterministic seed.', target_lang='de')。请稍后重试。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "req_change_city",
-    "task_template": "abandoned_old_city_then_retry",
+    "task_type": "tool_error_response",
+    "task_template": "translate_error_report",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:55:26Z",
@@ -116,6 +86,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 100
   }
 }

@@ -8,11 +8,51 @@
     },
     {
       "role": "user",
-      "content": "请处理下面这项请求：查一下后天北京到上海的航班。 我今天就要用到结果。（场景是成本控制，额外要求是关注输入边界。）"
+      "content": "请先算出 5 * 11，随后查找计算结果为 55 的资料。"
     },
     {
       "role": "assistant",
-      "content": "可用工具无法支持航班查询；本次请求不能由工具链完成。（场景是成本控制，额外要求是关注输入边界。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0313-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_calculate",
+            "arguments": "{\"expression\": \"5 * 11\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "55",
+      "tool_call_id": "call-d2-train-0313-0001",
+      "name": "d1_calculate"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0313-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"计算结果 55\", \"limit\": 2}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「计算结果 55」找到 2 条结果。",
+      "tool_call_id": "call-d2-train-0313-0002",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "先得到 55，再完成相关检索：关于「计算结果 55」找到 2 条结果。"
     }
   ],
   "tools": [
@@ -30,24 +70,6 @@
           },
           "required": [
             "expression"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "city": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "city"
           ]
         }
       }
@@ -75,13 +97,35 @@
       }
     }
   ],
-  "expected_tool_calls": [],
-  "expected_answer": "可用工具无法支持航班查询；本次请求不能由工具链完成。（场景是成本控制，额外要求是关注输入边界。）",
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-train-0313-0001",
+      "name": "d1_calculate",
+      "arguments": {
+        "expression": "5 * 11"
+      },
+      "expected_result": 55,
+      "depends_on": []
+    },
+    {
+      "call_id": "call-d2-train-0313-0002",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "计算结果 55",
+        "limit": 2
+      },
+      "depends_on": [
+        "call-d2-train-0313-0001"
+      ],
+      "expected_result": "关于「计算结果 55」找到 2 条结果。"
+    }
+  ],
+  "expected_answer": "先得到 55，再完成相关检索：关于「计算结果 55」找到 2 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "tool_not_available",
-    "task_template": "missing_航班查询",
+    "task_type": "multi_tool_sequential",
+    "task_template": "calc_then_search",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:58:59Z",
@@ -91,6 +135,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 313
   }
 }

@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 DPO 的 对齐算法理论；结果不足时请调整查询。（场景是数据治理，额外要求是避免臆造无法验证的信息。）"
+      "content": "帮我查一下上海的天气。"
     },
     {
       "role": "assistant",
@@ -18,21 +18,21 @@
           "id": "call-d2-train-0270-0001",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"DPO\", \"limit\": 2}"
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"上海\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「DPO」找到 2 条结果。",
+      "content": "上海 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0270-0001",
-      "name": "d1_web_search"
+      "name": "d1_get_weather"
     },
     {
-      "role": "assistant",
-      "content": "初次检索不充分，接下来我会收窄到更具体的关键词。"
+      "role": "user",
+      "content": "不用刚才的城市了，请换成西安。"
     },
     {
       "role": "assistant",
@@ -42,42 +42,38 @@
           "id": "call-d2-train-0270-0002",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"DPO 收敛性分析\", \"limit\": 3}"
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"西安\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「DPO 收敛性分析」找到 3 条结果。",
+      "content": "西安 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0270-0002",
-      "name": "d1_web_search"
+      "name": "d1_get_weather"
     },
     {
       "role": "assistant",
-      "content": "『DPO』的初步结果不够，我将对齐算法理论聚焦到『DPO 收敛性分析』，返回：关于「DPO 收敛性分析」找到 3 条结果。（场景是数据治理，额外要求是避免臆造无法验证的信息。）"
+      "content": "按最新要求，西安天气：西安 当前天气：晴，22°C，微风。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_web_search",
-        "description": "Search the web for information.",
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
         "parameters": {
           "type": "object",
           "properties": {
-            "query": {
+            "city": {
               "type": "string"
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1
             }
           },
           "required": [
-            "query"
+            "city"
           ]
         }
       }
@@ -86,33 +82,31 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0270-0001",
-      "name": "d1_web_search",
+      "name": "d1_get_weather",
       "arguments": {
-        "query": "DPO",
-        "limit": 2
+        "city": "上海"
       },
-      "expected_result": "关于「DPO」找到 2 条结果。",
+      "expected_result": "上海 当前天气：晴，22°C，微风。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0270-0002",
-      "name": "d1_web_search",
+      "name": "d1_get_weather",
       "arguments": {
-        "query": "DPO 收敛性分析",
-        "limit": 3
+        "city": "西安"
       },
       "depends_on": [
         "call-d2-train-0270-0001"
       ],
-      "expected_result": "关于「DPO 收敛性分析」找到 3 条结果。"
+      "expected_result": "西安 当前天气：晴，22°C，微风。"
     }
   ],
-  "expected_answer": "『DPO』的初步结果不够，我将对齐算法理论聚焦到『DPO 收敛性分析』，返回：关于「DPO 收敛性分析」找到 3 条结果。（场景是数据治理，额外要求是避免臆造无法验证的信息。）",
+  "expected_answer": "按最新要求，西安天气：西安 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "error_recovery",
-    "task_template": "refine_query_after_insufficient_result",
+    "task_type": "req_change_city",
+    "task_template": "abandoned_old_city_then_retry",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:58:16Z",
@@ -122,6 +116,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 270
   }
 }

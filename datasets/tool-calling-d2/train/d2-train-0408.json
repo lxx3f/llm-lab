@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 KV cache 的 推理优化近期研究；结果不足时请调整查询。（场景是版本升级，额外要求是关注输入边界。）"
+      "content": "搜索 scaling laws 的 扩展律研究；结果不足时请调整查询。"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"KV cache\", \"limit\": 1}"
+            "arguments": "{\"query\": \"scaling laws\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「KV cache」找到 1 条结果。",
+      "content": "关于「scaling laws」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0408-0001",
       "name": "d1_web_search"
     },
@@ -43,20 +43,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"KV cache 压缩 2025 进展\", \"limit\": 4}"
+            "arguments": "{\"query\": \"Chinchilla scaling law 修正\", \"limit\": 4}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「KV cache 压缩 2025 进展」找到 4 条结果。",
+      "content": "关于「Chinchilla scaling law 修正」找到 4 条结果。",
       "tool_call_id": "call-d2-train-0408-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "针对推理优化近期研究，初始关键词『KV cache』命中有限，细化为『KV cache 压缩 2025 进展』的结果是：关于「KV cache 压缩 2025 进展」找到 4 条结果。（场景是版本升级，额外要求是关注输入边界。）"
+      "content": "搜索『scaling laws』后发现信息不足，我按扩展律研究调整到『Chinchilla scaling law 修正』：关于「Chinchilla scaling law 修正」找到 4 条结果。"
     }
   ],
   "tools": [
@@ -88,26 +88,26 @@
       "call_id": "call-d2-train-0408-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "KV cache",
+        "query": "scaling laws",
         "limit": 1
       },
-      "expected_result": "关于「KV cache」找到 1 条结果。",
+      "expected_result": "关于「scaling laws」找到 1 条结果。",
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0408-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "KV cache 压缩 2025 进展",
+        "query": "Chinchilla scaling law 修正",
         "limit": 4
       },
       "depends_on": [
         "call-d2-train-0408-0001"
       ],
-      "expected_result": "关于「KV cache 压缩 2025 进展」找到 4 条结果。"
+      "expected_result": "关于「Chinchilla scaling law 修正」找到 4 条结果。"
     }
   ],
-  "expected_answer": "针对推理优化近期研究，初始关键词『KV cache』命中有限，细化为『KV cache 压缩 2025 进展』的结果是：关于「KV cache 压缩 2025 进展」找到 4 条结果。（场景是版本升级，额外要求是关注输入边界。）",
+  "expected_answer": "搜索『scaling laws』后发现信息不足，我按扩展律研究调整到『Chinchilla scaling law 修正』：关于「Chinchilla scaling law 修正」找到 4 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -122,6 +122,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 408
   }
 }

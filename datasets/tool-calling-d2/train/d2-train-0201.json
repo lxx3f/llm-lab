@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "围绕 RAG 评测 做一次检索；不充分时不要臆测，请回来提问。（场景是小模型推理，额外要求是记录关键中间结果。）"
+      "content": "搜索『模型蒸馏』的资料，如果结果不够请追问。"
     },
     {
       "role": "assistant",
@@ -19,28 +19,28 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"RAG 评测\", \"limit\": 2}"
+            "arguments": "{\"query\": \"模型蒸馏\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「RAG 评测」找到 2 条结果。",
+      "content": "关于「模型蒸馏」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0201-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "目前检索到的结果有限（关于「RAG 评测」找到 2 条结果。），请告诉我你想深入的角度。"
+      "content": "目前检索到的结果有限（关于「模型蒸馏」找到 1 条结果。），请告诉我你想深入的角度。"
     },
     {
       "role": "user",
-      "content": "请优先整理开源实现方面的信息。"
+      "content": "我更想看工程实践和性能数据。"
     },
     {
       "role": "assistant",
-      "content": "明白，我会据此收窄后续整理范围。（场景是小模型推理，额外要求是记录关键中间结果。）"
+      "content": "明白，我会据此收窄后续整理范围。"
     }
   ],
   "tools": [
@@ -72,14 +72,14 @@
       "call_id": "call-d2-train-0201-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "RAG 评测",
-        "limit": 2
+        "query": "模型蒸馏",
+        "limit": 1
       },
-      "expected_result": "关于「RAG 评测」找到 2 条结果。",
+      "expected_result": "关于「模型蒸馏」找到 1 条结果。",
       "depends_on": []
     }
   ],
-  "expected_answer": "目前检索到的结果有限（关于「RAG 评测」找到 2 条结果。），请告诉我你想深入的角度。（场景是小模型推理，额外要求是记录关键中间结果。）",
+  "expected_answer": "目前检索到的结果有限（关于「模型蒸馏」找到 1 条结果。），请告诉我你想深入的角度。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -94,6 +94,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 201
   }
 }

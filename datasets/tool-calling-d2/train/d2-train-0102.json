@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 quantization 的 模型量化研究；结果不足时请调整查询。（场景是教学演示，额外要求是需要清楚说明限制。）"
+      "content": "请调用翻译服务处理这段文本，目标语言是日文：Please review this note."
     },
     {
       "role": "assistant",
@@ -18,66 +18,42 @@
           "id": "call-d2-train-0102-0001",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"quantization\", \"limit\": 1}"
+            "name": "d1_translate",
+            "arguments": "{\"text\": \"Please review this note.\", \"target_lang\": \"ja\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「quantization」找到 1 条结果。",
+      "content": "ERROR: translation service unavailable (text='Please review this note.', target_lang='ja')",
       "tool_call_id": "call-d2-train-0102-0001",
-      "name": "d1_web_search"
+      "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "“quantization”结果过少，我会细化关键词后重试。"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0102-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"INT4 quantization 论文\", \"limit\": 3}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「INT4 quantization 论文」找到 3 条结果。",
-      "tool_call_id": "call-d2-train-0102-0002",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "第一次检索『quantization』不够充分；围绕模型量化研究改用『INT4 quantization 论文』后得到：关于「INT4 quantization 论文」找到 3 条结果。（场景是教学演示，额外要求是需要清楚说明限制。）"
+      "content": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='Please review this note.', target_lang='ja')。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_web_search",
-        "description": "Search the web for information.",
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
         "parameters": {
           "type": "object",
           "properties": {
-            "query": {
+            "text": {
               "type": "string"
             },
-            "limit": {
-              "type": "integer",
-              "minimum": 1
+            "target_lang": {
+              "type": "string"
             }
           },
           "required": [
-            "query"
+            "text",
+            "target_lang"
           ]
         }
       }
@@ -86,33 +62,21 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0102-0001",
-      "name": "d1_web_search",
+      "name": "d1_translate",
       "arguments": {
-        "query": "quantization",
-        "limit": 1
+        "text": "Please review this note.",
+        "target_lang": "ja"
       },
-      "expected_result": "关于「quantization」找到 1 条结果。",
+      "expected_result": "ERROR: translation service unavailable (text='Please review this note.', target_lang='ja')",
       "depends_on": []
-    },
-    {
-      "call_id": "call-d2-train-0102-0002",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "INT4 quantization 论文",
-        "limit": 3
-      },
-      "depends_on": [
-        "call-d2-train-0102-0001"
-      ],
-      "expected_result": "关于「INT4 quantization 论文」找到 3 条结果。"
     }
   ],
-  "expected_answer": "第一次检索『quantization』不够充分；围绕模型量化研究改用『INT4 quantization 论文』后得到：关于「INT4 quantization 论文」找到 3 条结果。（场景是教学演示，额外要求是需要清楚说明限制。）",
+  "expected_answer": "本次翻译失败，工具反馈为 ERROR: translation service unavailable (text='Please review this note.', target_lang='ja')。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "error_recovery",
-    "task_template": "refine_query_after_insufficient_result",
+    "task_type": "tool_error_response",
+    "task_template": "translate_error_report",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:55:28Z",
@@ -122,6 +86,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 102
   }
 }

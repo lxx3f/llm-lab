@@ -8,50 +8,42 @@
     },
     {
       "role": "user",
-      "content": "我现在有一个实际需求：请帮我把这份合同翻译成英文。 我今天就要用到结果。（场景是小模型推理，额外要求是避免臆造无法验证的信息。）"
+      "content": "请查找关于 vLLM 部署 的信息；资料过少时向我确认范围。"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有翻译成英文功能，无法完成此任务。（场景是小模型推理，额外要求是避免臆造无法验证的信息。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0205-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"vLLM 部署\", \"limit\": 1}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「vLLM 部署」找到 1 条结果。",
+      "tool_call_id": "call-d2-train-0205-0001",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "这次搜索范围较窄，仅返回 关于「vLLM 部署」找到 1 条结果。；请进一步说明筛选条件。"
+    },
+    {
+      "role": "user",
+      "content": "我关注 2026 年的最新进展。"
+    },
+    {
+      "role": "assistant",
+      "content": "了解，我将优先筛选符合该条件的资料。"
     }
   ],
   "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "expression"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "city": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "city"
-          ]
-        }
-      }
-    },
     {
       "type": "function",
       "function": {
@@ -75,13 +67,24 @@
       }
     }
   ],
-  "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有翻译成英文功能，无法完成此任务。（场景是小模型推理，额外要求是避免臆造无法验证的信息。）",
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-train-0205-0001",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "vLLM 部署",
+        "limit": 1
+      },
+      "expected_result": "关于「vLLM 部署」找到 1 条结果。",
+      "depends_on": []
+    }
+  ],
+  "expected_answer": "这次搜索范围较窄，仅返回 关于「vLLM 部署」找到 1 条结果。；请进一步说明筛选条件。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "tool_not_available",
-    "task_template": "missing_合同翻译",
+    "task_type": "insufficient_result_search",
+    "task_template": "search_then_clarify",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:57:11Z",
@@ -91,6 +94,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 205
   }
 }

@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 pruning 的 模型剪枝研究；结果不足时请调整查询。（场景是安全审查，额外要求是关注输入边界。）"
+      "content": "请按顺序处理 2 ** 6 和后续搜索，搜索关键词使用 所得数值 64。"
     },
     {
       "role": "assistant",
@@ -18,21 +18,17 @@
           "id": "call-d2-train-0288-0001",
           "type": "function",
           "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"pruning\", \"limit\": 2}"
+            "name": "d1_calculate",
+            "arguments": "{\"expression\": \"2 ** 6\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「pruning」找到 2 条结果。",
+      "content": "64",
       "tool_call_id": "call-d2-train-0288-0001",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "初次检索不充分，接下来我会收窄到更具体的关键词。"
+      "name": "d1_calculate"
     },
     {
       "role": "assistant",
@@ -43,23 +39,41 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"structured pruning 2025\", \"limit\": 3}"
+            "arguments": "{\"query\": \"所得数值 64\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「structured pruning 2025」找到 3 条结果。",
+      "content": "关于「所得数值 64」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0288-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "针对模型剪枝研究，初始关键词『pruning』命中有限，细化为『structured pruning 2025』的结果是：关于「structured pruning 2025」找到 3 条结果。（场景是安全审查，额外要求是关注输入边界。）"
+      "content": "第一步结果为 64；随后搜索得到：关于「所得数值 64」找到 2 条结果。"
     }
   ],
   "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_calculate",
+        "description": "Evaluate a simple arithmetic expression on integers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "expression"
+          ]
+        }
+      }
+    },
     {
       "type": "function",
       "function": {
@@ -86,33 +100,32 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0288-0001",
-      "name": "d1_web_search",
+      "name": "d1_calculate",
       "arguments": {
-        "query": "pruning",
-        "limit": 2
+        "expression": "2 ** 6"
       },
-      "expected_result": "关于「pruning」找到 2 条结果。",
+      "expected_result": 64,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0288-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "structured pruning 2025",
-        "limit": 3
+        "query": "所得数值 64",
+        "limit": 2
       },
       "depends_on": [
         "call-d2-train-0288-0001"
       ],
-      "expected_result": "关于「structured pruning 2025」找到 3 条结果。"
+      "expected_result": "关于「所得数值 64」找到 2 条结果。"
     }
   ],
-  "expected_answer": "针对模型剪枝研究，初始关键词『pruning』命中有限，细化为『structured pruning 2025』的结果是：关于「structured pruning 2025」找到 3 条结果。（场景是安全审查，额外要求是关注输入边界。）",
+  "expected_answer": "第一步结果为 64；随后搜索得到：关于「所得数值 64」找到 2 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "error_recovery",
-    "task_template": "refine_query_after_insufficient_result",
+    "task_type": "multi_tool_sequential",
+    "task_template": "calc_then_search",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:58:34Z",
@@ -122,6 +135,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 288
   }
 }

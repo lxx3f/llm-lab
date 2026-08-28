@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "依次完成：计算 99 - 37，然后检索计算结果等于 62 的内容。（场景是小模型推理，额外要求是需要清楚说明限制。）"
+      "content": "请查找关于 vLLM 部署 的信息；资料过少时向我确认范围。"
     },
     {
       "role": "assistant",
@@ -18,62 +18,32 @@
           "id": "call-d2-train-0191-0001",
           "type": "function",
           "function": {
-            "name": "d1_calculate",
-            "arguments": "{\"expression\": \"99 - 37\"}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "62",
-      "tool_call_id": "call-d2-train-0191-0001",
-      "name": "d1_calculate"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0191-0002",
-          "type": "function",
-          "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"计算结果 62\", \"limit\": 2}"
+            "arguments": "{\"query\": \"vLLM 部署\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「计算结果 62」找到 2 条结果。",
-      "tool_call_id": "call-d2-train-0191-0002",
+      "content": "关于「vLLM 部署」找到 2 条结果。",
+      "tool_call_id": "call-d2-train-0191-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "先得到 62，再完成相关检索：关于「计算结果 62」找到 2 条结果。（场景是小模型推理，额外要求是需要清楚说明限制。）"
+      "content": "已有初步结果：关于「vLLM 部署」找到 2 条结果。。为了继续整理，请补充具体关注点。"
+    },
+    {
+      "role": "user",
+      "content": "请优先整理开源实现方面的信息。"
+    },
+    {
+      "role": "assistant",
+      "content": "好的，我会按你的关注点继续检索。"
     }
   ],
   "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "expression"
-          ]
-        }
-      }
-    },
     {
       "type": "function",
       "function": {
@@ -100,32 +70,21 @@
   "expected_tool_calls": [
     {
       "call_id": "call-d2-train-0191-0001",
-      "name": "d1_calculate",
-      "arguments": {
-        "expression": "99 - 37"
-      },
-      "expected_result": 62,
-      "depends_on": []
-    },
-    {
-      "call_id": "call-d2-train-0191-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "计算结果 62",
+        "query": "vLLM 部署",
         "limit": 2
       },
-      "depends_on": [
-        "call-d2-train-0191-0001"
-      ],
-      "expected_result": "关于「计算结果 62」找到 2 条结果。"
+      "expected_result": "关于「vLLM 部署」找到 2 条结果。",
+      "depends_on": []
     }
   ],
-  "expected_answer": "先得到 62，再完成相关检索：关于「计算结果 62」找到 2 条结果。（场景是小模型推理，额外要求是需要清楚说明限制。）",
+  "expected_answer": "已有初步结果：关于「vLLM 部署」找到 2 条结果。。为了继续整理，请补充具体关注点。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "multi_tool_sequential",
-    "task_template": "calc_then_search",
+    "task_type": "insufficient_result_search",
+    "task_template": "search_then_clarify",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:56:57Z",
@@ -135,6 +94,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 191
   }
 }

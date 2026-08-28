@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请调用翻译服务处理这段文本，目标语言是中文：Deploy after validation.（场景是教学演示，额外要求是记录关键中间结果。）"
+      "content": "请调用翻译服务处理这段文本，目标语言是德文：Version two is ready."
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Deploy after validation.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"Version two is ready.\", \"target_lang\": \"de\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Deploy after validation.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='Version two is ready.', target_lang='de')",
       "tool_call_id": "call-d2-train-0110-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Deploy after validation.', target_lang='zh')。请稍后重试。（场景是教学演示，额外要求是记录关键中间结果。）"
+      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Version two is ready.', target_lang='de')。无法完成本次翻译。"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-train-0110-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Deploy after validation.",
-        "target_lang": "zh"
+        "text": "Version two is ready.",
+        "target_lang": "de"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Deploy after validation.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='Version two is ready.', target_lang='de')",
       "depends_on": []
     }
   ],
-  "expected_answer": "已调用翻译工具，但它报告错误：ERROR: translation service unavailable (text='Deploy after validation.', target_lang='zh')。请稍后重试。（场景是教学演示，额外要求是记录关键中间结果。）",
+  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Version two is ready.', target_lang='de')。无法完成本次翻译。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
@@ -86,6 +86,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 110
   }
 }

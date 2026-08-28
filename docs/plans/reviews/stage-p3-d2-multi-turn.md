@@ -101,10 +101,25 @@ Auditor round 9 指出原 D2 数据在去除 ID、时间戳、split、call_id �
 
 验证：`scripts/run_tests.py full` → Ran **255** tests OK；stage0 9/9；D2 专项 33 tests OK。
 
+### Round 6（2026-08-28，auditor round 10 IID + well-formedness 修复）
+
+Auditor round 10 提出两点根因问题：(1) `assign_split_ids()` 用 `samples[:train_n]` contiguous slicing，dev/test 实际拿到的是每个 task_type 的 variant 70-99 连续切片，与 train 的 0-69 不交叠，train/dev/test 在 14 vs 3 vs 3 个 semantic domains 上分布完全不一致，并非 IID；(2) `_validate_samples()` 只检查 expected call_id 是否出现在 assistant 消息中，未验证每个 tool 消息的 `tool_call_id` 与 assistant tool_call 的 name/arguments 双向匹配、消息顺序正确性、以及跨 split 的 MockExecutor replay。
+
+修复：
+
+1. **IID stratified shuffle**：`build_samples()` 改为按 build_pos 显式计算 `variant = build_pos // 6`，与样本 id 完全解耦；六个 builder 接收 `variant: int` 参数；`assign_split_ids()` 改为按 task_type 分组的 seeded shuffle（seed=2026），每组前 70→train、中 15→dev、后 15→test，per-task 严格 70/15/15。`_req_change_city` 用 16 城市的有序组合（120 ordered pairs）替代 `rng.sample(cities, 2)`。
+2. **跨 message well-formedness**：`transcript_well_formedness_errors()` 验证 (a) 每个 assistant tool_call.id 都有对应 tool 消息的 tool_call_id 引用且无 orphan tool 消息；(b) tool 消息按 assistant tool_call 顺序排列；(c) 每个 assistant tool_call 的 `function.name` 和 `function.arguments` 与 `expected_tool_calls` 中相同 call_id 的 name/arguments 完全一致；(d) 无连续两个 assistant tool_call 而无中间 tool 消息。`_validate_samples()` 在 schema + dependency + canonical 去重基础上增加这一项。
+3. **IID 测试**：`D2SplitDisjointnessTests` 新增 `test_split_assignment_uses_iid_stratified_shuffle`（每个 task_type 验证 70/15/15）、`test_split_assignment_is_deterministic_for_same_seed`（同 seed 两次跑结果一致）、`test_canonical_content_unique_within_dataset`（600/600 唯一）、`test_canonical_content_disjoint_across_splits`（每个 task_type 在三 split 上交集为空）。
+4. **well-formedness 测试**：`D2TranscriptWellFormednessTests` 5 例（双向引用、order 正确、name/arguments 匹配、orphan tool 注入反向断言、argument mismatch 反向断言）。
+5. **时间戳契约调整**：`created_at` 改用 split-local 1-based index（与 round 8 共识一致：每个 split 独立 1..N）；同时新增 `metadata.created_at_pos` 字段便于测试反查。
+6. **数据重生成 + 5 ckpt 重跑**：清理磁盘残留（90 dev + 180 含旧 3-digit 文件）→ 重新生成 600 → 5 ckpt × D2 dev 重推理（每次 multi_turn prompt）→ 450 signals 全 schema 合法。最终：large-v1 `reward_layered=0.0099`（87 parse_success + 3 argument_correct），其余 4 个 ckpt `0.0000`；全部 `reward_binary=0.0`。
+
+验证：`scripts/run_tests.py full` → Ran **264** tests OK（255 + 9 round 10 测试）；stage0 9/9；D2 专项 42 tests OK。
+
 ## 审查结论
 
 - 审查模型：`minimax-cn/MiniMax-M3`
 - 审查 agent：`reviewer`
 - 结论：**通过**
 - 允许创建阶段 commit：是
-- reviewer r1 输出（PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）保存到 `.pi-glla/scratch/stage-p3-d2-multi-turn-review.txt`。
+- reviewer 输出（PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）保存到 `.pi-glla/scratch/stage-p3-d2-multi-turn-review-postfix-r10.txt`。

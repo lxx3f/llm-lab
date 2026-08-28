@@ -8,51 +8,11 @@
     },
     {
       "role": "user",
-      "content": "请先算出 3 ** 4，随后查找result为 81 的资料。（场景是企业知识库，额外要求是记录关键中间结果。）"
+      "content": "如果可以的话，麻烦帮我完成：帮访客生成一个今天有效的小区门禁临时密码。 我今天就要用到结果。"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0023-0001",
-          "type": "function",
-          "function": {
-            "name": "d1_calculate",
-            "arguments": "{\"expression\": \"3 ** 4\"}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "81",
-      "tool_call_id": "call-d2-train-0023-0001",
-      "name": "d1_calculate"
-    },
-    {
-      "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-train-0023-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_web_search",
-            "arguments": "{\"query\": \"result 81\", \"limit\": 2}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "关于「result 81」找到 2 条结果。",
-      "tool_call_id": "call-d2-train-0023-0002",
-      "name": "d1_web_search"
-    },
-    {
-      "role": "assistant",
-      "content": "已完成计算（81），并根据该结果搜索：关于「result 81」找到 2 条结果。（场景是企业知识库，额外要求是记录关键中间结果。）"
+      "content": "当前可用工具中没有小区门禁临时密码功能，无法完成此任务。"
     }
   ],
   "tools": [
@@ -70,6 +30,24 @@
           },
           "required": [
             "expression"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "d1_get_weather",
+        "description": "Look up the current weather for a city.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "city"
           ]
         }
       }
@@ -95,37 +73,37 @@
           ]
         }
       }
-    }
-  ],
-  "expected_tool_calls": [
-    {
-      "call_id": "call-d2-train-0023-0001",
-      "name": "d1_calculate",
-      "arguments": {
-        "expression": "3 ** 4"
-      },
-      "expected_result": 81,
-      "depends_on": []
     },
     {
-      "call_id": "call-d2-train-0023-0002",
-      "name": "d1_web_search",
-      "arguments": {
-        "query": "result 81",
-        "limit": 2
-      },
-      "depends_on": [
-        "call-d2-train-0023-0001"
-      ],
-      "expected_result": "关于「result 81」找到 2 条结果。"
+      "type": "function",
+      "function": {
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "target_lang"
+          ]
+        }
+      }
     }
   ],
-  "expected_answer": "已完成计算（81），并根据该结果搜索：关于「result 81」找到 2 条结果。（场景是企业知识库，额外要求是记录关键中间结果。）",
+  "expected_tool_calls": [],
+  "expected_answer": "当前可用工具中没有小区门禁临时密码功能，无法完成此任务。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "multi_tool_sequential",
-    "task_template": "calc_then_search",
+    "task_type": "tool_not_available",
+    "task_template": "missing_门禁密码",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:54:09Z",
@@ -135,6 +113,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 23
   }
 }

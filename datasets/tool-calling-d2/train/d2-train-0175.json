@@ -8,50 +8,42 @@
     },
     {
       "role": "user",
-      "content": "我现在有一个实际需求：帮我找一份番茄炒蛋的做法。 我今天就要用到结果。（场景是离线环境，额外要求是避免臆造无法验证的信息。）"
+      "content": "围绕 工具调用数据集 做一次检索；不充分时不要臆测，请回来提问。"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有食谱查询功能，无法完成此任务。（场景是离线环境，额外要求是避免臆造无法验证的信息。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0175-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"工具调用数据集\", \"limit\": 1}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「工具调用数据集」找到 1 条结果。",
+      "tool_call_id": "call-d2-train-0175-0001",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "仅找到 1 条结果：关于「工具调用数据集」找到 1 条结果。。请补充你关注的方向。"
+    },
+    {
+      "role": "user",
+      "content": "我更想看工程实践和性能数据。"
+    },
+    {
+      "role": "assistant",
+      "content": "收到，我会按这个方向继续。"
     }
   ],
   "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "expression"
-          ]
-        }
-      }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "city": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "city"
-          ]
-        }
-      }
-    },
     {
       "type": "function",
       "function": {
@@ -73,37 +65,26 @@
           ]
         }
       }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_translate",
-        "description": "Translate text to a target language.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string"
-            },
-            "target_lang": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "text",
-            "target_lang"
-          ]
-        }
-      }
     }
   ],
-  "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有食谱查询功能，无法完成此任务。（场景是离线环境，额外要求是避免臆造无法验证的信息。）",
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-train-0175-0001",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "工具调用数据集",
+        "limit": 1
+      },
+      "expected_result": "关于「工具调用数据集」找到 1 条结果。",
+      "depends_on": []
+    }
+  ],
+  "expected_answer": "仅找到 1 条结果：关于「工具调用数据集」找到 1 条结果。。请补充你关注的方向。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "tool_not_available",
-    "task_template": "missing_食谱查询",
+    "task_type": "insufficient_result_search",
+    "task_template": "search_then_clarify",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T17:56:41Z",
@@ -113,6 +94,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 175
   }
 }

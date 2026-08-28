@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我搜集 量化推理 相关内容，若只有少量结果就先询问我的关注点。（场景是边缘设备，额外要求是避免臆造无法验证的信息。）"
+      "content": "搜索 long context 的 长上下文技术；结果不足时请调整查询。"
     },
     {
       "role": "assistant",
@@ -19,28 +19,44 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"量化推理\", \"limit\": 1}"
+            "arguments": "{\"query\": \"long context\", \"limit\": 2}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「量化推理」找到 1 条结果。",
+      "content": "关于「long context」找到 2 条结果。",
       "tool_call_id": "call-d2-train-0387-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "仅找到 1 条结果：关于「量化推理」找到 1 条结果。。请补充你关注的方向。"
-    },
-    {
-      "role": "user",
-      "content": "我想了解它在工具调用中的应用。"
+      "content": "初次检索不充分，接下来我会收窄到更具体的关键词。"
     },
     {
       "role": "assistant",
-      "content": "收到，我会按这个方向继续。（场景是边缘设备，额外要求是避免臆造无法验证的信息。）"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0387-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_web_search",
+            "arguments": "{\"query\": \"1M context 训练方法\", \"limit\": 3}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "关于「1M context 训练方法」找到 3 条结果。",
+      "tool_call_id": "call-d2-train-0387-0002",
+      "name": "d1_web_search"
+    },
+    {
+      "role": "assistant",
+      "content": "第一次检索『long context』不够充分；围绕长上下文技术改用『1M context 训练方法』后得到：关于「1M context 训练方法」找到 3 条结果。"
     }
   ],
   "tools": [
@@ -72,19 +88,31 @@
       "call_id": "call-d2-train-0387-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "量化推理",
-        "limit": 1
+        "query": "long context",
+        "limit": 2
       },
-      "expected_result": "关于「量化推理」找到 1 条结果。",
+      "expected_result": "关于「long context」找到 2 条结果。",
       "depends_on": []
+    },
+    {
+      "call_id": "call-d2-train-0387-0002",
+      "name": "d1_web_search",
+      "arguments": {
+        "query": "1M context 训练方法",
+        "limit": 3
+      },
+      "depends_on": [
+        "call-d2-train-0387-0001"
+      ],
+      "expected_result": "关于「1M context 训练方法」找到 3 条结果。"
     }
   ],
-  "expected_answer": "仅找到 1 条结果：关于「量化推理」找到 1 条结果。。请补充你关注的方向。（场景是边缘设备，额外要求是避免臆造无法验证的信息。）",
+  "expected_answer": "第一次检索『long context』不够充分；围绕长上下文技术改用『1M context 训练方法』后得到：关于「1M context 训练方法」找到 3 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "insufficient_result_search",
-    "task_template": "search_then_clarify",
+    "task_type": "error_recovery",
+    "task_template": "refine_query_after_insufficient_result",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-07-25T18:00:13Z",
@@ -94,6 +122,7 @@
       "answer_valid": true,
       "quality_passed": true
     },
-    "split": "train"
+    "split": "train",
+    "created_at_pos": 387
   }
 }
