@@ -10,7 +10,7 @@
 实现 `scripts/eval_transformers.py` Transformers 推理后端，在当前扩样版 D2 dev (750 样本) 的固定 90 样本子集上对 5 个公开 instruction-tuned 模型跑真实推理 + reward_offline，产出 5×90=450 reward_signal；与自研 5 ckpt 在同一 reward pipeline 上做公平对比。
 
 Done when：
-- (a) 5 个公开模型 × 当前扩样版 D2 dev 750 子集 90 signals schema 合法（450/450）；
+- (a) 5 个公开模型 × P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）signals schema 合法（5 × 90 = 450/450）；
 - (b) ≥1 模型 reward_binary > 0 或 reward_layered > 0.05；
 - (c) `docs/experiments/p2-evaluator/README.md` §7 公开模型 reward 表 + 与自研 ckpt 对比；
 - (d) `tests/test_transformers_backend.py` ≥10 单测全绿；
@@ -40,7 +40,7 @@ Done when：
    - `test_apply_chat_template_does_not_include_expected_answer` — gold answer 字符串不会出现在 prompt
    - `test_apply_chat_template_keeps_context_tool_history` — 多轮 tool_calls + tool 结果被保留
    - `test_apply_chat_template_preserves_intermediate_assistant_calls` — 多 assistant tool_calls 全部保留
-3. 重跑 5 模型 eval + reward_offline（评测在当前扩样版 D2 dev 750 子集 90 上）：
+3. 重跑 5 模型 eval + reward_offline（评测在 P5-02 benchmark evaluation subset，即从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集上，**不是 D2 数据集规模或 split 契约**）：
    - SmolLM2-360M: binary **0.0000**（原 0.0111 为伪）layered=0.4236
    - Qwen2.5-0.5B: binary=0 layered=0.3634
    - Qwen2.5-1.5B: binary=0 layered=0.3690
@@ -62,7 +62,7 @@ Done when：
 
 ### 验收
 
-- (a) 5 × 90 = 450 reward_signal schema 合法 ✅
+- (a) 5 × 90 = 450 reward_signal schema 合法 ✅（P5-02 benchmark evaluation subset）
 - (b) reward_layered > 0.05 ✅（5 模型全部 ≥ 0.33；reward_binary 全部 = 0 是诚实负结果）
 - (c) `docs/experiments/p2-evaluator/README.md` §7 公开模型 reward 表 + 与自研 ckpt 对比 ✅
 - (d) `tests/test_transformers_backend.py` **25** 单测全绿 ✅

@@ -57,7 +57,7 @@
 
 ### 2.4 已知边界
 
-- **D1 dev 仅 13 样本，5 checkpoint × 13 = 65 signals 不是一个有统计意义的 reward benchmark**；当前活跃评测在 §7（当前扩样版 D2 dev 750 子集 90 上公开模型对比）。
+- **D1 dev 仅 13 样本，5 checkpoint × 13 = 65 signals 不是一个有统计意义的 reward benchmark**；当前活跃评测在 §7（P5-02 公开 5 模型在 P5-02 benchmark evaluation subset 上的评测；该 subset 从当前扩样版 D2 dev 750 中固定采样 90 个样本，**不是 D2 数据集规模或 split 契约**）。
 - **P2 阶段自研 5 ckpt 在 D2 dev 上的历史评测**：完整方法、reward 分布表与解读已全部迁移至 `docs/plans/open-issues.md` P3-01 段（line 769-841，该段以 banner 明确标注其内容仅作历史记录）。§6 提供最小索引。
 - `artifacts/d2-mock-reward-d2dev.json`（mock transcript 全 reward_binary=1.0）仅验证 reward_offline 能消费 D2 dev 多轮 transcript 的**管线兼容性**，不等同于模型推理 reward 评测。
 - D1.1 train 50-sample 聚合不是 held-out split，不能用于正式 reward 分布对比。
@@ -124,7 +124,7 @@
 
 ### 7.2 结果（2026-08-28 下午修正）
 
-评测在当前扩样版 D2 dev 750 子集 90 上完成：
+P5-02 公开 5 模型在 **P5-02 benchmark evaluation subset**（从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上的评测：
 
 | # | Model | reward_binary | reward_layered | reward_type 分布 | first_failure 分布 |
 |---|---|---:|---:|---|---|
@@ -134,7 +134,7 @@
 | 4 | Qwen2.5-3B-Instruct | 0.0000 | 0.3333 | argument_correct × 88, final_answer_correct × 2 | tool_name_correct × 67, schema_valid × 19, call_plan_matches × 1, argument_value_correct × 1, final_answer_correct × 2 |
 | 5 | SmolLM2-1.7B-Instruct | 0.0000 | 0.4236 | final_answer_correct × 15, argument_correct × 75 | tool_name_correct × 75, final_answer_correct × 15 |
 
-**当前扩样版 D2 dev 750 子集 90**：5 × 90 = 450 reward_signal 全 schema 合法；与 `schemas/reward_signal.schema.json` jsonschema Draft202012 一致。
+**P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集，不是 D2 数据集规模或 split 契约）**：5 模型 × 90 = 450 reward_signal 全 schema 合法；与 `schemas/reward_signal.schema.json` jsonschema Draft202012 一致。
 
 ### 7.3 解读（修正后诚实负结果）
 

@@ -59,7 +59,7 @@
 | 子阶段 | 范围 | 退出条件 |
 |---|---|---|
 | P5-01 开源模型选定 + 下载 | Qwen2.5-0.5B-Instruct 或 LLaMA-3.2-1B-Instruct；LICENSE + 模型卡记录；`.gitignore` 覆盖 | metadata.json 落盘 + 下载脚本 |
-| P5-02 Transformers 后端接入（公开模型） | 仅针对公开 instruction-tuned 模型；Transformers backend；`scripts/eval_transformers.py` CLI；与自研模型同一 P1-05 8 级分类器 + P2 reward offline 对比；**扩样后的 D2 dev (750 样本) 子集 90 × 5 模型**（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）= 450 reward_signal；**2026-08-28 下午修复 target-answer 泄漏**：`b4fd879` `_strip_terminal_assistant()` 去除 terminal assistant content message 后重跑；5 模型 reward_binary 全部 = 0（诚实负结果，原版 SmolLM2-360M 0.0111 为伪信号），reward_layered 0.33–0.42 显著高于自研 5 ckpt；`tests/test_transformers_backend.py` **25** 单测（含 `GoldAnswerLeakageTests` 反向断言）；`docs/protocols/transformers-backend.md`；`docs/experiments/p2-evaluator/README.md` §7 横向对比 | eval JSON + reward JSON 落盘；stage review 已通过（HEAD `217b0c4`） |
+| P5-02 Transformers 后端接入（公开模型） | 仅针对公开 instruction-tuned 模型；Transformers backend；`scripts/eval_transformers.py` CLI；与自研模型同一 P1-05 8 级分类器 + P2 reward offline 对比；**P5-02 benchmark evaluation subset**（从当前扩样版 D2 dev 750 中采样的 90 样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）× 5 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）= 450 reward_signal；**2026-08-28 下午修复 target-answer 泄漏**：`b4fd879` `_strip_terminal_assistant()` 去除 terminal assistant content message 后重跑；5 模型 reward_binary 全部 = 0（诚实负结果，原版 SmolLM2-360M 0.0111 为伪信号），reward_layered 0.33–0.42 显著高于自研 5 ckpt；`tests/test_transformers_backend.py` **25** 单测（含 `GoldAnswerLeakageTests` 反向断言）；`docs/protocols/transformers-backend.md`；`docs/experiments/p2-evaluator/README.md` §7 横向对比 | eval JSON + reward JSON 落盘；stage review 已通过（HEAD `217b0c4`） |
 | P5-03 vLLM 后端接入（公开模型） | 仅针对公开 instruction-tuned 模型；vLLM 依赖安装；`scripts/eval_vllm.py` CLI；WSL/Linux/Docker 环境；throughput 对比表；不包含自研模型完整 vLLM 适配 | vLLM 推理成功 + 吞吐数字 |
 | P5-04 双后端基准对比 | 同一样本 + 同一 P1-05 分类器 + P2 reward offline；latency + throughput + reward 二元 + reward 分层 四轴 | 对比 README |
 
@@ -71,7 +71,7 @@
 |---|---|---|
 | P4 GRPO | 基于 P1-05 reward signal + P2 offline reward 校验 + P3 多轮数据集；advantage 计算 + policy 更新 | P3 + P5-02 完成 |
 | P5-01 开源 instruction-tuned 模型选定 | SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct；5 模型均在 HF mirror 下载并 cache 到 `artifacts/huggingface/`；LICENSE + 模型卡记录入 `docs/protocols/transformers-backend.md` §7/§8 | — |
-| P5-02 Transformers 后端接入（公开模型） | 仅公开模型 + 当前扩样版 D2 dev 750 子集 90 上 5 模型评测；自研 5 ckpt 在同 split 同子集上的历史评测见 `docs/experiments/p2-evaluator/README.md` §6 | P3 完成（5000 样本交付 + stage review HEAD `217b0c4`）|
+| P5-02 Transformers 后端接入（公开模型） | 仅公开模型 + P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 90 样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上 5 模型评测；自研 5 ckpt 在同 split 同 benchmark 子集上的历史评测见 `docs/experiments/p2-evaluator/README.md` §6 | P3 完成（5000 样本交付 + stage review HEAD `217b0c4`）|
 | D2 数据集 | 多轮对话 + 错误恢复；≥5000 样 | P5-02 基础就位 |
 | D2 数据集扩样到 5000+ | 6 类各 ≥833 unique variants；5000 samples（4 类 833 + 2 类 834）；3500/750/750 split 契约命中；cross-split canonical disjoint；D2 vs D1/D1.1 disjoint；MANIFEST 新增 `build_count` 字段；tests 参数化从 on-disk MANIFEST 派生并显式断言 3500/750/750 契约；`datasets/tool-calling-d2/` 加入 .gitignore 并 `git rm --cached` 移除 Git 追踪 | round 14 完成 |
 | D2 数据集扩样到 5000+（round 1） | 偏离 3500/750/750 契约的早期扩样尝试，被 detached auditor 否决（完整偏离数字与原因归档于 `docs/plans/open-issues.md` 后段 line 919+） | 拒绝 |

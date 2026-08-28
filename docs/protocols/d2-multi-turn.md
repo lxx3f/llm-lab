@@ -2,7 +2,7 @@
 
 > 状态：阶段交付（2026-08-28；round 14 扩样至 5000 样本后修订）。
 > 当前契约：`--count 5000`、train 3500 / dev 750 / test 750、6 类各 ≥833 unique canonical variants。
-> 历史 MVP（600 样本）阶段的初始交付文档在 `docs/plans/open-issues.md` P3-01 段（line 769-841）；5000 样本扩样阶段的实施记录与设计决策在 `docs/data/d2-expansion.md`；扩样 stage review 在 `docs/plans/reviews/stage-p3-d2-expansion.md`。
+> 历史 P3 阶段的初始交付文档归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）；5000 样本扩样阶段的实施记录与设计决策在 `docs/data/d2-expansion.md`；扩样 stage review 在 `docs/plans/reviews/stage-p3-d2-expansion.md`。本协议不保留任何历史 MVP 样本数；该数字仅在上述归档文件中作为历史记录。
 
 本协议固定 D2 多轮工具调用数据集的结构、生成、split 边界、与 D1 / D1.1 的互斥关系，以及与 P2 离线 reward 校验的衔接。
 
@@ -164,12 +164,12 @@ P2 阶段交付的 `scripts/reward_offline.py` 直接消费 D2 dev **750 样本*
 
 D1 dev 13 样本保留作为早期 dev 探针；D2 dev 750 样本是首个有统计意义的 reward 评测 split（vs D1 dev 的 13 样本 = 57.7× 提升）。
 
-`scripts/eval_sft_tool.py --prompt-mode multi_turn` 负责把 D2 多轮 messages 序列化为 SFT 模板历史并生成续写，是 D2 dev 评测的标准推理入口。P3 阶段自研 5 ckpt 在该 split 上的历史评测（当前 active 范围外）归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）；P5-02 公开 5 模型在 D2 dev 750 子集 90 上的当前评测见 §7 后续段落。
+`scripts/eval_sft_tool.py --prompt-mode multi_turn` 负责把 D2 多轮 messages 序列化为 SFT 模板历史并生成续写，是 D2 dev 评测的标准推理入口。P3 阶段自研 5 ckpt 在该 split 上的历史评测（当前 active 范围外）归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）；P5-02 阶段公开 5 模型在**P5-02 benchmark evaluation subset**（从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上的当前评测见 §7 后续段落。
 
 ## 8. 与 P4 GRPO / P5-02 的衔接
 
 - P4 GRPO：以 D2 train (**3500** 样本) 作为 GRPO rollouts 的 prompt 池；D2 dev / test 作为 advantage 估计的对照基线；
-- P5-02 Transformers backend：同一 `--samples-dir` 路径可在公开 instruction-tuned 模型上跑同一 reward offline 链路，与自研模型做公平对比。P5-02 阶段实际评测在当前扩样版 D2 dev 750 子集 90 上完成；公开 5 模型 reward_binary 全部 = 0（诚实负结果）、reward_layered 0.33–0.42，详见 `docs/plans/reviews/stage-p5-02-transformers-backend.md` 与 `docs/experiments/p2-evaluator/README.md` §7。
+- P5-02 Transformers backend：同一 `--samples-dir` 路径可在公开 instruction-tuned 模型上跑同一 reward offline 链路，与自研模型做公平对比。P5-02 阶段实际评测在 **P5-02 benchmark evaluation subset**（从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上完成；公开 5 模型在该 benchmark 子集上产出 reward_binary 全部 = 0（诚实负结果）、reward_layered 0.33–0.42，详见 `docs/plans/reviews/stage-p5-02-transformers-backend.md` 与 `docs/experiments/p2-evaluator/README.md` §7。
 
 ## 9. 与 D1 / D1.1 的差异
 
