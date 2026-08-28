@@ -61,6 +61,7 @@ from scripts.grpo_train import (  # noqa: E402
     _save_state,
     _seed_all,
     _supplied_cli_args,
+    _validate_step_artifact,
     run_loop,
 )
 
@@ -960,11 +961,103 @@ class TestRunLoopEndToEnd(unittest.TestCase):
             self.assertEqual(state["samples_consumed"], 2)
             self.assertTrue(state["completed"])
 
+    def test_run_loop_emitted_artifact_passes_schema_validation(self):
+        """Round-7 invariant: every emitted step artifact conforms to
+        ``schemas/grpo_step_result.schema.json``. The prior
+        ``_validate_schema`` test helper existed only in tests; the
+        production loop now calls ``_validate_step_artifact``
+        before writing. This test verifies the contract end-to-end
+        via the real ``run_loop`` entry point.
+        """
+        import json
+        import jsonschema
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            args = _MockArgs(checkpoint_dir=td_path, max_steps=2)
+            model, tokenizer = make_mock_policy_and_tokenizer()
+            samples = [_make_d2_sample(i) for i in range(2)]
+            rc = run_loop(
+                args, model=model, tokenizer=tokenizer, device="cpu",
+                samples=samples, resume_step=0, resume_cursor=0,
+                binary_state=None, optimizer=None,
+            )
+            self.assertEqual(rc, 0)
+            schema = json.loads((ROOT / "schemas"
+                                  / "grpo_step_result.schema.json").read_text())
+            for path in sorted(td_path.glob("step-*.json")):
+                art = json.loads(path.read_text(encoding="utf-8"))
+                # Production-path validation must have ensured these
+                # fields exist with the right types.
+                self.assertIsInstance(art["rollouts"], list)
+                for r in art["rollouts"]:
+                    self.assertIsInstance(r["extracted_calls"], list,
+                                          msg=f"extracted_calls must be list, got {type(r['extracted_calls']).__name__}")
+                # Direct jsonschema.validate (the same library used in
+                # production) must accept the artifact.
+                jsonschema.validate(art, schema)
+
+
+class TestValidateStepArtifact(unittest.TestCase):
+    """``_validate_step_artifact`` is the production hook for
+    step-artifact schema validation. It must accept well-formed
+    artifacts and reject malformed ones."""
+
+    def test_well_formed_artifact_passes(self):
+        from scripts.grpo_train import _assemble_step_artifact, _validate_step_artifact
+        artifact = _assemble_step_artifact(
+            step_id="0000_test", global_step=0,
+            policy_model="test/model", sample=_make_d2_sample(0),
+            rollouts=[{"rollout_index": 0, "generated": "hi",
+                       "extracted_calls": []}],
+            rewards=[{"rollout_index": 0, "reward_binary": 1.0,
+                      "reward_layered": 1.0, "first_failure": None,
+                      "sample_id": "test"}],
+            advantages=[0.0], update={"skipped": True, "policy_gradient_loss": 0.0, "learning_rate": 1e-5, "tokens_seen": 0, "grad_norm": 0.0, "skip_reason": "test"},
+            seed=2026, rng_state=None,
+        )
+        # Must not raise
+        _validate_step_artifact(artifact)
+
+    def test_null_extracted_calls_fails(self):
+        """The auditor's round-7 specific repro: ``extracted_calls``
+        as null violates the schema. This test pre-fixes the artifact
+        to simulate the OLD bug (``extracted_calls = None``) and
+        asserts the validator catches it. Round-7 fix normalizes
+        null → [] in ``_rollout_one`` so emitted artifacts are safe.
+        """
+        from scripts.grpo_train import _assemble_step_artifact, _validate_step_artifact
+        import jsonschema
+        artifact = _assemble_step_artifact(
+            step_id="0000_test", global_step=0,
+            policy_model="test/model", sample=_make_d2_sample(0),
+            rollouts=[{"rollout_index": 0, "generated": "hi",
+                       "extracted_calls": None}],  # the bug
+            rewards=[{"rollout_index": 0, "reward_binary": 1.0,
+                      "reward_layered": 1.0, "first_failure": None,
+                      "sample_id": "test"}],
+            advantages=[0.0], update={"skipped": True, "policy_gradient_loss": 0.0, "learning_rate": 1e-5, "tokens_seen": 0, "grad_norm": 0.0, "skip_reason": "test"},
+            seed=2026, rng_state=None,
+        )
+        with self.assertRaises(jsonschema.ValidationError):
+            _validate_step_artifact(artifact)
+
+
+# ---------------------------------------------------------------------------
+# Continuation of TestRunLoopEndToEnd (test_run_loop_state_pt_written_every_step)
+# ---------------------------------------------------------------------------
+
+class TestRunLoopStatePtInvariant(unittest.TestCase):
+    """Round-6 invariant: state.pt is ALWAYS written on every step.
+    Round-7 invariant: emitted step artifacts pass schema validation.
+    """
+
     def test_run_loop_state_pt_written_every_step(self):
         """Round-6 regression: state.pt is ALWAYS written on every
-        step. The previous ``save_every`` knob was removed because it
-        was a documented-but-not-actually-implemented no-op; the
-        new contract is unconditional persistence."""
+        step. The previous ``save_every`` knob was removed because
+        it was a documented-but-not-actually-implemented no-op; the
+        new contract is unconditional persistence.
+        """
         import tempfile
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)

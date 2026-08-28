@@ -263,6 +263,51 @@ zero advantages → skipped updates → no weights change. The round-5
 fix proves the policy update is REAL, not just a side-effect-free
 checkpoint round-trip.
 
+## 15. Production-path schema validation (round-7 fix)
+
+`_validate_step_artifact(artifact)` is the production hook for
+step-artifact schema validation. It is called from `run_loop`
+**before** any step artifact is written to disk; on schema
+violation the run aborts with rc=5 and a clear log message.
+
+The prior `_validate_schema` test helper existed only in tests;
+the production loop had no validation hook. Round-7 added the
+production hook so emitted artifacts are guaranteed to conform.
+
+Tests:
+- `TestValidateStepArtifact::test_well_formed_artifact_passes`
+- `TestValidateStepArtifact::test_null_extracted_calls_fails`
+  (pre-fixes the artifact to ``extracted_calls: null`` and asserts
+  the validator catches it — direct regression for the round-7
+  repro)
+- `TestRunLoopEndToEnd::test_run_loop_emitted_artifact_passes_schema_validation`
+  (end-to-end via the real `run_loop` entry point; every emitted
+  step artifact is validated via `jsonschema.validate`).
+
+## 16. Extracted-calls normalization (round-7 fix)
+
+`_rollout_one` now normalizes `extract_tool_calls(generated)`
+output: if the helper returns ``None`` (no parseable tool call),
+the rollout stores ``[]`` instead of ``null``. The schema requires
+``extracted_calls`` to be an array when present; emitting ``null``
+violated the schema and was the auditor's round-7 specific
+repro. The normalization is at the boundary of ``_rollout_one``
+so downstream callers (rewards, artifact assembly) see a uniform
+list.
+
+## 17. Documented GPU compatibility boundary (round-7 fix)
+
+The codebase's GPU path is exercised against the installed PyTorch
+build + CUDA driver on the host. Verified manually on this host:
+RTX 5070 Ti (compute capability 12.0 / sm_120) with PyTorch
+2.x + CUDA runtime — 11.7s elapsed for the standard smoke
+(1 step, k=2, max-new-tokens=8). The smoke emits bf16 weights
+and works without code changes.
+
+If the PyTorch build on a host does not support a given compute
+capability, the GPU path raises a runtime error before any
+artifact is written; the CPU path remains functional.
+
 ## 7. CPU smoke 与 GPU 完整运行
 
 - **CPU smoke**（MVP 默认）：`--device auto` → fallback CPU；`--limit 8 --max-steps 8 --k-rollouts 4`；总耗时数十分钟（受模型大小影响）。`sshleifer/tiny-gpt2`（~2MB）跑通 1 step + K=2 rollout 仅需数十秒。

@@ -72,7 +72,9 @@
 | `TestUnconditionalSmoke` | 2 | full save/restore with torch.nn mock (no HF dependency) |
 | `TestResolveDtype` | 3 | CPU forces fp32; CUDA default bf16; explicit dtype honored |
 | `TestRunStepWithMockPolicy` | 2 | `_run_step` runs K rollouts → rewards → advantages → update end-to-end |
-| `TestRunLoopEndToEnd` | 5 | full `run_loop` + state.pt cadence + resume-correct cursor + cursor exhaustion rc=4 + uninterrupted-vs-resumed equivalence |
+| `TestRunLoopEndToEnd` | 5 | full `run_loop` + state.pt cadence + resume-correct cursor + cursor exhaustion rc=4 + uninterrupted-vs-resumed equivalence + emitted-artifact schema validation |
+| `TestRunLoopStatePtInvariant` | 1 | state.pt written on every step (round-6 regression) |
+| `TestValidateStepArtifact` | 2 | production-path schema validation hook (round-7 fix) |
 | `TestYamlConfigLoader` | 7 | YAML config loads + applies to argparse Namespace + Path coercion + CLI precedence + supplied-args scan + config-only main() repro |
 | `TestGrpoSubprocessSmoke` | 1 | optional subprocess smoke (gated by `GRPO_SMOKE=1` + local model dir) |
 

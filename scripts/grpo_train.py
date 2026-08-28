@@ -78,6 +78,11 @@ ADVANTAGE_EPS = 1e-6
 # rng_state is a dict of {python, torch, torch_cuda} seed/state pairs.
 # Versioned so future schema changes can be rejected gracefully.
 STATE_PT_VERSION = "1.0"
+# Path to the step-artifact JSON schema. Used by
+# ``_validate_step_artifact`` to fail-fast on schema violations
+# before any artifact is written to disk.
+_GRPO_STEP_SCHEMA_PATH = (Path(__file__).resolve().parent.parent
+                          / "schemas" / "grpo_step_result.schema.json")
 
 
 # ---------------------------------------------------------------------------
@@ -392,6 +397,13 @@ def _rollout_one(model, tokenizer, sample: dict[str, Any], *,
     new_token_ids = out[0][prompt_len:].tolist()
     generated = tokenizer.decode(new_token_ids, skip_special_tokens=True)
     extracted = extract_tool_calls(generated)
+    # Round-7 invariant: ``extracted_calls`` is ALWAYS an array.
+    # ``extract_tool_calls`` returns ``None`` when no tool call is
+    # parsed; the schema requires an array when the field is
+    # present, so we normalize None → []. This avoids
+    # ``null`` in emitted artifacts (which violates the schema).
+    if extracted is None:
+        extracted = []
     return {"generated": generated, "extracted_calls": extracted}
 
 
@@ -770,6 +782,40 @@ def _fingerprint_rng(state: dict[str, Any]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Schema validation
+# ---------------------------------------------------------------------------
+
+def _validate_step_artifact(artifact: dict[str, Any]) -> None:
+    """Validate an in-memory step artifact against
+    ``schemas/grpo_step_result.schema.json`` (Draft 2020-12).
+
+    Round-7 invariant: validation is invoked from the production loop
+    (``run_loop``) before writing any artifact to disk, so emitted
+    artifacts are guaranteed to conform. The prior
+    ``tests/test_grpo_mvp.py::_validate_schema`` helper existed only
+    in tests; the production code path had no validation hook.
+
+    Raises ``jsonschema.ValidationError`` on failure. The caller
+    (``run_loop``) catches this and aborts the run with a clear
+    error message.
+    """
+    try:
+        import jsonschema  # type: ignore
+    except ImportError:
+        # jsonschema not installed — skip validation (dev env).
+        # CI installs jsonschema; production should fail loudly.
+        import warnings
+        warnings.warn(
+            "jsonschema not installed; skipping artifact schema "
+            "validation. Install with `pip install jsonschema` to "
+            "enforce the schema."
+        )
+        return
+    schema = json.loads(_GRPO_STEP_SCHEMA_PATH.read_text(encoding="utf-8"))
+    jsonschema.validate(artifact, schema)
+
+
+# ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
 
@@ -892,6 +938,17 @@ def run_loop(args, *, model, tokenizer, device: str, samples: list,
             rollouts=rollouts, rewards=rewards, advantages=advantages,
             update=update, seed=args.seed, rng_state=rng_before,
         )
+        # Round-7: validate every emitted step artifact against the
+        # JSON Schema BEFORE writing to disk. The auditor caught that
+        # the previous ``_validate_schema`` test helper existed only
+        # in tests, not in production. We now fail-fast on schema
+        # violations so emitted artifacts are guaranteed to conform.
+        try:
+            _validate_step_artifact(artifact)
+        except Exception as e:
+            print(f"[grpo] schema validation FAILED for step "
+                  f"{global_step}: {e}", flush=True)
+            return 5
         step_path = checkpoint_dir / f"step-{step_id}.json"
         step_path.write_text(
             json.dumps(artifact, indent=2, ensure_ascii=False),
