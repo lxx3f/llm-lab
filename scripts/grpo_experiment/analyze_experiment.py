@@ -119,8 +119,16 @@ def _compare_state_pt(a: Path, b: Path) -> dict:
 
 
 def _analyze_one(label: str, run_dir: Path) -> dict:
-    state_json = json.loads(
-        (run_dir / "state.json").read_text(encoding="utf-8"))
+    # Run D has a separate summary.json (written by run_real_update.py);
+    # A/B/C have state.json with the standard contract.
+    summary_path = run_dir / "summary.json"
+    state_path = run_dir / "state.json"
+    if summary_path.exists():
+        state_json = json.loads(summary_path.read_text(encoding="utf-8"))
+    elif state_path.exists():
+        state_json = json.loads(state_path.read_text(encoding="utf-8"))
+    else:
+        raise FileNotFoundError(f"no summary.json or state.json in {run_dir}")
     steps = sorted(run_dir.glob("step-*.json"))
     step_data = []
     for p in steps:
@@ -320,31 +328,54 @@ def main():
                         f"{analysis['resume_complete_check']}")
 
     # 8. Real update (Run D)
-    d_state = analysis["D"]["state_json"]
+    # summary.json (round-11+) uses flat keys like update_skipped,
+    # update_tokens_seen. Older state.json (round-10) used nested
+    # `update` dict. Support both.
+    d_summary = analysis["D"]["state_json"]
+    if "update" in d_summary:
+        upd = d_summary["update"]
+        upd_skipped = upd["skipped"]
+        upd_tokens = upd["tokens_seen"]
+        upd_loss = upd["policy_gradient_loss"]
+        upd_grad = upd["grad_norm"]
+        synth_applied = d_summary.get(
+            "synthetic_advantage_injection", {}).get("applied", False)
+    else:
+        upd_skipped = d_summary["update_skipped"]
+        upd_tokens = d_summary["update_tokens_seen"]
+        upd_loss = d_summary["update_policy_gradient_loss"]
+        upd_grad = d_summary["update_grad_norm"]
+        synth_applied = d_summary.get(
+            "synthetic_advantage_injection") is not None
+
+    nat_std = (analysis["D"]["steps"][0]["advantage_std"]
+               if analysis["D"]["steps"] else 0.0)
+    nat_mean = (analysis["D"]["steps"][0]["advantage_mean"]
+                if analysis["D"]["steps"] else 0.0)
     analysis["real_update_check"] = {
-        "update_skipped": d_state["update"]["skipped"],
-        "tokens_seen": d_state["update"]["tokens_seen"],
-        "policy_gradient_loss": d_state["update"]["policy_gradient_loss"],
-        "grad_norm": d_state["update"]["grad_norm"],
-        "max_abs_weight_diff": d_state["max_abs_weight_diff"],
-        "real_rollout_text_lengths": d_state["real_rollout_text_lengths"],
-        "real_rewards_layered": d_state["real_rewards_layered"],
-        "synthetic_advantages_used": d_state["synthetic_advantages_used"],
-        "weight_update_verified": d_state["weight_update_verified"],
-        "synthetic_advantage_rationale": d_state[
-            "synthetic_advantage_rationale"],
+        "update_skipped": upd_skipped,
+        "tokens_seen": upd_tokens,
+        "policy_gradient_loss": upd_loss,
+        "grad_norm": upd_grad,
+        "natural_advantage_std": nat_std,
+        "natural_advantage_mean": nat_mean,
+        "synthetic_advantage_injection_applied": synth_applied,
+        "weight_update_verified": (
+            upd_tokens > 0 and upd_loss != 0.0 and not upd_skipped),
     }
-    if d_state["update"]["skipped"]:
+    if upd_skipped:
         failures.append("Run D update was skipped (real_update_check "
                         "expected skipped=False)")
-    if d_state["update"]["tokens_seen"] <= 0:
-        failures.append(f"Run D tokens_seen={d_state['update']['tokens_seen']} "
-                        "expected > 0")
-    if d_state["update"]["policy_gradient_loss"] == 0.0:
+    if upd_tokens <= 0:
+        failures.append(f"Run D tokens_seen={upd_tokens} expected > 0")
+    if upd_loss == 0.0:
         failures.append("Run D policy_gradient_loss=0 expected nonzero")
-    if d_state["max_abs_weight_diff"] <= 0.0:
-        failures.append(f"Run D max_abs_weight_diff="
-                        f"{d_state['max_abs_weight_diff']} expected > 0")
+    if synth_applied:
+        failures.append("Run D used synthetic advantages; round-11 "
+                        "requires natural group-relative advantages")
+    if nat_std <= 0.0:
+        failures.append(f"Run D advantage_std={nat_std} expected > 0 "
+                        "(natural variance required)")
 
     out_path = EXP / "analysis.json"
     out_path.write_text(json.dumps(analysis, indent=2,
@@ -365,8 +396,10 @@ def main():
           f"{analysis['real_update_check']['tokens_seen']}")
     print(f"  Run D policy_gradient_loss: "
           f"{analysis['real_update_check']['policy_gradient_loss']:.4f}")
-    print(f"  Run D max_abs_weight_diff: "
-          f"{analysis['real_update_check']['max_abs_weight_diff']:.6f}")
+    print(f"  Run D natural_advantage_std: "
+          f"{analysis['real_update_check']['natural_advantage_std']:.4f}")
+    print(f"  Run D synthetic_applied: "
+          f"{analysis['real_update_check']['synthetic_advantage_injection_applied']}")
 
     if failures:
         print("\n=== HARD-FAIL CONTRACT VIOLATIONS ===")
