@@ -2,7 +2,7 @@
 
 > 审查时间：2026-08-28
 > 审查目标：list queue item #2 — 对 D2 扩样提交执行独立审计与必要修复
-> 审查对象：HEAD `c32ee3b`（D2 扩样 round 14 + 3 round 14 postfix）
+> 审查对象：HEAD：当前 main（D2 扩样 round 14 + 3 round 14 postfix）
 > 审查模型：subagent reviewer dispatch (`reviewer`, minimax-cn/MiniMax-M3) + isolated auditor
 
 ## 审查范围
@@ -24,12 +24,12 @@
 
 ## 决策
 
-不需要修复。HEAD `c32ee3b` 的 D2 扩样交付完全满足 list queue item #2 的全部契约。
+不需要修复。HEAD：当前 main 的 D2 扩样交付完全满足 list queue item #2 的全部契约。
 
 ## 与前期 audit 报告的差异
 
-- **detached auditor round 14（17:06）** 已要求修复 2 处 stale references（`docs/plans/open-issues.md:823`、`docs/plans/reviews/stage-p3-d2-multi-turn.md:48`），已在 `c32ee3b` 修复。
-- **本次独立审计** 重新检查所有 10 项契约，发现当前 HEAD `c32ee3b` 全部满足，无遗漏。
+- **detached auditor round 14（17:06）** 已要求修复 2 处 stale references（`docs/plans/open-issues.md:823`、`docs/plans/reviews/stage-p3-d2-multi-turn.md:48`），已在 `<round 14 baseline commit>` 修复。
+- **本次独立审计** 重新检查所有 10 项契约，发现当前 HEAD：当前 main 全部满足，无遗漏。
 
 ## durable 证据
 
