@@ -47,6 +47,7 @@
 | P1-04 数据版本 D0/D1 | `docs/protocols/p1-04-data-version-d0.md`；D1 数据集目录 + MANIFEST；filter 脚本 | (内嵌于 sft-tool-mvp stage review) |
 | P1-05 八级分类器 | parse_success → schema_valid → tool_name_correct → argument_value_correct → call_plan_matches → execution_success → result_grounded → final_answer_correct；含 `_norm_name`/`_norm_args` 鲁棒性；`scripts/classify_tool_failure.py`；44 单测 | (内嵌于 sft-tool-mvp stage review) |
 | SFT 工具调用训练 MVP | Dense + MoE 训练管线（数据构造 → 增强 → 训练 → 生成 → 评测）；5 次实跑对比（medium/large/large-night/d256×2/MoE）；多 seed eval 聚合器；185 单测；诚实负结果 | `stage-sft-tool-mvp.md` |
+| P2 确定性 evaluator | `schemas/reward_signal.schema.json`（v1.0）；`scripts/reward_offline.py`（reward_binary + reward_layered 双信号）；8 个跨 checkpoint D1 dev reward 评测；5 单测；与 P1-05 八级分类器对齐 | `stage-p2-evaluator.md` |
 
 这些阶段都已通过阶段审查（`minimax-cn/MiniMax-M3` reviewer），不允许回退。
 
@@ -57,9 +58,9 @@
 | 子阶段 | 范围 | 退出条件 |
 |---|---|---|
 | P5-01 开源模型选定 + 下载 | Qwen2.5-0.5B-Instruct 或 LLaMA-3.2-1B-Instruct；LICENSE + 模型卡记录；`.gitignore` 覆盖 | metadata.json 落盘 + 下载脚本 |
-| P5-02 Transformers 后端接入 | 复用 `DenseTransformer` 接口；`scripts/eval_transformers.py` CLI；与自研模型同一 P1-05 8 级分类器对比 | eval JSON 落盘 |
+| P5-02 Transformers 后端接入（公开模型） | 仅针对公开 instruction-tuned 模型；Transformers backend；`scripts/eval_transformers.py` CLI；与自研模型同一 P1-05 8 级分类器 + P2 reward offline 对比 | eval JSON + reward JSON 落盘 |
 | P5-03 vLLM 后端接入（公开模型） | 仅针对公开 instruction-tuned 模型；vLLM 依赖安装；`scripts/eval_vllm.py` CLI；WSL/Linux/Docker 环境；throughput 对比表；不包含自研模型完整 vLLM 适配 | vLLM 推理成功 + 吞吐数字 |
-| P5-04 双后端基准对比 | 同一样本 + 同一分类器；latency + throughput + parse rate 三轴 | 对比 README |
+| P5-04 双后端基准对比 | 同一样本 + 同一 P1-05 分类器 + P2 reward offline；latency + throughput + reward 二元 + reward 分层 四轴 | 对比 README |
 
 任一子阶段失败必须先更新本路线图和 `open-issues.md`。
 

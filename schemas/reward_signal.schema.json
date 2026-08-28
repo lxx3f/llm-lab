@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llm-lab.local/schemas/reward_signal.schema.json",
+  "title": "reward_signal",
+  "description": "Offline reward signal derived from the P1-05 eight-layer failure classifier. A reward_signal is the deterministic, GRPO-trainable mapping of (sample, transcript) into a numeric reward plus per-layer breakdown, without any model call or environment side effect.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sample_id",
+    "task_type",
+    "transcript_kind",
+    "reward_binary",
+    "reward_layered",
+    "layer_pass_count",
+    "layer_pass_total",
+    "first_failure",
+    "layers",
+    "expected_calls_count",
+    "predicted_calls_count",
+    "reward_offline_version"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "sample_id": {
+      "type": "string",
+      "description": "Sample identifier from the tool_calling_sample schema."
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "no_tool",
+        "single_tool",
+        "multi_tool",
+        "tool_error",
+        "insufficient_result",
+        "requirement_change"
+      ]
+    },
+    "transcript_kind": {
+      "type": "string",
+      "enum": ["model_generated", "mock_transcript", "deterministic_replay"],
+      "description": "How the transcript was produced; reward_offline is agnostic to the source but records it for provenance."
+    },
+    "checkpoint": {
+      "type": ["string", "null"],
+      "description": "Optional model checkpoint identifier (e.g. 'sft-tool-d256-seed42'). Null for mock transcripts."
+    },
+    "reward_binary": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "1.0 when first_failure is None (all eight layers passed); 0.0 otherwise."
+    },
+    "reward_layered": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "layer_pass_count / layer_pass_total; a continuous proxy for partial success. 0/0 when no applicable layers."
+    },
+    "layer_pass_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "layer_pass_total": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of layers that are True/False (i.e. not None); None layers are excluded so the denominator reflects only applicable checks."
+    },
+    "first_failure": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "parse_success",
+        "schema_valid",
+        "tool_name_correct",
+        "argument_value_correct",
+        "call_plan_matches",
+        "execution_success",
+        "result_grounded",
+        "final_answer_correct"
+      ]
+    },
+    "layers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parse_success",
+        "schema_valid",
+        "tool_name_correct",
+        "argument_value_correct",
+        "call_plan_matches",
+        "execution_success",
+        "result_grounded",
+        "final_answer_correct"
+      ],
+      "properties": {
+        "parse_success": {"type": ["boolean", "null"]},
+        "schema_valid": {"type": ["boolean", "null"]},
+        "tool_name_correct": {"type": ["boolean", "null"]},
+        "argument_value_correct": {"type": ["boolean", "null"]},
+        "call_plan_matches": {"type": ["boolean", "null"]},
+        "execution_success": {"type": ["boolean", "null"]},
+        "result_grounded": {"type": ["boolean", "null"]},
+        "final_answer_correct": {"type": ["boolean", "null"]}
+      }
+    },
+    "expected_calls_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "predicted_calls_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "expected_answer": {
+      "type": ["string", "null"]
+    },
+    "predicted_answer": {
+      "type": ["string", "null"]
+    },
+    "reward_offline_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Version of the reward mapping; bump when the layer semantics or the binary/layered reward definitions change."
+    }
+  }
+}
