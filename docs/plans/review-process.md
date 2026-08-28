@@ -71,6 +71,21 @@ minimax-cn/MiniMax-M3
 
 阶段审查只在“大阶段”完成时触发，详见 [`roadmap.md`](./roadmap.md) 中“Reviewer 触发条件”。不为局部函数修改、文档调整、测试分层、依赖锁定、配置微调、单次 smoke 重跑触发 reviewer。
 
+## Stage reviewer 跳过条件
+
+下列情况可**省略 subagent reviewer**，仅由 goal 框架的 detached auditor 单独负责合同合规检查：
+
+- **单审计轮 fix**：范围仅限于文档、测试、生成器参数或 schema 扩展的针对性修复，且改动已在 `docs/plans/reviews/stage-*.md` 的对应 Round 中完整记录（包括 auditor 原 objection、修复描述、验证结果）；
+- **同一阶段内的小幅后续整理**：rebase、文件重命名、连续 commit message 调整等不影响实现语义的操作。
+
+下列情况**仍需 subagent reviewer**：
+
+- 大阶段完成（Dense baseline / MoE / N1-N11 / SFT MVP / P2 evaluator / P3 D2 multi-turn 等 roadmap 中明确列出的阶段）；
+- 引入新模块、新数据源或新评测协议；
+- 跨模型复核（用户显式要求 cross-model reviewer）。
+
+另外，项目级 `auditorModel`（例如 `.pi-glla/settings.json` 中的 `auditorModel=calculet/gpt-5.6-terra`）作用于 goal-list-loop-auditor 的 isolated 裁决，与 stage review subagent 无关；不要混淆两者。subagent reviewer 抓“plan / 正确性 / 实验有效性 / 文档”四维，detached auditor 抓“合同 items + 工作树干净 + 测试绿 + 任务列表状态”机械项；二者职责互补，分级方案可降低单审计轮 fix 的 cycle 成本。
+
 主 agent 的职责是：
 
 1. 完成阶段实现；
