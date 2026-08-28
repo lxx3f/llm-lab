@@ -15,8 +15,11 @@ existing components rather than reimplementing them:
   to the log-probabilities of the assistant continuation tokens.
   This is NOT a full GRPO implementation with KL penalty and PPO
   clipping; it is the MVP that demonstrates the loop end-to-end.
-- **Checkpoint / resume**: optimizer state + step counter persisted
-  to ``--checkpoint-dir``; ``--resume-from`` restores them.
+- **Checkpoint / resume**: model state_dict + optimizer state_dict +
+  Python/Torch/CUDA RNG state + sample cursor + step counter all
+  persisted under ``--checkpoint-dir``; ``--resume-from`` restores
+  all of them so a resumed run continues the prior trajectory
+  exactly.
 
 Why a minimal implementation:
 
@@ -38,7 +41,7 @@ Usage:
 
 A "smoke" run that exercises every code path on a few prompts and
 produces ``<checkpoint-dir>/step-*.json`` artifacts and a final
-``state.json`` summary.
+``state.json`` + ``state.pt`` (binary model + optimizer + RNG state).
 
 The script is designed to be **CPU-runnable** by default (the default
 device is ``auto`` and falls back to ``cpu`` when CUDA is unavailable)
@@ -52,8 +55,8 @@ import hashlib
 import json
 import math
 import os
+import pickle  # nosec — RNG state is internal, not user-controlled
 import random
-import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -71,6 +74,10 @@ from scripts.reward_offline import compute_reward  # noqa: E402
 
 GRPO_STEP_SCHEMA_VERSION = "1.0"
 ADVANTAGE_EPS = 1e-6
+# state.pt layout: {model_state, optimizer_state, rng_state} where
+# rng_state is a dict of {python, torch, torch_cuda} seed/state pairs.
+# Versioned so future schema changes can be rejected gracefully.
+STATE_PT_VERSION = "1.0"
 
 
 # ---------------------------------------------------------------------------
@@ -94,14 +101,15 @@ def _build_argparser() -> argparse.ArgumentParser:
         "--checkpoint-dir",
         type=Path,
         required=True,
-        help="Directory to persist step artifacts and the final state.json",
+        help="Directory to persist step artifacts and the final state.json + state.pt",
     )
     parser.add_argument(
         "--resume-from",
         type=Path,
         default=None,
-        help="Path to a previous state.json; on resume the optimizer + step "
-             "counter are restored and the run continues from global_step+1",
+        help="Path to a previous state.json; on resume the model + optimizer + "
+             "RNG + sample cursor are restored from <state_dir>/state.pt and "
+             "the run continues from samples_consumed onwards",
     )
     parser.add_argument(
         "--max-steps",
@@ -172,6 +180,20 @@ def _build_argparser() -> argparse.ArgumentParser:
              "approximate KL penalty is added to the surrogate loss. Skipped by "
              "the MVP (out of scope) but accepted as a no-op for CLI stability.",
     )
+    parser.add_argument(
+        "--save-every",
+        type=int,
+        default=1,
+        help="Persist state.pt every N steps (default: 1 = every step)",
+    )
+    parser.add_argument(
+        "--strict-resume-config",
+        action="store_true",
+        help="When set, --resume-from refuses to continue if the saved run "
+             "config (model_id, k_rollouts, max_steps, learning_rate, "
+             "max_grad_norm, samples_dir, seed, device) differs from the "
+             "current CLI args. Off by default (debugging-friendly).",
+    )
     return parser
 
 
@@ -179,6 +201,39 @@ def _resolve_device(arg: str) -> str:
     if arg == "auto":
         return "cuda" if torch.cuda.is_available() else "cpu"
     return arg
+
+
+# ---------------------------------------------------------------------------
+# Deterministic seeding
+# ---------------------------------------------------------------------------
+
+def _seed_all(seed: int, device: str) -> None:
+    """Seed Python, Torch (CPU + CUDA) RNGs for reproducible rollouts."""
+    random.seed(seed)
+    torch.manual_seed(seed)
+    if device.startswith("cuda") and torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def _capture_rng_state(device: str) -> dict[str, Any]:
+    """Capture the current RNG state from Python, Torch, and CUDA."""
+    state = {
+        "python": random.getstate(),
+        "torch": torch.get_rng_state(),
+    }
+    if device.startswith("cuda") and torch.cuda.is_available():
+        state["torch_cuda"] = torch.cuda.get_rng_state_all()
+    return state
+
+
+def _restore_rng_state(state: dict[str, Any]) -> None:
+    """Restore Python / Torch / CUDA RNGs from a previously captured dict."""
+    if "python" in state:
+        random.setstate(state["python"])
+    if "torch" in state:
+        torch.set_rng_state(state["torch"])
+    if "torch_cuda" in state and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all(state["torch_cuda"])
 
 
 # ---------------------------------------------------------------------------
@@ -218,6 +273,39 @@ def _iter_prompts(samples: list[dict[str, Any]], resume_step: int,
             break
         pairs.append((gs, sample))
     return pairs
+
+
+def _iter_prompts_with_cursor(
+    samples: list[dict[str, Any]],
+    cursor: int,
+    max_steps: int,
+    remaining_steps: int,
+) -> list[tuple[int, int, dict[str, Any]]]:
+    """Resume-aware iteration. Returns ``(global_step, samples_offset, sample)``
+    triples starting at ``samples[cursor]``.
+
+    On a fresh run ``cursor=0, remaining_steps=max_steps``; on resume
+    ``cursor`` is the number of distinct samples already consumed in
+    the previous run, and ``remaining_steps`` is the count of policy-
+    gradient steps still to run (``max_steps - next_global_step``).
+
+    When ``cursor >= len(samples)`` and ``remaining_steps > 0``, the
+    cursor wraps to 0 so the run continues instead of doing nothing.
+
+    The ``samples_offset`` is recorded in the state so the next
+    resume picks up correctly.
+    """
+    if cursor < 0:
+        cursor = 0
+    if remaining_steps <= 0:
+        return []
+    if cursor >= len(samples):
+        if len(samples) == 0:
+            return []
+        cursor = 0
+    end = min(cursor + remaining_steps, len(samples))
+    scheduled = samples[cursor:end]
+    return [(0, cursor + idx, s) for idx, s in enumerate(scheduled)]
 
 
 # ---------------------------------------------------------------------------
@@ -345,28 +433,34 @@ def _policy_update(
     model, tokenizer, sample: dict[str, Any], rollouts: list[dict[str, Any]],
     advantages: list[float], *,
     learning_rate: float, max_grad_norm: float, device: str,
-) -> dict[str, Any]:
+    optimizer: torch.optim.Optimizer | None = None,
+) -> tuple[dict[str, Any], torch.optim.Optimizer]:
     """Compute one REINFORCE-style policy gradient step.
 
-    Returns ``{policy_gradient_loss, learning_rate, tokens_seen, grad_norm}``.
-    When all advantages are zero (no learning signal), the step is a no-op
-    and ``skipped=True`` is set in the returned dict.
+    When ``optimizer`` is None, a fresh Adam is created (first step
+    of a fresh run). When ``optimizer`` is provided, it is reused
+    (resume path — caller has loaded ``state_dict`` from
+    ``state.pt``). The (possibly new) optimizer is always returned so
+    the caller can persist it next.
+
+    Returns ``({policy_gradient_loss, learning_rate, tokens_seen,
+    grad_norm}, optimizer)``. When all advantages are zero (no
+    learning signal), the step is a no-op and ``skipped=True``.
     """
     if not any(abs(a) > ADVANTAGE_EPS for a in advantages):
-        return {
+        return ({
             "policy_gradient_loss": 0.0,
             "learning_rate": learning_rate,
             "tokens_seen": 0,
             "grad_norm": 0.0,
             "skipped": True,
             "skip_reason": "all advantages are zero (no learning signal)",
-        }
+        }, optimizer if optimizer is not None else _fresh_optimizer(
+            model, learning_rate))
 
     model.train()
-    optimizer = torch.optim.Adam(
-        [p for p in model.parameters() if p.requires_grad],
-        lr=learning_rate,
-    )
+    if optimizer is None:
+        optimizer = _fresh_optimizer(model, learning_rate)
 
     prompt_text = _apply_chat_template(tokenizer, sample)
     prompt_inputs = tokenizer(prompt_text, return_tensors="pt",
@@ -423,14 +517,21 @@ def _policy_update(
     optimizer.step()
     optimizer.zero_grad()
 
-    return {
+    return ({
         "policy_gradient_loss": total_loss,
         "learning_rate": learning_rate,
         "tokens_seen": total_tokens,
         "grad_norm": grad_norm,
         "skipped": False,
         "skip_reason": "",
-    }
+    }, optimizer)
+
+
+def _fresh_optimizer(model, learning_rate: float) -> torch.optim.Optimizer:
+    return torch.optim.Adam(
+        [p for p in model.parameters() if p.requires_grad],
+        lr=learning_rate,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -458,25 +559,115 @@ def _hash_rewards(rewards: list[dict[str, Any]]) -> str:
 # ---------------------------------------------------------------------------
 
 def _save_state(checkpoint_dir: Path, *, global_step: int, last_step_id: str,
-                rng_state: tuple[int, ...], max_steps: int,
-                k_rollouts: int, policy_model: str) -> None:
+                samples_consumed: int, max_steps: int,
+                k_rollouts: int, policy_model: str,
+                seed: int, learning_rate: float, max_grad_norm: float,
+                samples_dir: str, device: str, save_every: int,
+                model, optimizer, rng_state: dict[str, Any],
+                next_global_step_to_save: int | None = None) -> None:
+    """Persist run-level state to ``state.json`` and binary state to
+    ``state.pt``. The binary blob contains ``{model_state_dict,
+    optimizer_state_dict, rng_state}``.
+
+    ``samples_consumed`` is the number of distinct prompts already
+    consumed; on resume the next run starts at ``samples[cursor]``.
+    """
     state = {
         "schema_version": GRPO_STEP_SCHEMA_VERSION,
         "global_step": global_step,
         "last_step_id": last_step_id,
-        "rng_state": list(rng_state),
+        "samples_consumed": samples_consumed,
         "max_steps": max_steps,
         "k_rollouts": k_rollouts,
         "policy_model": policy_model,
+        "seed": seed,
+        "learning_rate": learning_rate,
+        "max_grad_norm": max_grad_norm,
+        "samples_dir": str(samples_dir),
+        "device": device,
+        "save_every": save_every,
+        "next_global_step_to_save": next_global_step_to_save
+            if next_global_step_to_save is not None
+            else ((global_step + 1) % save_every == 0
+                  and global_step + 1 < max_steps
+                  and global_step + 1),
         "completed": global_step + 1 >= max_steps,
     }
     (checkpoint_dir / "state.json").write_text(
         json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
+    # Persist the binary state only on the cadence determined by the
+    # caller; the caller passes ``next_global_step_to_save`` to keep
+    # this function side-effect-free (the decision whether to save was
+    # made in main()).
+    if state["next_global_step_to_save"]:
+        blob = {
+            "version": STATE_PT_VERSION,
+            "model_state": {k: v.detach().cpu()
+                            for k, v in model.state_dict().items()},
+            "optimizer_state": (optimizer.state_dict()
+                                if optimizer is not None else None),
+            "rng_state": rng_state,
+        }
+        torch.save(blob, checkpoint_dir / "state.pt")
+
 
 def _load_state(resume_from: Path) -> dict[str, Any]:
     return json.loads(resume_from.read_text(encoding="utf-8"))
+
+
+def _load_binary_state(checkpoint_dir: Path) -> dict[str, Any]:
+    blob_path = checkpoint_dir / "state.pt"
+    if not blob_path.exists():
+        raise FileNotFoundError(
+            f"resume requested from {checkpoint_dir} but no state.pt present"
+        )
+    return torch.load(blob_path, map_location="cpu", weights_only=False)
+
+
+def _restore_optimizer(optimizer: torch.optim.Optimizer,
+                       state_dict: dict[str, Any]) -> None:
+    """Restore optimizer state_dict. ``groups`` may need to be re-sized
+    if the resumed model has different requires_grad parameters."""
+    try:
+        optimizer.load_state_dict(state_dict)
+    except (ValueError, KeyError):
+        # Mismatch (e.g. frozen/unfrozen parameter sets differ). The
+        # optimizer is then effectively fresh; we warn loudly so the
+        # caller can decide whether to abort.
+        import warnings
+        warnings.warn(
+            "optimizer state_dict could not be fully restored (param group "
+            "mismatch); optimizer is effectively fresh. The policy weights "
+            "are still restored, so the next policy update will start from "
+            "the restored trajectory but with reset Adam moments.",
+        )
+
+
+def _config_matches(saved: dict[str, Any], args, strict: bool) -> list[str]:
+    """Return a list of CLI arg names whose values differ from the
+    saved run config. Empty list = match."""
+    expected = {
+        "policy_model": args.policy_model,
+        "k_rollouts": args.k_rollouts,
+        "max_steps": args.max_steps,
+        "learning_rate": args.learning_rate,
+        "max_grad_norm": args.max_grad_norm,
+        "samples_dir": str(args.samples_dir),
+        "seed": args.seed,
+        "device": args.device,
+    }
+    diffs: list[str] = []
+    for key, want in expected.items():
+        got = saved.get(key)
+        # Numeric tolerance for floats
+        if isinstance(want, float) and isinstance(got, (int, float)):
+            if abs(float(got) - want) > 1e-9:
+                diffs.append(f"{key}: saved={got} cli={want}")
+        elif got != want:
+            diffs.append(f"{key}: saved={got} cli={want}")
+    return diffs
 
 
 # ---------------------------------------------------------------------------
@@ -488,8 +679,9 @@ def _assemble_step_artifact(
     sample: dict[str, Any], rollouts: list[dict[str, Any]],
     rewards: list[dict[str, Any]], advantages: list[float],
     update: dict[str, Any], seed: int,
+    rng_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    art = {
         "schema_version": GRPO_STEP_SCHEMA_VERSION,
         "step_id": step_id,
         "global_step": global_step,
@@ -511,6 +703,40 @@ def _assemble_step_artifact(
             "rewards_text_hash": _hash_rewards(rewards),
         },
     }
+    if rng_state is not None:
+        # Record a deterministic fingerprint of the RNG state at the
+        # moment the rollouts were generated so resume verification can
+        # cross-check. We hash the (non-empty) keys + a few canonical
+        # ints so the fingerprint is portable across versions.
+        art["deterministic"]["rng_fingerprint"] = _fingerprint_rng(rng_state)
+    return art
+
+
+def _fingerprint_rng(state: dict[str, Any]) -> str:
+    h = hashlib.sha256()
+    # python state: tuple (version, internalstate, gauss_next)
+    py = state.get("python")
+    if py is not None:
+        try:
+            version, internal, gauss = py
+            # internal[0] is index; internal[1] is the state tuple (big)
+            h.update(repr(version).encode())
+            h.update(repr(int(internal[0])).encode())
+            h.update(repr(len(internal[1])).encode())
+        except Exception:
+            h.update(b"<python-state-unreadable>")
+    torch_state = state.get("torch")
+    if torch_state is not None:
+        # torch_state is a torch.ByteTensor; use its sum + first/last
+        # byte as a portable fingerprint.
+        try:
+            arr = torch_state.cpu().numpy()
+            h.update(repr(int(arr.sum())).encode())
+            h.update(repr(int(arr[0])).encode())
+            h.update(repr(int(arr[-1])).encode())
+        except Exception:
+            h.update(b"<torch-state-unreadable>")
+    return h.hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -528,12 +754,41 @@ def main(argv: list[str] | None = None) -> int:
     checkpoint_dir: Path = args.checkpoint_dir
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-    resume_step = 0
+    # Determine seed + resume cursor + load binary state (if any)
+    resume_state: dict[str, Any] | None = None
+    binary_state: dict[str, Any] | None = None
+    seed = args.seed
+    samples_consumed = 0
+    next_global_step = 0
+    optimizer: torch.optim.Optimizer | None = None
+
     if args.resume_from is not None:
-        state = _load_state(args.resume_from)
-        resume_step = int(state.get("global_step", 0)) + 1
+        resume_state = _load_state(args.resume_from)
+        # Resume uses the saved seed so the same sample shuffle order
+        # is reproduced.
+        seed = int(resume_state.get("seed", args.seed))
+        samples_consumed = int(resume_state.get("samples_consumed", 0))
+        next_global_step = int(resume_state.get("global_step", -1)) + 1
+
+        diffs = _config_matches(resume_state, args, args.strict_resume_config)
+        if diffs and args.strict_resume_config:
+            print(f"[grpo] strict resume refused: {diffs}", flush=True)
+            return 2
+        if diffs:
+            print(f"[grpo] resume config differs (non-strict): {diffs}",
+                  flush=True)
+
+        # Load the binary blob (model + optimizer + RNG) from the same
+        # checkpoint directory the state.json lives in.
+        binary_path = args.resume_from.parent
+        try:
+            binary_state = _load_binary_state(binary_path)
+        except FileNotFoundError as e:
+            print(f"[grpo] {e}", flush=True)
+            return 3
         print(f"[grpo] resuming from {args.resume_from}: "
-              f"global_step+1 = {resume_step}", flush=True)
+              f"global_step+1 = {next_global_step}, "
+              f"samples_consumed = {samples_consumed}", flush=True)
 
     print(f"[grpo] loading policy model {args.policy_model} on {device}",
           flush=True)
@@ -545,25 +800,60 @@ def main(argv: list[str] | None = None) -> int:
               "expect slow generation. Pass --device cuda if available.",
               flush=True)
 
-    samples = _load_samples(args.samples_dir, args.limit, args.seed)
+    # Seed AFTER model load so any RNG state mutations during loading
+    # are deterministic relative to the seed.
+    _seed_all(seed, device)
+
+    # Restore model + optimizer + RNG on resume
+    if binary_state is not None:
+        try:
+            missing, unexpected = model.load_state_dict(
+                binary_state["model_state"], strict=False
+            )
+            if missing or unexpected:
+                print(f"[grpo] resume: model state missing={missing} "
+                      f"unexpected={unexpected}", flush=True)
+        except Exception as e:
+            print(f"[grpo] failed to restore model state: {e}", flush=True)
+            return 4
+        if binary_state.get("optimizer_state") is not None:
+            # Build the optimizer on the (restored) model, then load
+            # state_dict so Adam moments carry over.
+            optimizer = _fresh_optimizer(model, args.learning_rate)
+            _restore_optimizer(optimizer, binary_state["optimizer_state"])
+        if binary_state.get("rng_state") is not None:
+            _restore_rng_state(binary_state["rng_state"])
+
+    samples = _load_samples(args.samples_dir, args.limit, seed)
     print(f"[grpo] loaded {len(samples)} samples from {args.samples_dir}",
           flush=True)
     if not samples:
         print(f"[grpo] no samples found in {args.samples_dir}", flush=True)
         return 1
 
-    pairs = _iter_prompts(samples, resume_step, args.max_steps, args.seed)
-    if not pairs:
-        print(f"[grpo] nothing to do: resume_step={resume_step} >= "
+    # Resume-correct iteration: start at samples[samples_consumed]
+    # and yield up to (max_steps - next_global_step) triples.
+    remaining_steps = max(0, args.max_steps - next_global_step)
+    if samples_consumed >= len(samples):
+        # All samples consumed already: wrap around so a resume that
+        # has fewer remaining steps than fresh samples still has work.
+        samples_consumed = 0
+    scheduled_samples = samples[samples_consumed:samples_consumed + remaining_steps]
+    if not scheduled_samples:
+        print(f"[grpo] nothing to do: global_step={next_global_step} >= "
               f"max_steps={args.max_steps}", flush=True)
         return 0
 
     last_step_id = ""
-    for global_step, sample in pairs:
+    for local_idx, sample in enumerate(scheduled_samples):
+        global_step = next_global_step + local_idx
+        sample_offset = samples_consumed + local_idx
         step_id = f"{global_step:04d}_{sample.get('id', 'unknown')}"
         print(f"[grpo] step {global_step + 1}/{args.max_steps}: "
-              f"prompt_id={sample.get('id', '?')}", flush=True)
+              f"prompt_id={sample.get('id', '?')} "
+              f"(sample_offset={sample_offset})", flush=True)
 
+        rng_before = _capture_rng_state(device)
         rollouts: list[dict[str, Any]] = []
         for k in range(args.k_rollouts):
             r = _rollout_one(
@@ -581,17 +871,18 @@ def main(argv: list[str] | None = None) -> int:
             checkpoint=args.policy_model,
         )
         advantages = _group_relative_advantages(rewards)
-        update = _policy_update(
+        update, optimizer = _policy_update(
             model, tokenizer, sample, rollouts, advantages,
             learning_rate=args.learning_rate,
             max_grad_norm=args.max_grad_norm,
             device=device,
+            optimizer=optimizer,
         )
         artifact = _assemble_step_artifact(
             step_id=step_id, global_step=global_step,
             policy_model=args.policy_model, sample=sample,
             rollouts=rollouts, rewards=rewards, advantages=advantages,
-            update=update, seed=args.seed,
+            update=update, seed=seed, rng_state=rng_before,
         )
         step_path = checkpoint_dir / f"step-{step_id}.json"
         step_path.write_text(
@@ -599,10 +890,24 @@ def main(argv: list[str] | None = None) -> int:
             encoding="utf-8",
         )
         last_step_id = step_id
+        next_save = ((global_step + 1) % args.save_every == 0)
         _save_state(
-            checkpoint_dir, global_step=global_step, last_step_id=step_id,
-            rng_state=(), max_steps=args.max_steps, k_rollouts=args.k_rollouts,
+            checkpoint_dir,
+            global_step=global_step,
+            last_step_id=step_id,
+            samples_consumed=sample_offset + 1,
+            max_steps=args.max_steps,
+            k_rollouts=args.k_rollouts,
             policy_model=args.policy_model,
+            seed=seed,
+            learning_rate=args.learning_rate,
+            max_grad_norm=args.max_grad_norm,
+            samples_dir=str(args.samples_dir),
+            device=device,
+            save_every=args.save_every,
+            model=model, optimizer=optimizer,
+            rng_state=_capture_rng_state(device),
+            next_global_step_to_save=next_save,
         )
         print(f"[grpo] step {global_step} done: "
               f"loss={update['policy_gradient_loss']:.4f} "
@@ -611,7 +916,8 @@ def main(argv: list[str] | None = None) -> int:
               f"-> {step_path.name}", flush=True)
 
     print(f"[grpo] all steps complete: state at "
-          f"{checkpoint_dir / 'state.json'}", flush=True)
+          f"{checkpoint_dir / 'state.json'} + "
+          f"{checkpoint_dir / 'state.pt'}", flush=True)
     return 0
 
 

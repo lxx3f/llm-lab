@@ -80,9 +80,58 @@ GRPO advantage 只使用 `reward_layered`（连续值，标准化后给 policy g
 
 ## 6. Checkpoint / Resume
 
-- **State 文件**（`state.json`）：`{schema_version, global_step, last_step_id, max_steps, k_rollouts, policy_model, completed}`。
-- **Resume**：`--resume-from <state.json>` → `resume_step = global_step + 1` → `_iter_prompts` 从 `resume_step` 开始消费；已保存的 step artifact 不重跑。
-- **Verification**：测试 `tests/test_grpo_mvp.py::TestCheckpointIO::test_state_round_trip` + `test_state_completed_flag` 验证 state.json 序列化/反序列化与 `completed` 标志逻辑。
+MVP persists a **full run state** under ``--checkpoint-dir`` so a
+``--resume-from <state.json>`` invocation continues the prior
+trajectory exactly:
+
+- ``state.json`` (text): run-level config + step cursor:
+  ``{schema_version, global_step, last_step_id, samples_consumed,
+  max_steps, k_rollouts, policy_model, seed, learning_rate,
+  max_grad_norm, samples_dir, device, save_every, completed}``.
+- ``state.pt`` (binary): ``{model_state_dict, optimizer_state_dict,
+  rng_state}`` where ``rng_state = {python, torch, torch_cuda}``.
+  Versioned (``STATE_PT_VERSION = "1.0"``) so future schema changes
+  can be rejected gracefully.
+
+Resume semantics:
+
+- ``--resume-from <state.json>`` reads the JSON, then loads
+  ``<dir>/state.pt`` from the same directory.
+- ``model.load_state_dict(state.pt.model_state)`` restores policy
+  weights; ``optimizer.load_state_dict(state.pt.optimizer_state)``
+  restores Adam moments (with a graceful warning when param groups
+  mismatch — the policy trajectory is preserved, the optimizer is
+  effectively fresh).
+- ``_restore_rng_state(state.pt.rng_state)`` sets Python / Torch /
+  CUDA RNGs to the exact pre-step state so resumed rollouts are
+  byte-identical to the prior run.
+- ``samples_consumed`` is the cursor into the shuffled sample list;
+  the resumed run starts at ``samples[cursor]`` and yields
+  ``max_steps - global_step - 1`` more triples. This is the
+  resume-correct iteration: **the resumed run does not re-use
+  already-consumed prompts**.
+- The saved ``seed`` is restored so the same shuffled sample order
+  reproduces. ``--limit`` and ``samples_dir`` must match the prior
+  run; ``--strict-resume-config`` (off by default) aborts on any
+  config mismatch.
+
+``save_every``: how often to persist ``state.pt`` (default: 1 =
+every step). State JSON is written every step regardless.
+
+Verification:
+
+- ``tests/test_grpo_mvp.py::TestSeedAndRng`` — Python / Torch RNG
+  seeding + capture / restore round-trip.
+- ``tests/test_grpo_mvp.py::TestResumeCursor`` — resume iteration
+  must NOT re-use a sample that was already consumed.
+- ``tests/test_grpo_mvp.py::TestConfigMatches`` — config diff detection.
+- ``tests/test_grpo_mvp.py::TestOptimizerRestore`` — Adam moments
+  survive save/load.
+- ``tests/test_grpo_mvp.py::TestUnconditionalSmoke`` — full save →
+  fresh model → restore → weight comparison, using a ``torch.nn``
+  mock (no HF dependency).
+- ``tests/test_grpo_mvp.py::TestCheckpointIO`` — state.json round-
+  trip + ``completed`` flag + ``state.pt`` cadence (``save_every``).
 
 ## 7. CPU smoke 与 GPU 完整运行
 

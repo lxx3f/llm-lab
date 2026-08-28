@@ -20,11 +20,11 @@
 
 ## Done when
 
-- (a) `scripts/grpo_train.py` 在 `--device cpu --max-steps 1 --k-rollouts 2 --limit 1 --smoke-deterministic` 下完成 1 step 并落盘 `<checkpoint-dir>/state.json` + `step-*.json`；
+- (a) `scripts/grpo_train.py` 在 `--device cpu --max-steps 1 --k-rollouts 2 --limit 1 --smoke-deterministic` 下完成 1 step 并落盘 `<checkpoint-dir>/state.json` + `state.pt` + `step-*.json`；
 - (b) 每个 step artifact 通过 `schemas/grpo_step_result.schema.json` 校验（test `tests/test_grpo_mvp.py::TestAssembleStepArtifact::test_artifact_validates_against_schema`）；
-- (c) `tests/test_grpo_mvp.py` 至少 16 个单测（advantage / hash / load_samples / iter_prompts / checkpoint I/O / artifact / integration gated）全绿；
-- (d) `--resume-from <state.json>` 从 `global_step + 1` 继续（test `tests/test_grpo_mvp.py::TestIterPrompts::test_resume_from_middle` + `test_resume_past_max_steps` 覆盖）；
-- (e) `docs/protocols/grpo.md` 描述 CLI、流程、determinism、checkpoint、CPU/GPU smoke、已知边界；
+- (c) `tests/test_grpo_mvp.py` 至少 30 个单测全绿：advantage / hash / load_samples / iter_prompts / checkpoint I/O / artifact / RNG seed + capture + restore / resume cursor / config match / optimizer restore / unconditional smoke（含 round-trip 验证权重保留）/ gated integration smoke；
+- (d) `--resume-from <state.json>` 恢复 model weights + optimizer state + RNG + sample cursor（test `tests/test_grpo_mvp.py::TestUnconditionalSmoke::test_smoke_full_checkpoint_round_trip` + `TestResumeCursor::test_resume_continues_after_cursor`）；
+- (e) `docs/protocols/grpo.md` 描述 CLI、流程、determinism、checkpoint/resume（含 state.pt 二进制结构）、CPU/GPU smoke、已知边界；
 - (f) `configs/grpo_mvp.example.yaml` 给出最小 smoke 配置；
 - (g) reviewer dispatch (minimax-M3) 通过；
 - (h) `scripts/run_tests.py full` 全绿（含 `test_grpo_mvp.py` 注册到 `COMMON_TESTS` + `MODULES["training"]`）。
@@ -53,7 +53,7 @@
 
 不引入新的数据格式 / schema（除 step artifact 自身）；不修改现有 reward / eval_transformers 接口。
 
-## 测试覆盖（20 tests）
+## 测试覆盖（37 tests）
 
 | 测试类 | 测试数 | 覆盖 |
 |---|---|---|
@@ -61,9 +61,14 @@
 | `TestAdvantageStats` | 2 | advantage 分布汇总 |
 | `TestHashFunctions` | 3 | rollouts/rewards hash 顺序无关性 + 内容敏感 |
 | `TestLoadSamples` | 1 | 样本加载 determinism |
-| `TestIterPrompts` | 4 | resume_step 迭代逻辑（含负值、超界） |
-| `TestCheckpointIO` | 2 | state.json 序列化/反序列化 + `completed` flag |
+| `TestIterPrompts` | 4 | resume-step 迭代逻辑（含负值、超界） |
+| `TestCheckpointIO` | 4 | state.json 序列化/反序列化 + `completed` flag + state.pt 启用/跳过 |
 | `TestAssembleStepArtifact` | 3 | artifact 装配 + schema 校验 + 边界（缺 extracted_calls） |
+| `TestSeedAndRng` | 6 | Python/Torch seeding + capture/restore + fingerprint stability |
+| `TestResumeCursor` | 4 | samples_consumed 推进 + 不重复消费 + 负值/超界 |
+| `TestConfigMatches` | 2 | config diff detection |
+| `TestOptimizerRestore` | 1 | Adam moments round-trip |
+| `TestUnconditionalSmoke` | 2 | full save/restore with torch.nn mock (no HF dependency) |
 | `TestGrpoSmokeIntegration` | 1 | end-to-end smoke（gated by `GRPO_SMOKE=1`） |
 
 `scripts/run_tests.py full` → `test_grpo_mvp.py` 集成在 fast + training 模块。
