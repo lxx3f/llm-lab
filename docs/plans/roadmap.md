@@ -74,7 +74,7 @@
 | P5-02 Transformers 后端接入（公开模型） | 仅公开模型 + 当前扩样版 D2 dev 750 子集 90 上 5 模型评测；自研 5 ckpt 在同 split 同子集上的历史评测见 `docs/experiments/p2-evaluator/README.md` §6 | P3 完成（5000 样本交付 + stage review HEAD `fdfc519`）|
 | D2 数据集 | 多轮对话 + 错误恢复；≥5000 样 | P5-02 基础就位 |
 | D2 数据集扩样到 5000+ | 6 类各 ≥833 unique variants；5000 samples（4 类 833 + 2 类 834）；3500/750/750 split 契约命中；cross-split canonical disjoint；D2 vs D1/D1.1 disjoint；MANIFEST 新增 `build_count` 字段；tests 参数化从 on-disk MANIFEST 派生并显式断言 3500/750/750 契约；`datasets/tool-calling-d2/` 加入 .gitignore 并 `git rm --cached` 移除 Git 追踪 | round 14 完成 |
-| D2 数据集扩样到 5000+（round 1） | 5004 样本版本（误合同命中：3498/750/756） | detached auditor round 14 否决（偏离 3500/750/750 契约） |
+| D2 数据集扩样到 5000+（round 1） | 偏离 3500/750/750 契约的早期扩样尝试，被 detached auditor 否决（完整偏离数字与原因归档于 `docs/plans/open-issues.md` 后段 line 919+） | 拒绝 |
 
 ## 暂缓阶段
 

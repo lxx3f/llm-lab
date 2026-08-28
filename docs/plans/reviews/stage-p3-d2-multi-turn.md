@@ -1,6 +1,6 @@
 # 阶段 P3 D2 多轮对话数据集审查（当前契约：5000/3500/750/750）
 
-> 本文档是 P3 阶段 D2 多轮对话数据集的 stage review。它描述当前活跃契约（5000 样本 / train 3500 / dev 750 / test 750，HEAD `fdfc519`）。历史 MVP 600 样本与已被否决的 5004 样本的所有细节均已迁出本文档，分别归档在 `docs/plans/open-issues.md` P3-01 段（line 769-841）与 `### P3 D2 扩样到 5004（2026-08-28，round 13，已否决）` 段（line 919+），以及 `docs/data/d2-expansion.md` 的扩样记录中。
+> 本文档是 P3 阶段 D2 多轮对话数据集的 stage review。它描述当前活跃契约（5000 样本 / train 3500 / dev 750 / test 750，HEAD `fdfc519`）。当前契约前的全部历史交付（早期 P3 MVP 交付 + 扩样阶段偏离契约尝试）均已迁出本文档，统一归档在 `docs/plans/open-issues.md` P3-01 段（line 769-841）以及同文件后段的扩样阶段拒绝归档段（line 919+）；P3 扩样阶段的实施记录与设计决策在 `docs/data/d2-expansion.md`。
 
 审查模型：`minimax-cn/MiniMax-M3`（project-level `reviewer` agent）
 审查 agent：`reviewer`（subagent dispatch 名称）
@@ -32,7 +32,7 @@
   - `D2GeneratorDefaultContractTests`（round 14 新增）：`--count` 默认值 = 5000，且磁盘数据集满足 5000/3500/750/750。
 - **协议** `docs/protocols/d2-multi-turn.md`：D2 与 D1/D1.1 差异 / 6 类任务定义 / call_id 依赖链 / held-out split 互斥 / 与 P2 / P4 / P5-02 衔接。
 - **`docs/plans/roadmap.md`**：P3 行已更新为当前契约 5000/3500/750/750。
-- **`docs/plans/open-issues.md`**：P3-01 段（line 769-841）记录当前契约前的初始 P3 交付，已加 banner 标注"被 round 14 取代"；round 13 否决段（line 919+）记录被否的 5004 尝试。
+- **`docs/plans/open-issues.md`**：P3-01 段（line 769-841）记录当前契约前的初始 P3 交付，已加 banner 标注"被 round 14 取代"；同文件后段（line 919+）记录扩样阶段偏离契约尝试与被否决策。
 
 ### 验证（当前活跃契约）
 
@@ -61,4 +61,4 @@
 
 ### 历史归档
 
-本文档早期版本描述的旧版 P3 交付 / 早期 split 比例 / Round 5–9 修复轨迹 / 历史 reward 数字等已不再属于"当前契约"范畴，全部归档至 `docs/plans/open-issues.md` P3-01 段（line 769-841）。该段以独立 banner 标注 "本节描述的是 MVP 600 样本版的初始交付"。历史扩样阶段 5004 样本尝试（round 13）被 detached auditor 否决，详见 `docs/plans/open-issues.md` `### P3 D2 扩样到 5004（2026-08-28，round 13，已否决）` 段（line 919+）。
+本文档早期版本描述的旧版 P3 交付 / 早期 split 比例 / Round 5–9 修复轨迹 / 历史 reward 数字等已不再属于"当前契约"范畴，全部归档至 `docs/plans/open-issues.md` P3-01 段（line 769-841，该段以独立 banner 明确标注其内容仅作历史记录）。扩样阶段的全部偏离契约尝试（含被否决策与失败原因）统一归档至 `docs/plans/open-issues.md` 后段的扩样阶段拒绝归档段（line 919+）。

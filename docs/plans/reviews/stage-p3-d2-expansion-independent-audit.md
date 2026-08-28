@@ -19,7 +19,7 @@
 | 6 | schema 合法性 | 5000/5000 | 5000/5000（Draft202012Validator 0 errors）| ✅ PASS |
 | 7 | D2-vs-D1+D1.1 cross_dataset disjoint | 3/3 空 | 3/3 空（D1=59 + D1.1=1494 unique sigs；D2 全不重叠）| ✅ PASS |
 | 8 | Git 追踪 | 0 tracked; 0 untracked outside .gitignore | 0/0 | ✅ PASS |
-| 9 | 文档一致性 | 5000/3500/750/750（5004 仅作历史）| 全部 4 个目标文档（`docs/data/d2-expansion.md`、`docs/plans/reviews/stage-p3-d2-expansion.md`、`docs/plans/roadmap.md`、`docs/plans/open-issues.md`）均以 5000/3500/750/750 为当前契约；5004/3498/756 引用全部在显式标注 superseded/rejected 段 | ✅ PASS |
+| 9 | 文档一致性 | 5000/3500/750/750（偏离契约的早期尝试数字仅作历史记录）| 全部 4 个目标文档（`docs/data/d2-expansion.md`、`docs/plans/reviews/stage-p3-d2-expansion.md`、`docs/plans/roadmap.md`、`docs/plans/open-issues.md`）均以 5000/3500/750/750 为当前契约；偏离契约的早期尝试数字引用全部归档至 `docs/plans/open-issues.md` 后段（line 919+） | ✅ PASS |
 | 10 | 测试覆盖 | 5000/3500/750/750 + ≥833 显式断言 | `tests/test_d2_dataset.py:647-676` 全部存在；49 tests OK | ✅ PASS |
 
 ## 决策

@@ -19,7 +19,7 @@ Done when：
 
 ## Round 14 修订动机
 
-Round 13 完成时使用 `count=5004`，split 实际为 3498/750/756，与目标契约 3500/750/750 偏差 6 个样本（train 差 2、test 差 4）。Detached auditor round 14 否决该交付并要求严格命中契约。
+round 14 完成 5000 样本交付 + 严格命中 3500/750/750 split。修订背景 + 一次性偏差记录见 `docs/plans/open-issues.md` 的扩样阶段拒绝归档段（line 919+）与 `docs/data/d2-expansion.md`。
 
 5000 / 6 = 833.33，不整除。数学上必然需要 4 类 833 + 2 类 834 的不均分布，配合 `round()` 化 dev/test 才能命中 3500/750/750。
 
@@ -48,7 +48,7 @@ Round 13 完成时使用 `count=5004`，split 实际为 3498/750/756，与目标
 
 ### 3. 数据集规格（round 14）
 
-- `--count 5000`（不是 5004）
+- `--count 5000`（round 14 当前契约；偏离 3500/750/750 契约的早期尝试数字归档于 `docs/plans/open-issues.md` line 919+）
 - `_plan_per_class_counts(5000)` → `(834, 834, 833, 833, 833, 833)`
 - Per-split：`assign_split_ids()` 用 `round(per_class * 0.15)` 计算 dev/test
  - 833 类：dev=125、test=125、train=583

@@ -14,7 +14,7 @@ Covers::
   from D1 / D1.1 train ids;
 - ``MANIFEST-{train,dev,test}.json`` ``count`` and ``aggregate_sha256``
   match the on-disk files;
-- canonical semantic content is unique across all 600 rows after removing
+- canonical semantic content is unique across all 5000 rows after removing
   bookkeeping identifiers, dependency references, split metadata, and timestamps.
 
 The D2 directory is treated as a fixture: the tests skip themselves if
@@ -59,8 +59,8 @@ def _expected_total_samples() -> int:
     """Total samples across the three D2 splits, derived from on-disk MANIFESTs.
 
     The D2 dataset is parameterizable by ``--count``; tests read the actual
-    manifest counts instead of hard-coding so a 5004-sample scale-up does
-    not require test edits.
+    manifest counts instead of hard-coding so future scale-ups do not require
+    test edits.
     """
     total = 0
     for split in EXPECTED_SPLITS:
@@ -1120,7 +1120,7 @@ class D2ExpectedAnswerContractTests(unittest.TestCase):
     ``_insufficient_result_search`` originally emitted a *mid-conversation*
     clarification as ``expected_answer`` while the transcript then
     appended a second user turn and a closing assistant acknowledgement;
-    the two diverged across 100/100 samples. This class asserts the
+    the two diverged for every affected sample. This class asserts the
     invariant holds dataset-wide.
     """
 
