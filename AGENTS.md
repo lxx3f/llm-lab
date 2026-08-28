@@ -36,7 +36,7 @@
 - 例外：**单审计轮 fix**（如 `audit round N fix` / `audit round N postfix`，范围限于文档、测试、生成器参数或 schema 扩展，且改动已在 `docs/plans/reviews/stage-*.md` 对应 Round 中完整记录）可省略 subagent reviewer，仅由 goal 框架的 detached auditor 单独负责；详见 `docs/plans/review-process.md` 中的“Stage reviewer 跳过条件”段。
 - 如果 harness 无法确认审查模型身份，必须停止自动 commit 并报告阻塞；
 - 不提交模型权重、API 密钥、内部数据或其他敏感信息。
-- 不提交训练产物（checkpoint/tokenizer artifact/中间产物 JSON），只提交 config + 数据集 + 评测脚本 + docs；训练曲线/评测 JSON 是产物可重跑复现，以 `.gitignore` 覆盖（`artifacts/checkpoints/`, `artifacts/*.json`, `artifacts/tokenizers/`）。
+- 不提交训练产物（checkpoint/tokenizer artifact/中间产物 JSON），只提交 config + 评测脚本 + docs；训练曲线/评测 JSON 是产物可重跑复现，以 `.gitignore` 覆盖（`artifacts/checkpoints/`, `artifacts/*.json`, `artifacts/tokenizers/`）。数据集（D1 / D1.1 / D2 等生成产物）统一以 `.gitignore` 覆盖，本地按需通过 `scripts/generate_*_dataset.py` 重新生成（其中 D1 由 `test_d1_failure.py::setUpClass` 自动重建，D1.1 / D2 需要预先调用对应生成器）。
 
 ## 当前阶段
 
