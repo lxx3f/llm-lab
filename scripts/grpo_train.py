@@ -183,12 +183,6 @@ def _build_argparser() -> argparse.ArgumentParser:
              "the MVP (out of scope) but accepted as a no-op for CLI stability.",
     )
     parser.add_argument(
-        "--save-every",
-        type=int,
-        default=1,
-        help="Persist state.pt every N steps (default: 1 = every step)",
-    )
-    parser.add_argument(
         "--strict-resume-config",
         action="store_true",
         help="When set, --resume-from refuses to continue if the saved run "
@@ -598,19 +592,18 @@ def _save_state(checkpoint_dir: Path, *, global_step: int, last_step_id: str,
                 samples_consumed: int, max_steps: int,
                 k_rollouts: int, policy_model: str,
                 seed: int, learning_rate: float, max_grad_norm: float,
-                samples_dir: str, device: str, save_every: int,
-                model, optimizer, rng_state: dict[str, Any],
-                next_global_step_to_save: int | None = None) -> None:
+                samples_dir: str, device: str,
+                model, optimizer, rng_state: dict[str, Any]) -> None:
     """Persist run-level state to ``state.json`` and binary state to
     ``state.pt``. The binary blob contains ``{model_state_dict,
     optimizer_state_dict, rng_state}``.
 
     **Correctness-first invariant**: ``state.pt`` is ALWAYS written
     alongside ``state.json`` so a resumed run can never combine a
-    newer cursor with stale weights (the round-5 auditor finding).
-    The historical ``save_every`` knob was repurposed as
-    ``--long-snapshot-every`` (long-term archive cadence, separate
-    file); it does NOT affect resume correctness.
+    newer cursor with stale weights. The previous ``save_every``
+    skip optimization was removed in round-6 because it was a
+    documented-but-not-actually-implemented knob; state.pt is now
+    unconditionally written on every step.
 
     ``samples_consumed`` is the number of distinct prompts already
     consumed; on resume the next run starts at ``samples[cursor]``.
@@ -628,7 +621,6 @@ def _save_state(checkpoint_dir: Path, *, global_step: int, last_step_id: str,
         "max_grad_norm": max_grad_norm,
         "samples_dir": str(samples_dir),
         "device": device,
-        "save_every": save_every,
         "completed": global_step + 1 >= max_steps,
     }
     (checkpoint_dir / "state.json").write_text(
@@ -637,9 +629,9 @@ def _save_state(checkpoint_dir: Path, *, global_step: int, last_step_id: str,
 
     # state.pt is ALWAYS persisted on every step so state.json and
     # state.pt are always in sync. The previous ``save_every`` skip
-    # optimization was a correctness bug (interruption could leave
-    # state.json newer than state.pt, producing a double-update on
-    # resume).
+    # optimization was a correctness bug AND a documentation lie
+    # (the knob was documented as controlling state.pt cadence but
+    # had no effect; round-6 removed it entirely).
     blob = {
         "version": STATE_PT_VERSION,
         "model_state": {k: v.detach().cpu()
@@ -906,8 +898,10 @@ def run_loop(args, *, model, tokenizer, device: str, samples: list,
             encoding="utf-8",
         )
         last_step_id = step_id
-        # (state.pt is ALWAYS saved inside _save_state now — no
-        # ``save_every`` skip optimization; see round-5 fix.)
+        # state.pt is ALWAYS saved inside _save_state now — the
+        # previous ``save_every`` skip optimization was removed in
+        # round-6 because it was documented-but-not-actually-
+        # implemented (a documentation lie).
         _save_state(
             checkpoint_dir,
             global_step=global_step,
@@ -921,7 +915,6 @@ def run_loop(args, *, model, tokenizer, device: str, samples: list,
             max_grad_norm=args.max_grad_norm,
             samples_dir=str(args.samples_dir),
             device=device,
-            save_every=args.save_every,
             model=model, optimizer=optimizer,
             rng_state=_capture_rng_state(device),
         )
@@ -1006,8 +999,9 @@ def _supplied_cli_args(argv: list[str]) -> set[str]:
         "--seed": "seed",
         "--device": "device",
         "--max-grad-norm": "max_grad_norm",
-        "--save-every": "save_every",
         "--dtype": "dtype",
+        # Note: ``--save-every`` was removed in round-6; users
+        # who set it from older configs are silently ignored.
     }
     supplied: set[str] = set()
     i = 0

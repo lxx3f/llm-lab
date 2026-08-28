@@ -43,12 +43,12 @@ device: auto                # auto = cuda if available else cpu
 # Policy update
 max_grad_norm: 1.0          # gradient clipping; 0 = no clipping
 
-# Checkpoint cadence
-save_every: 1               # persist state.pt every N steps
-
 # Resume from a previous run (uncomment to enable)
 # resume_from: artifacts/grpo-qwen05/state.json
 # strict_resume_config: false  # set true to abort on config mismatch
+
+# Note: ``save_every`` is no longer supported. state.pt is always
+# written on every step (round-6 invariant).
 
 # Optional reference model for KL penalty (MVP: accepted as no-op for
 # CLI stability; full implementation is out of scope)

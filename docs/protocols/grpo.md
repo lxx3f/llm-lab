@@ -87,11 +87,17 @@ trajectory exactly:
 - ``state.json`` (text): run-level config + step cursor:
   ``{schema_version, global_step, last_step_id, samples_consumed,
   max_steps, k_rollouts, policy_model, seed, learning_rate,
-  max_grad_norm, samples_dir, device, save_every, completed}``.
+  max_grad_norm, samples_dir, device, completed}``.
 - ``state.pt`` (binary): ``{model_state_dict, optimizer_state_dict,
   rng_state}`` where ``rng_state = {python, torch, torch_cuda}``.
   Versioned (``STATE_PT_VERSION = "1.0"``) so future schema changes
   can be rejected gracefully.
+
+  **Round-6 invariant**: ``state.pt`` is ALWAYS written alongside
+  ``state.json`` on every step. The previous ``save_every`` knob
+  was removed because it was a documented-but-not-actually-
+  implemented no-op (round-6 finding). The state.pt always-current
+  invariant guarantees that a resume from any step is well-defined.
 
 Resume semantics:
 
@@ -115,13 +121,13 @@ Resume semantics:
   run; ``--strict-resume-config`` (off by default) aborts on any
   config mismatch.
 
-``save_every``: how often to persist ``state.pt`` (default: 1 =
-every step). State JSON is written every step regardless.
-
-**Final-step invariant**: regardless of ``save_every``, the LAST
-step of a run always writes ``state.pt`` so ``--resume-from`` after
-the final step is well-defined. Intermediate steps with
-``save_every > 1`` may skip the binary write to save disk I/O; the
+**Note on `save_every`**: the ``--save-every`` CLI flag and
+``save_every`` YAML key were REMOVED in round-6 because the knob
+was documented but had no actual effect on state.pt persistence
+(state.pt was always unconditionally written). Older YAML configs
+that still set ``save_every`` are silently ignored — state.pt is
+written on every step regardless. There is no longer any cadence
+knob for state.pt; it is unconditionally current.
 final step does not.
 
 Verification:
@@ -137,9 +143,10 @@ Verification:
   fresh model → restore → weight comparison, using a ``torch.nn``
   mock (no HF dependency).
 - ``tests/test_grpo_mvp.py::TestCheckpointIO`` — state.json round-
-  trip + ``completed`` flag + ``state.pt`` cadence (``save_every``).
-- ``tests/test_grpo_mvp.py::TestRunLoopEndToEnd::test_run_loop_save_every_keeps_state_pt_in_sync``
-  — final step always saves state.pt regardless of ``save_every``.
+  trip + ``completed`` flag + state.pt always-current.
+- ``tests/test_grpo_mvp.py::TestRunLoopEndToEnd::test_run_loop_state_pt_written_every_step``
+  — regression test for round-6: state.pt is written on every step,
+  unconditionally.
 
 ## 9. Dtype handling
 
@@ -154,8 +161,9 @@ forced to override a user-specified low-precision dtype.
 `--config <yaml>` reads `policy_model`, `samples_dir`,
 `checkpoint_dir`, `resume_from`, `max_steps`, `k_rollouts`,
 `learning_rate`, `temperature`, `max_new_tokens`, `limit`, `seed`,
-`device`, `max_grad_norm`, `save_every`, `dtype` from a YAML file
-(see `configs/grpo_mvp.example.yaml`).
+`device`, `max_grad_norm`, `dtype` from a YAML file
+(see `configs/grpo_mvp.example.yaml`). (`save_every` was removed
+in round-6; older configs with this key are silently ignored.)
 
 **CLI precedence**: CLI args explicitly supplied on the command line
 win over YAML. The set of supplied flags is detected by scanning
@@ -219,12 +227,15 @@ end-to-end runs:
   elapsed. The auditor's round-5 specific objection is closed:
   the codebase ships BOTH a real CPU smoke AND a real GPU smoke.
 
-## 13. Checkpoint correctness invariants (round-5 fix)
+## 13. Checkpoint correctness invariants (round-5 + round-6 fix)
 
 - `state.pt` is ALWAYS written alongside `state.json` on every step.
-  The previous `save_every` skip optimization was a correctness bug
-  (interruption could leave state.json newer than state.pt,
-  producing a double-update on resume).
+  The previous `save_every` skip optimization was a correctness
+  bug (interruption could leave state.json newer than state.pt,
+  producing a double-update on resume) AND a documentation lie
+  (the knob was documented as controlling state.pt cadence but
+  had no effect). Round-6 removed `--save-every` entirely; state.pt
+  is unconditionally current.
 - Cursor exhaustion (`samples_consumed >= len(samples)`) is NOT a
   wrap-to-zero: `run_loop` returns rc=4 with a clear log message
   ("Increase --limit or supply more samples") instead of silently

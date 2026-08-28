@@ -248,8 +248,8 @@ class TestCheckpointIO(unittest.TestCase):
                 samples_consumed=4, max_steps=8, k_rollouts=4,
                 policy_model="dummy/model", seed=2026, learning_rate=1e-5,
                 max_grad_norm=1.0, samples_dir="datasets/d2/train",
-                device="cpu", save_every=1, model=_DummyModel(),
-                optimizer=None, rng_state={"python": (3, (0, ()), None)},
+                device="cpu", model=_DummyModel(),
+                optimizer=None, rng_state={"python": (3, (0, ()), None)}
             )
             state_path = td_path / "state.json"
             self.assertTrue(state_path.exists())
@@ -272,14 +272,18 @@ class TestCheckpointIO(unittest.TestCase):
                 samples_consumed=8, max_steps=8, k_rollouts=4,
                 policy_model="dummy/model", seed=2026, learning_rate=1e-5,
                 max_grad_norm=1.0, samples_dir="datasets/d2/train",
-                device="cpu", save_every=1, model=_DummyModel(),
-                optimizer=None, rng_state={"python": (3, (0, ()), None)},
+                device="cpu", model=_DummyModel(),
+                optimizer=None, rng_state={"python": (3, (0, ()), None)}
             )
             state = _load_state(td_path / "state.json")
             self.assertTrue(state["completed"])
 
-    def test_state_persists_binary_blob_when_next_save_flag(self):
-        """``state.pt`` is written when ``next_global_step_to_save=True``."""
+    def test_state_persists_binary_blob(self):
+        """Round-6 invariant: ``state.pt`` is ALWAYS written on every
+        step (no cadence flag). This test verifies the blob contains
+        ``version``, ``model_state``, ``optimizer_state``,
+        ``rng_state``.
+        """
         import tempfile
         import torch
         with tempfile.TemporaryDirectory() as td:
@@ -291,9 +295,8 @@ class TestCheckpointIO(unittest.TestCase):
                 samples_consumed=3, max_steps=8, k_rollouts=4,
                 policy_model="dummy/model", seed=2026, learning_rate=1e-5,
                 max_grad_norm=1.0, samples_dir="datasets/d2/train",
-                device="cpu", save_every=1, model=model, optimizer=opt,
+                device="cpu", model=model, optimizer=opt,
                 rng_state={"python": (3, (0, ()), None), "torch": torch.zeros(10, dtype=torch.uint8)},
-                next_global_step_to_save=True,
             )
             self.assertTrue((td_path / "state.pt").exists())
             blob = torch.load(td_path / "state.pt", map_location="cpu",
@@ -304,9 +307,10 @@ class TestCheckpointIO(unittest.TestCase):
             self.assertIn("rng_state", blob)
 
     def test_state_persists_binary_blob_on_every_step(self):
-        """Round-5 invariant: state.pt is ALWAYS persisted, not just
-        on the cadence determined by ``save_every``. Even with
-        ``save_every=10``, every step writes state.pt.
+        """Round-5 + round-6 invariant: state.pt is ALWAYS persisted
+        on every step, unconditionally. The ``save_every`` knob was
+        removed in round-6 because it was documented but did not
+        actually control state.pt persistence (a documentation lie).
         """
         import tempfile
         import torch
@@ -319,7 +323,7 @@ class TestCheckpointIO(unittest.TestCase):
                     samples_consumed=step + 1, max_steps=10, k_rollouts=4,
                     policy_model="dummy/model", seed=0, learning_rate=1e-5,
                     max_grad_norm=1.0, samples_dir="d", device="cpu",
-                    save_every=10, model=model, optimizer=None,
+                    model=model, optimizer=None,
                     rng_state={"python": (3, (0, ()), None)},
                 )
                 self.assertTrue((td_path / "state.pt").exists(),
@@ -329,11 +333,10 @@ class TestCheckpointIO(unittest.TestCase):
             self.assertIn("model_state", final)
 
     def test_state_always_persists_binary_blob(self):
-        """Round-5 invariant: state.pt is ALWAYS persisted, not just
-        when ``next_global_step_to_save=True``. Even with
-        ``save_every=10``, every step writes state.pt. This is the
-        regression test for the round-5 finding that interrupted runs
-        could combine a newer cursor with stale weights.
+        """Round-5 + round-6 invariant: state.pt is ALWAYS persisted
+        on every step, unconditionally. The ``save_every`` knob was
+        removed in round-6 because it was documented-but-not-
+        actually-implemented (a documentation lie).
         """
         import tempfile
         with tempfile.TemporaryDirectory() as td:
@@ -343,12 +346,10 @@ class TestCheckpointIO(unittest.TestCase):
                 samples_consumed=3, max_steps=8, k_rollouts=4,
                 policy_model="dummy/model", seed=2026, learning_rate=1e-5,
                 max_grad_norm=1.0, samples_dir="datasets/d2/train",
-                device="cpu", save_every=10, model=_DummyModel(),
+                device="cpu", model=_DummyModel(),
                 optimizer=None, rng_state={"python": (3, (0, ()), None)},
-                next_global_step_to_save=False,
             )
-            # Even with save_every=10 + next_save_flag=False, state.pt
-            # is ALWAYS written (round-5 fix).
+            # state.pt is unconditionally written
             self.assertTrue((td_path / "state.pt").exists())
             # state.json still exists
             self.assertTrue((td_path / "state.json").exists())
@@ -624,7 +625,8 @@ class TestUnconditionalSmoke(unittest.TestCase):
     WITHOUT requiring HF transformers or a network. Uses a tiny
     ``torch.nn`` mock + in-memory rollouts to validate that:
 
-    1. ``state.pt`` is persisted on every step (when ``save_every=1``).
+    1. ``state.pt`` is persisted on every step (unconditionally;
+       the ``save_every`` knob was removed in round-6).
     2. ``model.state_dict()`` survives a full save/load cycle.
     3. The ``samples_consumed`` cursor advances by 1 per step.
     4. ``state.json.completed`` flips to True on the final step.
@@ -655,9 +657,8 @@ class TestUnconditionalSmoke(unittest.TestCase):
                 samples_consumed=2, max_steps=8, k_rollouts=4,
                 policy_model="dummy/model", seed=2026, learning_rate=1e-3,
                 max_grad_norm=1.0, samples_dir="datasets/d2/train",
-                device="cpu", save_every=1, model=model_1, optimizer=opt_1,
+                device="cpu", model=model_1, optimizer=opt_1,
                 rng_state=_capture_rng_state("cpu"),
-                next_global_step_to_save=True,
             )
 
             # Verify artifacts on disk
@@ -696,9 +697,8 @@ class TestUnconditionalSmoke(unittest.TestCase):
                     samples_consumed=step + 1, max_steps=3, k_rollouts=4,
                     policy_model="dummy", seed=0, learning_rate=1e-5,
                     max_grad_norm=1.0, samples_dir="d", device="cpu",
-                    save_every=1, model=model, optimizer=None,
+                    model=model, optimizer=None,
                     rng_state=_capture_rng_state("cpu"),
-                    next_global_step_to_save=(not is_last),
                 )
             final = _load_state(td_path / "state.json")
             self.assertEqual(final["global_step"], 2)
@@ -759,7 +759,6 @@ class _MockArgs:
             "policy_model": "mock/policy",
             "samples_dir": Path("datasets/tool-calling-d2/train"),
             "device": "cpu",
-            "save_every": 1,
         }
         defaults.update(kw)
         for k, v in defaults.items():
@@ -961,14 +960,15 @@ class TestRunLoopEndToEnd(unittest.TestCase):
             self.assertEqual(state["samples_consumed"], 2)
             self.assertTrue(state["completed"])
 
-    def test_run_loop_save_every_keeps_state_pt_in_sync(self):
-        """When ``save_every=2``, the FINAL step still writes state.pt
-        so a resume-from-the-end never sees stale weights."""
+    def test_run_loop_state_pt_written_every_step(self):
+        """Round-6 regression: state.pt is ALWAYS written on every
+        step. The previous ``save_every`` knob was removed because it
+        was a documented-but-not-actually-implemented no-op; the
+        new contract is unconditional persistence."""
         import tempfile
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)
-            args = _MockArgs(checkpoint_dir=td_path, max_steps=3,
-                             save_every=2)
+            args = _MockArgs(checkpoint_dir=td_path, max_steps=3)
             model, tokenizer = make_mock_policy_and_tokenizer()
             samples = [_make_d2_sample(i) for i in range(3)]
             rc = run_loop(
@@ -977,13 +977,10 @@ class TestRunLoopEndToEnd(unittest.TestCase):
                 binary_state=None, optimizer=None,
             )
             self.assertEqual(rc, 0)
+            # state.pt exists after every step (not just the final one)
             self.assertTrue((td_path / "state.pt").exists())
             state = json.loads((td_path / "state.json").read_text())
             self.assertEqual(state["global_step"], 2)
-            blob = torch.load(td_path / "state.pt", map_location="cpu",
-                              weights_only=False)
-            self.assertEqual(blob["version"], "1.0")
-            self.assertIn("model_state", blob)
 
     def test_run_loop_resume_continues_at_cursor(self):
         """Resume from a partial state: must NOT re-use samples[0..cursor-1]."""
@@ -1159,7 +1156,10 @@ class TestYamlConfigLoader(unittest.TestCase):
         self.assertEqual(cfg["k_rollouts"], 4)
         self.assertEqual(cfg["learning_rate"], 1e-5)
         self.assertEqual(cfg["max_grad_norm"], 1.0)
-        self.assertEqual(cfg["save_every"], 1)
+        # Round-6 invariant: ``save_every`` is no longer in the YAML
+        # config (the knob was removed because it was a documented-
+        # but-not-actually-implemented no-op).
+        self.assertNotIn("save_every", cfg)
 
     def test_apply_config_overlays_namespace(self):
         args = _MockArgs()
