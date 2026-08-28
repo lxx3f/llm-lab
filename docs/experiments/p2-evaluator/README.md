@@ -2,7 +2,9 @@
 
 > 状态：阶段交付（2026-08-28）。
 >
-> 本实验在 **D1 dev 13 样本** 与 **D2 dev 90 样本**两个 split 上对 SFT MVP 的 5 个 checkpoint 跑 `scripts/reward_offline.py`，把 P1-05 八级分类器的结果映射为可训练 reward 信号（含 reward_type 主导通道 + reward_binary + reward_layered）。结果用于：(a) 验证 P2 协议的语义一致性；(b) 量化每个 checkpoint 在 held-out split 上的 reward 分布；(c) 作为 P4 GRPO 的前置信号校验；(d) 验证 reward_offline 在多轮 transcript pipeline 上的可移植性。
+> **历史记录**：本实验在 **D1 dev 13 样本** 与 **D2 dev 90 样本（MVP 600 样本版）**两个 split 上对 SFT MVP 的 5 个 checkpoint 跑 `scripts/reward_offline.py`，把 P1-05 八级分类器的结果映射为可训练 reward 信号（含 reward_type 主导通道 + reward_binary + reward_layered）。P5-02 阶段在扩样后的 D2 dev（750 样本）上重跑 5 公开模型，详见 `docs/protocols/transformers-backend.md` §7-8 与 `docs/experiments/p2-evaluator/README.md` §7。结果用于：(a) 验证 P2 协议的语义一致性；(b) 量化每个 checkpoint 在 held-out split 上的 reward 分布；(c) 作为 P4 GRPO 的前置信号校验；(d) 验证 reward_offline 在多轮 transcript pipeline 上的可移植性。
+>
+> 当前 D2 契约（round 14，HEAD `c6eac20`）：5000 样本 / train 3500 / dev 750 / test 750；本 README §1-§6 描述的 MVP 600 样本版结果仅为 P2 阶段历史交付，后续 P5-02 / P4 / P5-03 均以 5000 样本版为准。
 
 ## 1. 评测对象（5 × 13 = 65 个 reward_signal）
 
@@ -104,7 +106,9 @@
 2. **P5-02 Transformers backend**：让公开 instruction-tuned 模型能跑同一 reward signal，做公平对比；
 3. **P4 GRPO**：当 P3 + P5-02 就位后，把 `reward_binary` / `reward_layered` 作为 GRPO advantage 计算的输入。
 
-## 6. D2 dev 90 样本：5 ckpt 真实推理 reward 评测（2026-08-28）
+## 6. D2 dev 90 样本（MVP 600 样本版）：5 ckpt 真实推理 reward 评测（2026-08-28，round 10 IID 后）
+
+> **历史记录**：本节是 P2 阶段在 **MVP 600 样本版 D2 dev (90 样本)** 上对自研 5 ckpt 跑真实推理 reward 评测的结果。P5-02 阶段在扩样后的 D2 dev（750 样本）上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8 与 `docs/experiments/p2-evaluator/README.md` §7。当前 D2 契约以 5000 样本版为准（round 14，HEAD `c6eac20`）。
 
 P3 阶段交付 D2 dev（90 多轮样本，独立 IID held-out split，与 D1.1 train 不重叠）后，按目标第 5 项对 SFT MVP 的 5 个 checkpoint 在 D2 dev 上跑真实模型推理 + reward_offline。
 

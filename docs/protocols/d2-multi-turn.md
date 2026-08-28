@@ -1,6 +1,8 @@
 # P3 D2 数据版本：多轮对话 + IID held-out split
 
-> 状态：阶段交付（2026-08-28）。
+> 状态：阶段交付（2026-08-28；round 14 扩样至 5000 样本后修订）。
+> 当前契约：`--count 5000`、train 3500 / dev 750 / test 750、6 类各 ≥833 unique canonical variants。
+> 历史 MVP（600 样本）：在 `21d1d7e`（round 13）交付，已于 `c6eac20`（round 14）被 5000 样本扩样版取代。
 
 本协议固定 D2 多轮工具调用数据集的结构、生成、split 边界、与 D1 / D1.1 的互斥关系，以及与 P2 离线 reward 校验的衔接。
 
@@ -11,7 +13,7 @@ D2 是 P1-04 数据版本谱系中的 **第二个稳定数据版本**（D1 模�
 1. **真正的多轮结构**：messages 数组包含 `assistant` 角色（带 `tool_calls`）+ `tool` 角色（带 `tool_call_id` + `name` + `content`）的完整对话链，而不是 D1 的"只有 system + user + 期望调用"投影。
 2. **独立的 IID held-out split**：train / dev / test 三个 split 通过 sample id 命名空间 + 目录隔离双重保证互斥；与 D1 / D1.1 train 在 id 层不重叠；dev / test 足以支撑有意义的 reward 评测。
 
-D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交付的 reward offline 当前只在 D1 dev 13 样本上跑评测，不具备统计意义；D2 dev (90 样本) 是 D1 dev (13 样本) 的 ~7×，是首个能在 held-out split 上做 reward 信号校验的数据集。
+D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交付的 reward offline 当前只在 D1 dev 13 样本上跑评测，不具备统计意义；D2 dev 是 D1 dev (13 样本) 的 **~57×**（750 vs 13），是首个能在 held-out split 上做 reward 信号校验的、有统计意义的数据集。
 
 ## 2. 数据 schema 与 task_type
 
@@ -27,7 +29,9 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 | — | `tool_not_available` | 用户要求的工具不在列表中，模型不调用 |
 | — | `error_recovery` | 工具结果不足/失败，模型调整参数后重试 |
 
-每类 ≥ 100 样本；总规模 **≥ 600 样本**，默认 `--count 600`。
+**当前契约（round 14，HEAD `c6eac20`）**：每类 ≥833 unique canonical variants；总规模 **5000 样本**（4 类 833 + 2 类 834），默认 `--count 5000`。Variant pool 扩展与严格嵌套维度公式见 `docs/data/d2-expansion.md`。
+
+> **历史**：MVP 600 样本版本（每类 100）曾在 `21d1d7e`（round 13）交付；该版本已被 5000 样本取代，详见 `docs/plans/reviews/stage-p3-d2-multi-turn.md` 与 `docs/data/d2-expansion.md`。
 
 ## 3. 多轮 transcript 结构
 
@@ -40,35 +44,43 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 - `assistant` 消息携带 `tool_calls[]`，每个 `tool_call.id` 与 `expected_tool_calls[i].call_id` 一一对应；
 - `tool` 消息携带 `tool_call_id` + `name` + `content`，其中 `tool_call_id` 引用前面某条 `assistant.tool_calls[].id`；
 - `expected_tool_calls` 用 `call_id` + `depends_on` 表达链式依赖，`depends_on[]` 列出所有前置 `call_id`；
-- `expected_answer` 关闭整个 transcript；按约定它必须与 transcript 中最后一条非工具调用的 `assistant` 消息的 `content` **逐字符相同**。该约定由 `transcript_well_formedness_errors()` 与 `tests/test_d2_dataset.py::D2ExpectedAnswerContractTests` 双重校验：generator 写盘前 `_validate_samples()` 拒绝任何偏离样本；测试覆盖 600/600 样本并含反向断言。
+- `expected_answer` 关闭整个 transcript；按约定它必须与 transcript 中最后一条非工具调用的 `assistant` 消息的 `content` **逐字符相同**。该约定由 `transcript_well_formedness_errors()` 与 `tests/test_d2_dataset.py::D2ExpectedAnswerContractTests` 双重校验：generator 写盘前 `_validate_samples()` 拒绝任何偏离样本；测试覆盖 5000/5000 样本并含反向断言。
 
 `scripts/generate_d2_dataset.py` 在生成时先通过独立 D2 schema 校验，再通过依赖图语义校验，最后为每个样本注册工具并调用真实 `MockExecutor.execute_sequence()`；它检查每个 `expected_tool_calls[i].expected_result` 与 executor 返回值一致。因此每个 D2 样本既是 schema 合法也是执行语义合法。
 
 ## 4. Held-out split
 
-按 `--count N` 切分（默认 70:15:15）：
+按 `--count N` 切分（默认 70:15:15 per-task，round 14 用 `round()` 化保证 dev=test=125）：
 
-| Split | 样本数（默认 600） | 命名空间 | 用途 |
+| Split | 样本数（5000） | 命名空间 | 用途 |
 |---|---|---|---|
-| train | 420 | `d2-train-NNNN` | SFT 训练 |
-| dev | 90 | `d2-dev-NNN` | held-out reward 评测、调参 |
-| test | 90 | `d2-test-NNN` | held-out reward 评测、最终验证 |
+| train | **3500** | `d2-train-NNNN` | SFT 训练 + GRPO rollouts |
+| dev | **750** | `d2-dev-NNNN` | held-out reward 评测、调参 |
+| test | **750** | `d2-test-NNNN` | held-out reward 评测、最终验证 |
+
+**per-class split 算法**（round 14）：`_plan_per_class_counts(5000)` → `(834, 834, 833, 833, 833, 833)`；`assign_split_ids()` 用 `round(per_class × 0.15)` 计算 dev/test，使 833 与 834 类都得到 dev=test=125，train = per_class - 250。最终 per-split 数学：
+
+- 833 类：train=583、dev=125、test=125
+- 834 类：train=584、dev=125、test=125
+- 总计：train = 4×583 + 2×584 = 3500；dev = 6×125 = 750；test = 6×125 = 750
 
 **互斥保证**：
 
 - id 命名空间前缀不同（`d2-train-` / `d2-dev-` / `d2-test-`）；
 - 目录物理隔离（`datasets/tool-calling-d2/{train,dev,test}/`）；
 - 与 D1 / D1.1 train id 在 stem 层不重叠（D2 id 是 `d2-*`，D1 是 `d1-*` / `d1llm-*`）；
-- 生成器和测试均计算同一个 `canonical_content_signature()`：去除 `id` / `call_id` / `tool_call_id` / `depends_on`、`metadata.created_at` 和 `metadata.split` 后，仍保留 task_type、tools、消息内容、工具参数/结果与 expected_answer。600 个签名全局唯一；每类 100/100 唯一；train/dev/test 三组 canonical signature 交集均为空。
+- 生成器和测试均计算同一个 `canonical_content_signature()`：去除 `id` / `call_id` / `tool_call_id` / `depends_on`、`metadata.created_at` 和 `metadata.split` 后，仍保留 task_type、tools、消息内容、工具参数/结果与 expected_answer。**5000 个签名全局唯一；每类 833/833/833/833/834/834 唯一**；train/dev/test 三组 canonical signature 交集均为空。
 - 与 D1 / D1.1 train 的 **跨数据集语义互斥**由 `cross_dataset_signature()` 投影保证：8 字段（task_type、schema_version、user_turns、assistant_turns、tool_turns、tool_names、expected_tool_calls、expected_answer）形状跨 D1/D1.1/D2 完全一致；`tests/test_d2_dataset.py::test_d2_canonical_content_is_disjoint_from_d1_d1llm_train` 验证 D2 三 split 与 D1/D1.1 train 在该投影下交集均为空；`test_cross_dataset_signature_is_comparable_across_d1_d1llm_d2` 保证投影本身可检测重叠（防止 round 11 那种两个不兼容投影退化为 vacuous ∅）；`test_cross_dataset_signature_detects_real_overlap` 为正向控制样本验证投影能真地检测重叠。
 
 `tests/test_d2_dataset.py::D2SplitDisjointnessTests` 显式校验：
 
 - `train ∩ dev = train ∩ test = dev ∩ test = ∅`；
-- canonical semantic content 的三组 split 交集为空，且 600 个样本签名全局唯一；
-- 每个 task_type 都有 100 个不同 canonical semantic instances；
+- canonical semantic content 的三组 split 交集为空，且 5000 个样本签名全局唯一；
+- 每个 task_type 都有 ≥833 个不同 canonical semantic instances；
 - train 与 D1/D1.1 train id 集合无交集；
-- 每个 `MANIFEST-{split}.json` 的 `count` / `aggregate_sha256` / 每文件 sha256 与磁盘一致。
+- 每个 `MANIFEST-{split}.json` 的 `count` / `build_count` / 每文件 sha256 与磁盘一致。
+
+> **历史**：MVP 600 样本版本下每类 100 个变体、`train/dev/test = 420/90/90`；该版本已被 5000 样本取代（round 14，HEAD `c6eac20`）。
 
 ## 5. MANIFEST 结构
 
@@ -82,8 +94,16 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
   "generator": "scripts/generate_d2_dataset.py",
   "seed": 2026,
   "created_at": "2026-07-25T17:53:46Z",
-  "count": 420,
-  "aggregate_sha256": "<hex64 of sorted ids hash>",
+  "count": 3500,
+  "build_count": 5000,
+  "task_types": {
+    "tool_not_available": 584,
+    "tool_error_response": 584,
+    "insufficient_result_search": 583,
+    "req_change_city": 583,
+    "multi_tool_sequential": 583,
+    "error_recovery": 583
+  },
   "samples": [
     {
       "path": "train/d2-train-0001.json",
@@ -96,7 +116,7 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 }
 ```
 
-`aggregate_sha256` 是该 split 内按 id 排序后 hash — 可在测试中独立重算并验证。
+`build_count` 是生成器 `--count` 参数的实际值（round 14 新增）；`aggregate_sha256` 是该 split 内按 id 排序后 hash — 可在测试中独立重算并验证。
 
 ### 5.1 时间戳契约
 
@@ -107,33 +127,38 @@ ts   = 1785000000 + seed + index
 fmt  = datetime.fromtimestamp(ts, tz=UTC).isoformat().replace("+00:00", "Z")
 ```
 
-其中 `index` 为样本在其 split 内的 1-based 位置（train 1..420、dev 1..90、test 1..90；每个 split 独立编号，与 ``sample.id`` 后缀严格一致）。MANIFEST 的 `created_at` 使用 `index=0`（即 `seed` 本身的 epoch 秒）。选择 split-local 编号而非生成器全局序列的好处是 ``d2-train-0001`` / ``d2-dev-0001`` / ``d2-test-0001`` 都映射到同一个 epoch 起始点，便于跨 split 对齐调试；该选择与 round 8 时间戳契约的"split-local 1-based index"语义一致。
+其中 `index` 为样本在其 split 内的 1-based 位置（train 1..3500、dev 1..750、test 1..750；每个 split 独立编号，与 `sample.id` 后缀严格一致）。MANIFEST 的 `created_at` 使用 `index=0`（即 `seed` 本身的 epoch 秒）。选择 split-local 编号而非生成器全局序列好处是 `d2-train-0001` / `d2-dev-0001` / `d2-test-0001` 都映射到同一个 epoch 起始点，便于跨 split 对齐调试；该选择与 round 8 时间戳契约的"split-local 1-based index"语义一致。
 
-**示例**：seed=2026、index=1 → `2026-07-25T17:53:47Z`；seed=2026、index=420（d2-train-0420） → `2026-08-02T03:28:47Z`；seed=2026、index=90（d2-dev-0090） → `2026-07-25T19:53:17Z`。
+**示例**：seed=2026、index=1 → `2026-07-25T17:53:47Z`；seed=2026、index=3500（d2-train-3500） → `2026-08-26T18:20:00Z`；seed=2026、index=750（d2-dev-0750） → `2026-07-26T00:48:50Z`。
 
-该契约保证 `tests/test_d2_dataset.py::D2TimestampContractTests` 中 6 个反向测试全绿：同 `seed+index` 字节相同；不同 `seed` 或不同 `index` 均产出不同字符串；磁盘样本与公式逐字符相等。
+该契约保证 `tests/test_d2_dataset.py::D2TimestampContractTests` 中反向测试全绿：同 `seed+index` 字节相同；不同 `seed` 或不同 `index` 均产出不同字符串；磁盘样本与公式逐字符相等。
 
 ## 6. 生成与复现
 
 ```bash
-# 默认生成 600 样本
-.venv/python.exe scripts/generate_d2_dataset.py
+# 当前默认生成 5000 样本（round 14 契约）
+.venv/python.exe scripts/generate_d2_dataset.py --count 5000 --seed 2026 \
+    --out datasets/tool-calling-d2
 
-# 自定义规模（每类至少 1 个，≥ 6）
-.venv/python.exe scripts/generate_d2_dataset.py --count 300
+# 自定义规模（每类至少 1 个，≥ 6；建议 ≥6×833=4998 以保持每类 ≥833 unique variants）
+.venv/python.exe scripts/generate_d2_dataset.py --count 6000 --seed 2026 \
+    --out datasets/tool-calling-d2
 
 # 自定义 seed（默认 2026）
-.venv/python.exe scripts/generate_d2_dataset.py --count 600 --seed 2027
+.venv/python.exe scripts/generate_d2_dataset.py --count 5000 --seed 2027 \
+    --out datasets/tool-calling-d2
 
 # 自定义输出目录
-.venv/python.exe scripts/generate_d2_dataset.py --out datasets/tool-calling-d2-test
+.venv/python.exe scripts/generate_d2_dataset.py --count 5000 --out datasets/tool-calling-d2-test
 ```
 
-确定性保证：同一 `--seed` 产生相同的 600 条 canonical content、文件 sha256 和 MANIFEST aggregate hash；不同 `--count` 通过 round-robin 在 6 类 task_type 间分配。生成器写盘前以 `canonical_content_signature()` 执行全局语义去重；去除 ID、时间戳、split、call_id 和依赖引用后，默认数据仍保持 600/600 唯一、每类 100/100 唯一、三 split 无交集。
+确定性保证：同一 `--seed` 产生相同的 canonical content、文件 sha256 和 MANIFEST aggregate hash；`--count` 通过 `_plan_per_class_counts()` 自动在 6 类 task_type 间分配（5000 / 6 = 833 remainder 2 → 4 类 833 + 2 类 834）。生成器写盘前以 `canonical_content_signature()` 执行全局语义去重；去除 ID、时间戳、split、call_id 和依赖引用后，默认数据仍保持 5000/5000 唯一、每类 ≥833/833 唯一、三 split 无交集。
+
+> **历史**：`--count 600` 与每类 100 unique variants 是 MVP 版本（`21d1d7e`）参数；当前默认 `--count 5000` + 6 个 builder 严格嵌套 dimension formula（见 `docs/data/d2-expansion.md` §3.2）。
 
 ## 7. 与 P2 离线 reward 校验的衔接
 
-P2 阶段交付的 `scripts/reward_offline.py` 直接消费 D2 dev 90 样本作为正式 reward 评测输入，命令：
+P2 阶段交付的 `scripts/reward_offline.py` 直接消费 D2 dev **750 样本**作为正式 reward 评测输入，命令：
 
 ```bash
 .venv/python.exe scripts/reward_offline.py \
@@ -143,16 +168,20 @@ P2 阶段交付的 `scripts/reward_offline.py` 直接消费 D2 dev 90 样本作�
     --checkpoint <ckpt-name>
 ```
 
-D1 dev 13 样本保留作为早期 dev 探针；D2 dev 是首个有统计意义的 reward 评测 split。
+D1 dev 13 样本保留作为早期 dev 探针；D2 dev 750 样本是首个有统计意义的 reward 评测 split（vs D1 dev 的 13 样本 = 57.7× 提升）。
 
-**P3 阶段已在 D2 dev 上完成 5 ckpt × 90 = 450 个真实推理 reward_signal（round 10 IID 分裂后重跑）**：5 个 checkpoint 均 `reward_binary=0.0`；large-v1 的 `reward_layered=0.0099`（87 个 `parse_success`，3 个 `argument_correct`），其余 4 个 checkpoint 为 0.0000。与 round 9 数字相比 large-v1 从 0.0162 → 0.0099、d256-20k 从 0.0042 → 0.0000，变化源于 round 10 的 IID stratified shuffle 重新分配 600 个变体至三个 split，导致样本内容不同（同一内容语义不变，但 dev/test 现在拿到的不是 train 的 70-99 连续片段）。该诚实负结果证明：(a) D2 dev 评测管线可跑通；(b) 单轮模型基本不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。完整明细与 reward_type 分布见 `docs/experiments/p2-evaluator/README.md` §6。
+**P3 阶段已在 D2 dev 上完成 5 ckpt × 90 = 450 个真实推理 reward_signal（round 10 IID 分裂 + MVP 600 样本后重跑）**：5 个 checkpoint 均 `reward_binary=0.0`；large-v1 的 `reward_layered=0.0099`（87 个 `parse_success`，3 个 `argument_correct`），其余 4 个 checkpoint 为 0.0000。该诚实负结果证明：(a) D2 dev 评测管线可跑通；(b) 单轮模型基本不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。完整明细与 reward_type 分布见 `docs/experiments/p2-evaluator/README.md` §6。
+
+**P5-02 阶段在扩样后的 D2 dev（750 样本）上重跑 5 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）：5 × 90 = 450 reward_signal（dev 子集）。**全部 reward_binary=0、no_failure=0；reward_layered 0.33-0.42（远高于自研 5 ckpt 0.0）。详见 `docs/protocols/transformers-backend.md` §7-8 与 `docs/experiments/p2-evaluator/README.md` §7。
 
 `scripts/eval_sft_tool.py --prompt-mode multi_turn` 负责把 D2 多轮 messages 序列化为 SFT 模板历史并生成续写，是 D2 dev 评测的标准推理入口。
 
 ## 8. 与 P4 GRPO / P5-02 的衔接
 
-- P4 GRPO：以 D2 train (420 样本) 作为 GRPO rollouts 的 prompt 池；D2 dev / test 作为 advantage 估计的对照基线；
+- P4 GRPO：以 D2 train (**3500** 样本) 作为 GRPO rollouts 的 prompt 池；D2 dev / test 作为 advantage 估计的对照基线；
 - P5-02 Transformers backend：同一 `--samples-dir` 路径可在公开 instruction-tuned 模型上跑同一 reward offline 链路，与自研模型做公平对比。
+
+> **历史**：P3 阶段 MVP 600 样本版本下 P4 GRPO 计划使用 D2 train (420 样本)；该规模已被扩样至 3500 样本（round 14，HEAD `c6eac20`）。
 
 ## 9. 与 D1 / D1.1 的差异
 
@@ -162,6 +191,7 @@ D1 dev 13 样本保留作为早期 dev 探针；D2 dev 是首个有统计意义�
 | tool_calls 出现位置 | 仅 `expected_tool_calls` | 同 D1 | 同 D1 + assistant messages 中 |
 | tool_call_id 显式存在 | 否 | 否 | 是 |
 | depends_on 链 | 是 | 是 | 是（多轮中显式串联）|
-| Split | train/dev/test 100/13/13 | train-only 1500 | train/dev/test 420/90/90（IID 独立）|
-| Held-out 评测意义 | dev 13 样本（不足）| train-only（不算 held-out）| **dev 90 样本（首个有统计意义）** |
+| Split（当前） | train/dev/test 100/13/13 | train-only 1500 | **train/dev/test 3500/750/750（IID 独立）** |
+| Held-out 评测意义 | dev 13 样本（不足）| train-only（不算 held-out）| **dev 750 样本（首个有统计意义）** |
 | 与自研模型的 reward 信号差异 | 可跑但样本过少 | 仅 train（不算泛化）| **正式 reward benchmark** |
+| 适用 GRPO rollout 池规模 | 否 | 否（仅 train）| **3500 样本 train** |

@@ -732,7 +732,7 @@ D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于�
 
 - **P3 交付摘要**：D2 多轮对话数据集共 600 样本，train/dev/test = 420/90/90 IID split；P3 专项测试当前为 33 个，使用独立 D2 schema、真实 `MockExecutor.execute_sequence()`、依赖图语义校验和 canonical semantic uniqueness 校验。
 
-P3 已解决本条目的独立 IID held-out split 要求：D2 dev 90 样本可用于 held-out reward pipeline 验证；P3 已完成 5 ckpt × D2 dev 90 = 450 个真实推理 reward_signal，最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。
+P3 已解决本条目的独立 IID held-out split 要求（**MVP 600 样本版历史**）：D2 dev 90 样本（MVP 版）可用于 held-out reward pipeline 验证；P3 已完成 5 ckpt × D2 dev 90 = 450 个真实推理 reward_signal，最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750（round 14，HEAD `c6eac20`）；P5-02 阶段在扩样后的 dev (750 样本) 子集 (90) 上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8。
 
 后续 P3/P5 需要：
 
@@ -790,7 +790,7 @@ P3/P4 后续动作：
   - `D2SplitDisjointnessTests` (8)：train/dev/test id/path/canonical semantic content 不重叠、每类 100 个唯一语义实例、与 D1/D1.1 train id 互斥、MANIFEST count / aggregate / per-file sha 一致；
   - `D2TimestampContractTests` (6)：`1785000000 + seed + index` 精确 UTC/Z 格式。
 - `docs/protocols/d2-multi-turn.md`：D2 schema 与 D1 / D1.1 差异 + 6 类任务定义 + call_id 依赖链 + held-out split 互斥保证 + 与 P2 reward offline + P4 GRPO + P5-02 衔接。
-- `docs/experiments/p2-evaluator/README.md`：引用 D2 dev 90 样本作为首个有统计意义的 reward benchmark；`artifacts/d2-mock-reward-d2dev.json` 验证 reward_offline 能消费 D2 dev 多轮 transcript（90/90 reward_binary=1.0）。
+- `docs/experiments/p2-evaluator/README.md`：**MVP 600 样本版历史**引用 D2 dev 90 样本作为首个有统计意义的 reward benchmark；`artifacts/d2-mock-reward-d2dev.json` 验证 reward_offline 能消费 D2 dev 多轮 transcript（90/90 reward_binary=1.0）。当前 D2 契约为 5000 样本 / dev 750 样本（round 14）。
 - `docs/plans/roadmap.md`：P3 加入已完成阶段表；当前阶段仍 P5。
 - `docs/plans/reviews/stage-p3-d2-multi-turn.md`：阶段审查记录（reviewer r1/r2/r3/r4/r5 PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）；round 3/4 的历史问题已由 round 9 进一步修复。
 
