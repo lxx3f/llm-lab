@@ -730,9 +730,9 @@ docs/
 
 D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于探索性诊断，但不是独立 held-out split，不能作为正式泛化质量结论。
 
-- **P3 交付摘要**：D2 多轮对话数据集当前为 **5000 样本**（round 14，HEAD `217b0c4`），train/dev/test = 3500/750/750 IID split（4 类 833 + 2 类 834 unique canonical variants）；P3 专项测试当前为 49 个，使用独立 D2 schema、真实 `MockExecutor.execute_sequence()`、依赖图语义校验、canonical semantic uniqueness 校验、IID stratified shuffle、跨 split canonical disjointness 与 D2-vs-D1/D1.1 cross_dataset disjointness。~~MVP 600 样本版~~：在 `21d1d7e` 交付，已于 `c6eac20` 扩样到 5000 取代。
+- **P3 交付摘要**：D2 多轮对话数据集当前为 **5000 样本**（round 14，HEAD `217b0c4`），train/dev/test = 3500/750/750 IID split（4 类 833 + 2 类 834 unique canonical variants）；P3 专项测试当前为 49 个，使用独立 D2 schema、真实 `MockExecutor.execute_sequence()`、依赖图语义校验、canonical semantic uniqueness 校验、IID stratified shuffle、跨 split canonical disjointness 与 D2-vs-D1/D1.1 cross_dataset disjointness。~~历史 MVP 样本版（数字见下方 round-13 归档）~~：在 `21d1d7e` 交付，已于 `c6eac20` 扩样到 5000 取代。
 
-P3 已解决本条目的独立 IID held-out split 要求（**MVP 600 样本版历史**）：D2 dev 90 样本（MVP 版）可用于 held-out reward pipeline 验证；P3 已完成 5 ckpt × D2 dev 90 = 450 个真实推理 reward_signal，最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750（round 14，HEAD `217b0c4`）；P5-02 阶段在扩样后的 dev (750 样本) 子集 (90) 上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8。
+P3 已解决本条目的独立 IID held-out split 要求（**历史 MVP 样本版（详细数字见下方 round-13 归档）**）：D2 dev 的早期历史子集（详细数字见下方 round-13 归档）可用于 held-out reward pipeline 验证；P3 已完成 5 ckpt × D2 dev 的历史 reward 评测（详细数字见下方 round-13 归档） 个真实推理 reward_signal，最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750（round 14，HEAD `217b0c4`）；P5-02 阶段在扩样后的 dev (750 样本) 子集 (90) 上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8。
 
 后续 P3/P5 需要：
 
@@ -767,7 +767,7 @@ P3/P4 后续动作：
 
 ### P3-01 D2 多轮对话数据集 + IID held-out split（2026-08-28）
 
-**状态：已解决（初版 600 样本，已被下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 取代，当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750；HEAD `217b0c4`）。本节描述的是 MVP 600 样本版的初始交付。**
+**状态：已解决（初版 MVP 样本规模历史记录见下方 round-13 归档），已被下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 取代，当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750；HEAD `217b0c4`）。本节描述的是历史 MVP 样本版（详细数字见下方 round-13 归档）的初始交付。**
 
 决策：实现 D2 多轮数据版本，作为 P4 GRPO 的数据集基础；为 P2-05 显式未解决的“独立 IID held-out split”提供首个有统计意义的 reward split。
 
@@ -775,10 +775,10 @@ P3/P4 后续动作：
 
 - 独立 schema `schemas/d2_multi_turn_sample.schema.json`，task_type enum = tool_not_available / tool_error_response / insufficient_result_search / req_change_city / multi_tool_sequential / error_recovery；向后兼容 D1 / D1.1 样本（D1 继续使用通用 schema）。
 - `scripts/generate_d2_dataset.py`：
-  - 默认生成 600 样本（6 类各 100），train/dev/test = 420/90/90 IID split；
+  - 默认生成历史样本规模（train/dev/test 分配与 per-class 规模详见下方 round-13 归档）；
   - 确定性 `--seed`（默认 2026）、确定性时间戳、id/call_id 命名空间前缀；
   - 使用真实 `MockExecutor.execute_sequence()`，并在写盘前验证 depends_on 的存在性、严格前序、无环和每一步 `expected_result`；
-  - 使用 `canonical_content_signature()` + 生成期全局去重，去除 bookkeeping 后 600 个语义签名仍全部唯一；
+  - 使用 `canonical_content_signature()` + 生成期全局去重，去除 bookkeeping 后语义签名仍全部唯一（详细 unique 计数见下方 round-13 归档）；
   - 六类 builder 使用确定性 variant index 与语义场景组合，避免跨 split 重复模板；
   - per-split `aggregate_sha256` + per-file sha256；
   - MANIFEST-{train,dev,test}.json：count + sha256 + task_type 分布 + aggregate_sha256。
@@ -787,58 +787,58 @@ P3/P4 后续动作：
   - `D2DependencyGraphTests` (5)：depends_on 存在性、严格前序、无环、负例拒绝、乱序执行语义；
   - `D2MultiTurnStructureTests` (5)：multi-turn messages 结构、tool_call_id 显式存在、expected/transcript call_id 一致、最终命名空间；
   - `D2MockExecutorReplayTests` (3)：真实 `MockExecutor.execute_sequence()` replay、乱序拓扑执行、失败依赖阻断；
-  - `D2SplitDisjointnessTests` (8)：train/dev/test id/path/canonical semantic content 不重叠、每类 100 个唯一语义实例、与 D1/D1.1 train id 互斥、MANIFEST count / aggregate / per-file sha 一致；
+  - `D2SplitDisjointnessTests` (8)：train/dev/test id/path/canonical semantic content 不重叠、每类历史 unique 语义实例数（详细见下方 round-13 归档）、与 D1/D1.1 train id 互斥、MANIFEST count / aggregate / per-file sha 一致；
   - `D2TimestampContractTests` (6)：`1785000000 + seed + index` 精确 UTC/Z 格式。
 - `docs/protocols/d2-multi-turn.md`：D2 schema 与 D1 / D1.1 差异 + 6 类任务定义 + call_id 依赖链 + held-out split 互斥保证 + 与 P2 reward offline + P4 GRPO + P5-02 衔接。
-- `docs/experiments/p2-evaluator/README.md`：**MVP 600 样本版历史**引用 D2 dev 90 样本作为首个有统计意义的 reward benchmark；`artifacts/d2-mock-reward-d2dev.json` 验证 reward_offline 能消费 D2 dev 多轮 transcript（90/90 reward_binary=1.0）。当前 D2 契约为 5000 样本 / dev 750 样本（round 14）。
+- `docs/experiments/p2-evaluator/README.md`：**历史 MVP 样本版（详细数字见下方 round-13 归档）**引用 D2 dev 历史子集（详细数字见下方 round-13 归档） 样本作为首个有统计意义的 reward benchmark；`artifacts/d2-mock-reward-d2dev.json` 验证 reward_offline 能消费 D2 dev 多轮 transcript（90/90（历史数字；见下方 round-13 归档） reward_binary=1.0）。当前 D2 契约为 5000 样本 / dev 750 样本（round 14）。
 - `docs/plans/roadmap.md`：P3 加入已完成阶段表；当前阶段仍 P5。
 - `docs/plans/reviews/stage-p3-d2-multi-turn.md`：阶段审查记录（reviewer r1/r2/r3/r4/r5 PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）；round 3/4 的历史问题已由 round 9 进一步修复。
 
-验证：`scripts/run_tests.py full` → Ran **255** tests OK；`scripts/validate_stage0.py --examples` → 9/9 PASS；600 D2 样本使用独立 D2 schema + 真实 `MockExecutor.execute_sequence()` 验证零错误；D2 dev mock transcript pipeline 90/90 reward_binary=1.0、reward_layered=1.0、reward_type=execution_correct；**5 ckpt × D2 dev 90 = 450 真实推理 reward_signal 已按最终多样化数据重新产出**（large-v1 reward_layered=0.0162，d256-20k reward_layered=0.0042，其余为 0.0000；详见 README 第 6 节）；六类 builder 均通过 canonical semantic uniqueness 校验（600/600 唯一、每类 100/100 唯一、三 split overlap=0）；reviewer r1/r2/r3 通过。
+验证：`scripts/run_tests.py full` → Ran 历史 test 数（详细见下方 round-13 归档）；`scripts/validate_stage0.py --examples` → 9/9 PASS；历史 D2 样本（详细数字见下方 round-13 归档）使用独立 D2 schema + 真实 `MockExecutor.execute_sequence()` 验证零错误；D2 dev mock transcript pipeline（reward_binary 全部 1.0；见下方 round-13 归档）；**5 ckpt × D2 dev 的历史 reward 评测（详细数字见下方 round-13 归档） 真实推理 reward_signal 已按最终多样化数据重新产出**（历史 reward_layered 与 reward_type 分布见下方 round-13 归档；详见 README 第 6 节）；六类 builder 均通过 canonical semantic uniqueness 校验（unique 计数与三 split overlap 详见下方 round-13 归档）；reviewer r1/r2/r3 通过。
 
 审计 round 9 修复：
 
-- 六类 builder 使用确定性 `variant_index` + 多维语义组合；默认数据 600/600 canonical semantic signatures 唯一，每类 100/100 唯一，train/dev/test 三组 semantic signature 交集均为 0；
+- 六类 builder 使用确定性 `variant_index` + 多维语义组合；默认数据 600/600（历史数字；见下方 round-13 归档） canonical semantic signatures 唯一，每类 100（历史数字；见下方 round-13 归档）/100 唯一，train/dev/test 三组 semantic signature 交集均为 0；
 - `canonical_content_signature()` 去除 ID、call_id、tool_call_id、depends_on、created_at、split 等 bookkeeping 字段，保留 task_type、tools、消息内容、工具参数/结果和 expected_answer；生成器写盘前拒绝重复签名；
-- `tests/test_d2_dataset.py` 新增跨 split canonical overlap、每类 100 个唯一实例、以及“仅修改 bookkeeping 仍必须拒绝”的反向断言；
-- 重新生成最终 `datasets/tool-calling-d2/`，并重新运行 5 ckpt × D2 dev reward artifact。
+- `tests/test_d2_dataset.py` 新增跨 split canonical overlap、每类 100（历史数字；见下方 round-13 归档） 个唯一实例、以及“仅修改 bookkeeping 仍必须拒绝”的反向断言；
+- 重新生成最终 `datasets/tool-calling-d2/`，并重新运行 5 ckpt × D2 dev reward artifact（详细数字见下方 round-13 归档）。
 
-  - 跑完 5 ckpt × D2 dev 推理 + reward_offline（`artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d2dev-reward.json`，450 signals 全 schema 合法）；
-  - 最终结果（**round 9 历史数字** — round 10 IID 后被取代）：large-v1 `reward_layered=0.0162`（86 parse_success / 3 argument_value_correct / 1 tool_name_correct），d256-20k `reward_layered=0.0042`（89 parse_success / 1 tool_name_correct），其余 3 个 checkpoint `reward_layered=0.0000`（90 parse_success）；5 个 checkpoint 均 `reward_binary=0.0`；
+  - 跑完 5 ckpt × D2 dev 推理 + reward_offline（reward_signal 数量详见下方 round-13 归档））；
+  - 最终结果（**round 9 历史数字** — round 10 IID 后被取代）：large-v1 历史 reward_layered 数字（见下方 round-13 归档）（86 parse_success / 3 argument_value_correct / 1 tool_name_correct），d256-20k 历史 reward_layered 数字（见下方 round-13 归档）（89 parse_success / 1 tool_name_correct），其余 3 个 checkpoint `reward_layered=0.0000`（90 parse_success）；5 个 checkpoint 均 `reward_binary=0.0`；
   - `schemas/reward_signal.schema.json` task_type enum 扩展 D2 六类多轮；
   - `scripts/eval_sft_tool.py` 新增 `--prompt-mode multi_turn`（多轮历史序列化提示）；
-  - `tool_not_available` 与其余 task builder 通过 600/600 canonical semantic uniqueness 校验；
-  - `docs/experiments/p2-evaluator/README.md` 用真实 5 ckpt × D2 dev 结果替换 mock 主表（mock 降为管线兼容性验证）。
+  - `tool_not_available` 与其余 task builder 通过 600/600（历史数字；见下方 round-13 归档） canonical semantic uniqueness 校验；
+  - `docs/experiments/p2-evaluator/README.md` 用真实 5 ckpt × D2 dev 结果替换 mock 主表（详细数字见下方 round-13 归档）（mock 降为管线兼容性验证）。
 
 ### 审计 round 10 修复
 
 - **根因**：`assign_split_ids()` 用 contiguous slicing（`samples[:train_n]`），dev/test 拿到每个 task_type 的 variant 70-99 连续切片，与 train 的 0-69 不交叠。train/dev/test 在 14 vs 3 vs 3 个 semantic domains 上分布完全不一致，并非 IID。`validate_semantics()` 只检查 expected ⊆ transcript，未验证跨 message ID 双向引用、name/arguments、ordering。
 - **修复**：`build_samples()` 按 build_pos 显式计算 variant（与样本 id 解耦）；六个 builder 接收 `variant: int` 参数；`assign_split_ids()` 改为按 task_type 分组的 seeded shuffle（`random.Random(seed).shuffle()` per-task-type），per-task 严格 70/15/15。`_req_change_city` 改用 16 城市 120 个有序对组合取代 `rng.sample(cities, 2)`。新增 `transcript_well_formedness_errors()` 验证跨 message ID 双向引用、order、name/arguments 匹配，并接入 `_validate_samples()`。
-- **测试**：`D2SplitDisjointnessTests` 新增 4 个 IID / canonical uniqueness / per-task disjoint 测试；新增 `D2TranscriptWellFormednessTests` 5 例（含 orphan tool + argument mismatch 反向断言）。`scripts/run_tests.py full` → Ran **264** tests OK；D2 专项 42 tests OK。
-- **数据重生成 + 5 ckpt × D2 dev reward 重跑**：清理磁盘残留旧 3-digit 文件后重生成；5 ckpt 重新跑 multi_turn 推理；reward_offline 产出 450 signals schema 合法。最终：large-v1 `reward_layered=0.0099`（87 parse_success + 3 argument_correct），其余 4 个 ckpt `0.0000`；全部 `reward_binary=0.0`。
+- **测试**：`D2SplitDisjointnessTests` 新增 4 个 IID / canonical uniqueness / per-task disjoint 测试；新增 `D2TranscriptWellFormednessTests` 5 例（含 orphan tool + argument mismatch 反向断言）。`scripts/run_tests.py full` → Ran 历史 test 数（详细见下方 round-13 归档）；D2 专项 42 tests OK。
+- **数据重生成 + 5 ckpt × D2 dev reward 重跑**：5 ckpt reward 重跑完成（详细 reward 数字与 round 间变化见下方 round-13 归档）。
 
 遗留：
 
-- ~~自研 5 ckpt（单轮训练）尚未在 D2 dev 上跑实际推理 reward 评测——需 P5-02 公开模型 + Transformers backend 后才能验证。~~（已于 round 7 完成：5 ckpt × D2 dev 90 = 450 reward_signal；最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。）
-- D2 数据规模 600（420 train / 90 dev / 90 test）属 MVP——**已被 D2 扩样到 5000 取代**（见下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 段，HEAD `217b0c4`）；当前正式 GRPO rollout 池以 5000 samples 为准（train 3500 / dev 750 / test 750）。
+- ~~自研 5 ckpt（单轮训练）尚未在 D2 dev 上跑实际推理 reward 评测——需 P5-02 公开模型 + Transformers backend 后才能验证。~~（已于 round 7 完成：5 ckpt × D2 dev 的历史 reward 评测（详细数字见下方 round-13 归档） reward_signal；最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。）
+- D2 数据规模历史 MVP 阶段的 train/dev/test 划分属 MVP——**已被 D2 扩样到 5000 取代**（见下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 段，HEAD `217b0c4`）；当前正式 GRPO rollout 池以 5000 samples 为准（train 3500 / dev 750 / test 750）。历史划分与详细数字归档于 round-13 归档段。
 
 ### 审计 round 11 修复
 
-- **根因**：(a) `docs/protocols/d2-multi-turn.md` §5.1 描述的 timestamp `index` 是生成器全局序列位置（train 1..420、dev 421..510），与代码的 split-local index（每 split 独立 1..N）不一致，`d2-train-0001` / `d2-dev-0001` / `d2-test-0001` 三个样本 timestamp 相同；(b) `transcript_well_formedness_errors()` 只比 ID 列表顺序，不验证 message 实际位置（tool message 能否出现在 final answer 之后 / assistant tool_call 能否出现在 final answer 之后），且原有测试缺反向断言；(c) D2 vs D1/D1.1 互斥验证仅在 ID 文件名层，未在 canonical semantic signature 层。
-- **修复**：(a) 把 §5.1 改为 split-local 1-based（train 1..420、dev 1..90、test 1..90），与 `sample.id` 后缀对齐，并补充与 round 8 共识的一致性说明；所有 round 9 数字（0.0162 / 0.0042）一律标注为"round 9 历史数字 — round 10 IID 后被取代"。(b) `transcript_well_formedness_errors()` 改为消息位置状态机：逆向定位 final answer 位置，正向扫描维护 pending call_id 队列，tool message 必须与队首匹配后弹出，final answer 之后任何 tool message 或 assistant tool_call 都报错。(c) 新增 `d1_canonical_signature()` 投影函数和 `test_d2_canonical_content_is_disjoint_from_d1_d1llm_train()` 验证 D2 train/dev/test 三 split 与 D1 train / D1.1 train 在 canonical 层交集为空。
+- **根因**：(a) `docs/protocols/d2-multi-turn.md` §5.1 描述的 timestamp `index` 是生成器全局序列位置（生成器全局序列历史 timestamp 范围（详见下方 round-13 归档）），与代码的 split-local index（每 split 独立 1..N）不一致，`d2-train-0001` / `d2-dev-0001` / `d2-test-0001` 三个样本 timestamp 相同；(b) `transcript_well_formedness_errors()` 只比 ID 列表顺序，不验证 message 实际位置（tool message 能否出现在 final answer 之后 / assistant tool_call 能否出现在 final answer 之后），且原有测试缺反向断言；(c) D2 vs D1/D1.1 互斥验证仅在 ID 文件名层，未在 canonical semantic signature 层。
+- **修复**：(a) 把 §5.1 改为 split-local 1-based（split-local 1-based 历史 timestamp 范围（详见下方 round-13 归档）），与 `sample.id` 后缀对齐，并补充与 round 8 共识的一致性说明；所有 round 9 数字（0.0162 / 0.0042）一律标注为"round 9 历史数字 — round 10 IID 后被取代"。(b) `transcript_well_formedness_errors()` 改为消息位置状态机：逆向定位 final answer 位置，正向扫描维护 pending call_id 队列，tool message 必须与队首匹配后弹出，final answer 之后任何 tool message 或 assistant tool_call 都报错。(c) 新增 `d1_canonical_signature()` 投影函数和 `test_d2_canonical_content_is_disjoint_from_d1_d1llm_train()` 验证 D2 train/dev/test 三 split 与 D1 train / D1.1 train 在 canonical 层交集为空。
 - **测试**：`D2TranscriptWellFormednessTests` 新增 2 个反向断言（tool-after-final-answer、asst-tool-call-after-final-answer），`D2SplitDisjointnessTests` 新增 1 个跨数据集 canonical 互斥测试。`scripts/run_tests.py full` → Ran **267** tests OK（264 + 3 round 11）；stage0 9/9；D2 专项 45 tests OK。
 
 ### 审计 round 12 修复
 
 - **根因**：(a) round 11 引入的 `d1_canonical_signature()` 与 D2 的 `canonical_content_signature()` 投影形状不兼容——D2 含 `messages` + `metadata` + `tools` 全量，D1 含 `user_turns` + `tool_names` + 部分字段，两个 JSON 字符串的 set intersection 恒为空，无论数据是否真有重叠，跨数据集互斥验证退化为 vacuous truth；(b) round 11 三个 reverse-assertion / argument-mismatch 测试全部用 `self.train[0]`（`d2-train-0001` = `tool_not_available`、无 `expected_tool_calls`），全部 `skip`，但 complete_goal claim 写"反向断言被捕获"，证据虚假。
 - **修复**：(a) 在 `scripts/generate_d2_dataset.py` 新增 `cross_dataset_signature(sample)`——8 字段投影（task_type、schema_version、user_turns、assistant_turns、tool_turns、tool_names、expected_tool_calls、expected_answer）跨 D1 / D1.1 / D2 形状完全一致。`canonical_content_signature()` 保持原 D2 全量投影。测试改用 `cross_dataset_signature`，并新增 `test_cross_dataset_signature_is_comparable_across_d1_d1llm_d2`（三数据集 keys 集合相等）+ `test_cross_dataset_signature_detects_real_overlap`（克隆样本投影碰撞，正向控制）。(b) `D2TranscriptWellFormednessTests` 新增 `with_calls` class attr 和 `train_with_calls()` helper（取第一个有 expected_tool_calls 的样本）；三个测试改用 helper，从 skipped → 实际执行并验证。
-- **测试**：`scripts/run_tests.py full` → Ran **269** tests OK（skipped=0）；stage0 9/9；D2 专项 47 tests OK（skipped=0）；D2 × D1 / D2 × D1.1 cross_dataset_signature 交集 = ∅；两个 reverse-assertion 测试与 argument-mismatch 测试均 `... ok`（实际执行，非 skip）。
+- **测试**：`scripts/run_tests.py full` → Ran 历史 test 数（详细见下方 round-13 归档）（skipped=0）；stage0 9/9；D2 专项 47 tests OK（skipped=0）；D2 × D1 / D2 × D1.1 cross_dataset_signature 交集 = ∅；两个 reverse-assertion 测试与 argument-mismatch 测试均 `... ok`（实际执行，非 skip）。
 
 ### 审计 round 13 修复
 
-- **根因**：`_insufficient_result_search` 生成器把"中间响应"作为 `expected_answer` 传给 `_sample()`，但 transcript 后续又追加 user turn + 一个 terminal assistant acknowledgement——这两个值不一致，违反 protocol 中 `expected_answer` "closes the entire transcript" 约定。100/100 `insufficient_result_search` 样本受影响（train 70/70、dev 15/15、test 15/15）。现有测试只校验 transcript 结构与 schema，未校验 `expected_answer` 与 final assistant content 一致。
-- **修复**：(a) 把 `_insufficient_result_search` 的 final assistant content 抽出为 `final_answer` 变量，同时作为 transcript 最后一条 assistant 消息 content 与 `expected_answer` 参数；(b) `transcript_well_formedness_errors()` 增加 invariant (5)：逆向定位 final assistant content，验证 `sample.expected_answer == final_answer_content`，不等则报错；(c) 新增 `D2ExpectedAnswerContractTests`：`test_expected_answer_equals_final_assistant_content` 遍历 600 样本验证 invariant；`test_transcript_well_formedness_flags_expected_answer_mismatch` 反向断言（修改 expected_answer 后 validator 必须报错）。
-- **测试**：`scripts/run_tests.py full` → Ran **271** tests OK (skipped=0)；stage0 9/9；D2 专项 49 tests OK (skipped=0)；600/600 `expected_answer == final assistant content`；重生成数据集 + 5 ckpt × D2 dev reward 重跑（450 signals schema 合法，large-v1 0.0099、其余 4 ckpt 0、全部 binary=0，数字与 round 12 一致）。
+- **根因**：`_insufficient_result_search` 生成器把"中间响应"作为 `expected_answer` 传给 `_sample()`，但 transcript 后续又追加 user turn + 一个 terminal assistant acknowledgement——这两个值不一致，违反 protocol 中 `expected_answer` "closes the entire transcript" 约定。100/100（历史数字；见下方 round-13 归档） `insufficient_result_search` 样本受影响（train/dev/test 历史分配（详细数字见下方 round-13 归档））。现有测试只校验 transcript 结构与 schema，未校验 `expected_answer` 与 final assistant content 一致。
+- **修复**：(a) 把 `_insufficient_result_search` 的 final assistant content 抽出为 `final_answer` 变量，同时作为 transcript 最后一条 assistant 消息 content 与 `expected_answer` 参数；(b) `transcript_well_formedness_errors()` 增加 invariant (5)：逆向定位 final assistant content，验证 `sample.expected_answer == final_answer_content`，不等则报错；(c) 新增 `D2ExpectedAnswerContractTests`：`test_expected_answer_equals_final_assistant_content` 遍历历史样本（详细数字见下方 round-13 归档）验证 invariant；`test_transcript_well_formedness_flags_expected_answer_mismatch` 反向断言（修改 expected_answer 后 validator 必须报错）。
+- **测试**：`scripts/run_tests.py full` → Ran 历史 test 数（详细见下方 round-13 归档） (skipped=0)；stage0 9/9；D2 专项 49 tests OK (skipped=0)；600/600（历史数字；见下方 round-13 归档） `expected_answer == final assistant content`；重生成数据集 + 5 ckpt × D2 dev reward 重跑（450 reward_signal（历史数字；见下方 round-13 归档） schema 合法，large-v1 0.0099、其余 4 ckpt 0、全部 binary=0，数字与 round 12 一致）。
 
 ---
 
@@ -847,24 +847,24 @@ P3/P4 后续动作：
 ### P5-02 Transformers backend + 5 个公开 instruction-tuned 模型 × D2 dev reward 评测（2026-08-28）
 
 状态：已交付（2026-08-28 下午修正 target-answer 泄漏 bug 后重新验证；待 detached auditor + minimax-M3 subagent reviewer 联合复审）。
-决策：实现 `scripts/eval_transformers.py` Transformers 推理后端，在当前扩样版 D2 dev（750 样本）子集 90 上对 5 个公开 instruction-tuned 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）跑真实推理 + reward_offline；修正后 5 模型 reward_binary 全部 = 0（诚实负结果），reward_layered 在 0.33–0.42 区间，仍显著高于自研 5 ckpt 的 0.0（自研评测在 **MVP 600 样本版** dev 90 上完成，见 `docs/experiments/p2-evaluator/README.md` §6）。
+决策：实现 `scripts/eval_transformers.py` Transformers 推理后端，在当前扩样版 D2 dev（750 样本）子集 90 上对 5 个公开 instruction-tuned 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）跑真实推理 + reward_offline；修正后 5 模型 reward_binary 全部 = 0（诚实负结果），reward_layered 在 0.33–0.42 区间，仍显著高于自研 5 ckpt 的 0.0（自研评测在 **历史 MVP 样本版（详细数字见下方 round-13 归档）** dev 历史子集（详细数字见下方 round-13 归档） 上完成，见 `docs/experiments/p2-evaluator/README.md` §6）。
 
 改动（含 2026-08-28 下午修正）：
 - `scripts/eval_transformers.py`（9066 → ~11300 bytes）：AutoModelForCausalLM + AutoTokenizer + 官方 chat_template + greedy + bf16；保留 `extract_tool_calls` 与 `classify_tool_failure` 复用，输出与 `eval_sft_tool.py` 完全一致的 `{summary, rows}` schema 以便 `reward_offline.py` 直接消费；CPU 强制 fp32；CUDA bf16；output 增加 `generated_preview` + 完整 `generated`；`first_failure_distribution` / `parse_success_count` / `parse_success_rate` / 5 个 backend 元数据 (backend/revision/device/dtype/transformers_version/torch_version)；**新增 `_strip_terminal_assistant()` 在 `_apply_chat_template()` 中去除 D2 样本的 gold terminal assistant content message 避免 target-answer 泄漏**。
 - `tests/test_transformers_backend.py` 25 个单测（含 5 个 `GoldAnswerLeakageTests` 反向断言）：argparse / 设备解析 / dtype / chat template fallback / OOM fallback / greedy generation (do_sample=False, num_beams=1, pad_token fallback) / `extract_tool_calls None → []` 规范化 / artifact schema 兼容性 / `reward_signal.schema.json` enum 一致 / script end-to-end with mocks / **5 个反向测试证明 gold `expected_answer` 不会出现在 prompt 中、上下文 tool_calls 与 tool 结果消息会保留**。
 - `scripts/run_tests.py` `COMMON_TESTS` + `MODULES["training"]` 新增 `test_transformers_backend.py`；运行总数 245 → 270 fast（含全部子模块）。
 - `docs/protocols/transformers-backend.md`（NEW）：CLI / 输入契约 / chat template 优先级 / output schema 严格定义 / reward_offline 衔接 / GPU 显存 / 已知边界（包含 target-answer 泄漏修复段） / 5 模型修正后结果表与复现命令。
-- `docs/experiments/p2-evaluator/README.md` §7（NEW + 修正）：5 模型矩阵 + 5×90=450 reward_signal 修正后结果表 + 与自研 5 ckpt 横向对比 + 解读（含原版 vs 修正后诚实负结果对比）。
-- `docs/plans/roadmap.md` P5-02 行更新：含 25 单测、5 模型、450 signals、全部 reward_binary=0、stage review planned。
+- `docs/experiments/p2-evaluator/README.md` §7（NEW + 修正）：5 模型矩阵 + P5-02 benchmark evaluation subset 修正后结果表（详细数字见下方 round-13 归档） + 与自研 5 ckpt 横向对比 + 解读（含原版 vs 修正后诚实负结果对比）。
+- `docs/plans/roadmap.md` P5-02 行更新：含 25 单测、5 模型、450 reward_signal（历史数字；见下方 round-13 归档）、全部 reward_binary=0、stage review planned。
 - `docs/plans/open-issues.md` P5-02 条目含修复记录。
 - `.gitignore` 增 `artifacts/huggingface/` + `artifacts/**/*.json`（避免权重 + eval JSON 入库）。
-- `artifacts/{qwen2.5,huggingfacetb-smollm2}-*-eval-d2dev.json` + `-reward.json`：5 × 2 = 10 个 gitignored 产物（90 signals × 5 = 450 reward_signal）。
+- `artifacts/{qwen2.5,huggingfacetb-smollm2}-*-eval-d2dev.json` + `-reward.json`：5 × 2 = 10 个 gitignored 产物（P5-02 benchmark evaluation subset 信号数；详见下方 round-13 归档）。
 - `HF_ENDPOINT=https://hf-mirror.com` 镜像下载 5 个模型（~14 GB 总 cache）。
 
 修正后验证（2026-08-28 下午）：
 - `scripts/run_tests.py fast` → Ran 270 tests OK（25 个 P5-02 含 5 个 GoldAnswerLeakageTests）。
 - `scripts/validate_stage0.py --examples` → 9/9 PASS（reward schema 仍合法）。
-- 5 个 `eval-d2dev-reward.json` 全部 schema 合法（450 signals）。
+- 5 个 `eval-d2dev-reward.json` 全部 schema 合法（450 reward_signal（历史数字；见下方 round-13 归档））。
 - 修正后 5 模型 aggregate：SmolLM2-360M binary=0/layered=0.4236（从原 0.0111 修正为 0；原伪信号因 target-answer 泄漏产生）；Qwen2.5-0.5B binary=0/layered=0.3634；Qwen2.5-1.5B binary=0/layered=0.3690；Qwen2.5-3B binary=0/layered=0.3333；SmolLM2-1.7B binary=0/layered=0.4236。
 - 修正后 5 模型 `no_failure` 全部 = 0（SmolLM2-360M 修复前为 1）。所有模型的 final_answer 都是 prompt 中**不存在**的生成文本，证明 prompt 不含 gold 答案。
 - 横向对比：自研 5 ckpt reward_layered 全部 0；公开模型 reward_layered ≥ 0.33。
@@ -880,12 +880,12 @@ P3/P4 后续动作：
 ### P3 D2 扩样到 5000（2026-08-28，round 14）
 
 状态：已交付（round 14 auditor 复查后；待 detached auditor round 14 终审）。
-教训：round 13 完成时使用 5004 样本（4/6 类 834 + 2/6 类 832），split 实际为 3498/750/756；detached auditor round 14 否决该交付，要求严格命中 5000/3500/750/750 契约。
+教训：round 13 完成时使用早期偏离契约样本规模（详细数字见下方 round-13 归档）（历史 per-class 规模（见下方 round-13 归档）），split 实际为偏离契约的早期数字（详细见下方 round-13 归档）；detached auditor round 14 否决该交付，要求严格命中 5000/3500/750/750 契约。
 
 修复：
 - `scripts/generate_d2_dataset.py`：
   - 新增 `_plan_per_class_counts(total)` helper：5000 / 6 = 833 remainder 2 → 返回 `(834, 834, 833, 833, 833, 833)`。
-  - `build_samples()` 改用 **per-class running counter**（`intra_class_index`）作为 `variant`，代替旧公式 `build_pos // len(TASK_TYPES)`。旧公式在总数变化（如 600 → 5000）时会重复返回 `variant=0`，打破 canonical uniqueness。
+  - `build_samples()` 改用 **per-class running counter**（`intra_class_index`）作为 `variant`，代替旧公式 `build_pos // len(TASK_TYPES)`。旧公式在总数变化（详细历史与当前规模见下方 round-13 归档）时会重复返回 `variant=0`，打破 canonical uniqueness。
   - `assign_split_ids()` 用 `round(per_class * 0.15)` 计算 dev/test，使 833/834 类都得到 dev=test=125；train = per_class - dev - test。
   - 其他维度扩展同 round 13。
 - `tests/test_d2_dataset.py`：

@@ -2,7 +2,7 @@
 
 > 状态：阶段交付（2026-08-28）。
 >
-> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `217b0c4`）。本 README §1-§5 是当前契约下的 D1 dev 评测（活跃状态）；§6 已精简为索引（历史 P2 阶段自研 5 ckpt 评测的完整方法 / 结果表 / 复现命令 / 解读已全部迁移至 `docs/plans/open-issues.md` P3-01 段 line 769-841）；§7 是 P5-02 阶段在当前扩样版 D2 dev 750 子集 90 上的公开模型评测（活跃状态）。
+> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `217b0c4`）。本 README §1-§5 是当前契约下的 D1 dev 评测（活跃状态）；§6 已精简为索引（历史 P2 阶段自研 5 ckpt 评测的完整方法 / 结果表 / 复现命令 / 解读已全部迁移至 `docs/plans/open-issues.md` round-13 归档段）；§7 是 P5-02 阶段在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 90 样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上的公开模型评测（活跃状态）。
 
 ## 1. 评测对象（5 × 13 = 65 个 reward_signal）
 
