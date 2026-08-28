@@ -45,7 +45,7 @@ commit 候选变更：见下方“完成范围”节。
 ### 已知边界
 
 - 自研 5 ckpt 均为单轮训练；虽然已完成 D2 dev 真实推理评测，但最终 450 signals 全部 `reward_binary=0.0`，因此该结果是能力边界诊断，不是成功率结论；
-- D2 数据规模 600（420 train / 90 dev / 90 test）属 MVP；正式 GRPO rollout 池需 D2 扩样到 5000+；
+- ~~D2 数据规模 600（420 train / 90 dev / 90 test）属 MVP；正式 GRPO rollout 池需 D2 扩样到 5000+~~ —— **历史记录**：MVP 600 样本在 `21d1d7e` 交付，后续已于 `c6eac20`（round 14）扩样到 5000 samples（train 3500 / dev 750 / test 750 严格命中、6 类 ≥833 unique canonical signatures）。当前正式 GRPO rollout 池以 5000 samples 为准；本条仅作为阶段历史保留。
 - D2 与 D1 / D1.1 train id 互斥保证靠 id 命名空间 + 目录物理隔离 + `D2SplitDisjointnessTests` 三重保证；语义 held-out 还额外由 canonical signature 全局唯一断言保证。
 
 ### 下一步

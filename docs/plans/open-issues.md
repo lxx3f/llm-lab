@@ -820,7 +820,7 @@ P3/P4 后续动作：
 遗留：
 
 - ~~自研 5 ckpt（单轮训练）尚未在 D2 dev 上跑实际推理 reward 评测——需 P5-02 公开模型 + Transformers backend 后才能验证。~~（已于 round 7 完成：5 ckpt × D2 dev 90 = 450 reward_signal；最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。）
-- D2 数据规模 600（420 train / 90 dev / 90 test）属 MVP；正式 GRPO rollout 池需 D2 扩样到 5000+。
+- D2 数据规模 600（420 train / 90 dev / 90 test）属 MVP——**已被 D2 扩样到 5000 取代**（见下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 段，HEAD `c6eac20`）；当前正式 GRPO rollout 池以 5000 samples 为准（train 3500 / dev 750 / test 750）。
 
 ### 审计 round 11 修复
 
