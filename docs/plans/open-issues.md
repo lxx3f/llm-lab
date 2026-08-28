@@ -730,7 +730,7 @@ docs/
 
 D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于探索性诊断，但不是独立 held-out split，不能作为正式泛化质量结论。
 
-**状态：已部分解决。** P2 阶段交付了 offline reward 校验（reward_signal schema v1.0 + CLI + 35 单测 + stage0 集成 + 5 ckpt × 13 = 65 reward_signal 全 schema 校验通过），详见 `docs/experiments/p2-evaluator/README.md` 与 `docs/plans/reviews/stage-p2-evaluator.md`。但独立 IID held-out split 未产出，留作 P3 交付。
+**状态：已部分解决。** P2 阶段交付了 offline reward 校验（reward_signal schema v1.0 + CLI + 37 单测 + stage0 集成 + 5 ckpt × 13 = 65 reward_signal 全 schema 校验通过），详见 `docs/experiments/p2-evaluator/README.md` 与 `docs/plans/reviews/stage-p2-evaluator.md`。但独立 IID held-out split 未产出，留作 P3 交付。
 
 后续 P3 需要：
 
@@ -749,14 +749,14 @@ D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于�
 
 - `schemas/reward_signal.schema.json`（v1.0）：reward_type enum = {parse_success, argument_correct, final_answer_correct, execution_correct}；jsonschema Draft202012 校验严格；65 reward_signal 全部通过。
 - `scripts/reward_offline.py`：`compute_reward()` 复用 P1-05 classify，不重写分类；`aggregate()` 用 pop std（÷N）符合 P1-03；CLI 支持 --samples-dir / --transcripts / --output / --checkpoint / --transcript-kind。
-- `tests/test_reward_offline.py`：**35** 单测 = 8 层各 ≥ 3 例（共 25；parse_success 4 例、其他 7 层各 3 例） + classifier 一致性（4 例） + reward_type 映射（5 例） + CLI 聚合（1 例）。
+- `tests/test_reward_offline.py`：**37** 单测 = 8 层各 ≥ 3 例（共 25；parse_success 4 例、其他 7 层各 3 例） + classifier 一致性（4 例） + reward_type 映射（7 例：5 主路径 + 2 鲁棒性 / 矛盾输入） + CLI 聚合（1 例）。
 - `tests/test_stage0_schemas.py`：新增 5 个 reward schema 测试（full pass / parse fail / 缺 reward_type / 未知 reward_type / reward_binary 越界）。
 - `examples/reward_signals/*.json`：2 个 reward_signal example（execution_correct + parse_success）。
 - `scripts/validate_stage0.py`：注册 reward_signal schema + 2 examples 到 stage0 校验。
 - `docs/protocols/p2-evaluator.md`：reward 定义、与 P1-05 关系（含 task_success 别名排除）、与 P4 GRPO 衔接的 5 项前置、已知边界（不含 trajectory shaping、D1 dev 非 held-out split）。
 - `docs/experiments/p2-evaluator/README.md`：5 ckpt × D1 dev 13 样本 = 65 reward_signal 评测表 + reward_type 主导通道分布。
 
-验证：scripts/run_tests.py full → Ran **225** tests OK（skipped=2）；scripts/validate_stage0.py --examples → 7/7 PASS；65 reward_signal 全部 schema 校验通过；reviewer 通过（实际 provider/model minimax-cn/MiniMax-M3；r1 / r2 / r3 三轮 reviewer 报告保存在 `.pi-glla/scratch/stage-p2-evaluator-review-r{1,2,3}.txt`）。
+验证：scripts/run_tests.py full → Ran **227** tests OK（skipped=2）；scripts/validate_stage0.py --examples → 7/7 PASS；65 reward_signal 全部 schema 校验通过；reviewer 通过（实际 provider/model minimax-cn/MiniMax-M3；r1–r4 reviewer 报告保存在 `.pi-glla/scratch/stage-p2-evaluator-review-r{1,2,3,4}.txt`）；cross-model r5 复核（gpt-5.6-sol）额外补上 2 个鲁棒性测试 + CLI schema 校验 + schema description 同步。
 
 P3/P4 后续动作：
 

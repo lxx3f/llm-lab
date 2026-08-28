@@ -47,7 +47,7 @@
 | P1-04 数据版本 D0/D1 | `docs/protocols/p1-04-data-version-d0.md`；D1 数据集目录 + MANIFEST；filter 脚本 | (内嵌于 sft-tool-mvp stage review) |
 | P1-05 八级分类器 | parse_success → schema_valid → tool_name_correct → argument_value_correct → call_plan_matches → execution_success → result_grounded → final_answer_correct；含 `_norm_name`/`_norm_args` 鲁棒性；`scripts/classify_tool_failure.py`；44 单测 | (内嵌于 sft-tool-mvp stage review) |
 | SFT 工具调用训练 MVP | Dense + MoE 训练管线（数据构造 → 增强 → 训练 → 生成 → 评测）；5 次实跑对比（medium/large/large-night/d256×2/MoE）；多 seed eval 聚合器；185 单测；诚实负结果 | `stage-sft-tool-mvp.md` |
-| P2 确定性 evaluator | `schemas/reward_signal.schema.json`（v1.0，含 reward_type 4 值 enum）；`scripts/reward_offline.py`（reward_binary + reward_layered + reward_type 主导通道）；5 个 SFT MVP checkpoint × D1 dev 13 样本 = 65 reward_signal 全 schema 校验通过；**35** 单测（8 层各 ≥ 3 例 = 25 + classifier 一致性 4 + reward_type 映射 5 + CLI 聚合 1）；与 P1-05 八级分类器对齐 | `stage-p2-evaluator.md` |
+| P2 确定性 evaluator | `schemas/reward_signal.schema.json`（v1.0，含 reward_type 4 值 enum + 文档说明每个值映射的 P1-05 路径）；`scripts/reward_offline.py`（reward_binary + reward_layered + reward_type 主导通道；_dominant_reward 鲁棒性处理矛盾输入 / 未知 failure channel）；5 个 SFT MVP checkpoint × D1 dev 13 样本 = 65 reward_signal 全 schema 校验通过；**37** 单测（8 层各 ≥ 3 例 = 25 + classifier 一致性 4 + reward_type 映射 7 + CLI 聚合 1）；与 P1-05 八级分类器对齐 | `stage-p2-evaluator.md` |
 
 这些阶段都已通过阶段审查（`minimax-cn/MiniMax-M3` reviewer），不允许回退。
 

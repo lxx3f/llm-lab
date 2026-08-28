@@ -74,24 +74,37 @@ def _dominant_reward(layers_full: dict[str, Any],
     The reward_type is the **first failure channel** in the P1-05 chain,
     aligned with its documented semantics:
 
-    - ``parse_success``: transcript is not a structurally parseable list of
-      dicts (``layers.parse_success is not True``). This is the only
-      branch that does NOT inspect ``first_failure``.
-    - ``final_answer_correct``: tool name + argument + plan + execution +
-      grounding all pass; only ``final_answer_correct`` failed
-      (``first_failure == "final_answer_correct"``).
+    - ``parse_success``: ``layers.parse_success is not True``. This is the
+      only branch that inspects the layer dict rather than ``first_failure``
+      because a malformed transcript has no clean ``first_failure``.
+    - ``final_answer_correct``: every earlier layer passes; only the
+      final-answer layer fails (``first_failure == "final_answer_correct"``).
     - ``execution_correct``: every applicable layer passes
       (``first_failure is None``).
-    - ``argument_correct``: parse + schema + tool name + argument value +
-      plan layers all pass but execution / grounding fell short
-      (``first_failure`` in {execution_success, result_grounded,
-      tool_name_correct, argument_value_correct, call_plan_matches}).
+    - ``argument_correct``: parse + schema + name + argument + plan layers
+      pass but execution / grounding / answer did not. This bucket
+      covers all of ``first_failure in {"tool_name_correct",
+      "argument_value_correct", "call_plan_matches", "execution_success",
+      "result_grounded"}``.
 
-    Note that the previous version of this function returned
-    ``execution_correct`` whenever ``first_failure in (None,
-    "execution_success", "result_grounded")`` — that mapping was wrong:
-    execution_success and result_grounded failures were labelled as
-    "execution_correct" even though execution/grounding did not pass.
+    Defensive contract:
+
+    - If ``layers_full["parse_success"] is not True``, the function returns
+      ``parse_success`` regardless of ``first_failure``. The classifier
+      guarantees ``first_failure == "parse_success"`` in this case, but if
+      a malformed caller passes ``first_failure=None`` the contract still
+      holds: a transcript that fails parse cannot have executed cleanly.
+    - Any ``first_failure`` outside the canonical P1-05 layer names falls
+      back to ``argument_correct``; the P1-05 classifier is the source of
+      truth for layer names so this branch should not trigger under normal
+      flow.
+
+    Note: an earlier version of this function returned ``execution_correct``
+    whenever ``first_failure in (None, "execution_success", "result_grounded")``
+    — that mapping was wrong because execution_success / result_grounded
+    failures were labelled as "execution_correct" even though execution /
+    grounding did not pass. The current implementation only emits
+    ``execution_correct`` when ``first_failure is None``.
     """
     if layers_full.get("parse_success") is not True:
         return "parse_success"
@@ -99,11 +112,10 @@ def _dominant_reward(layers_full: dict[str, Any],
         return "final_answer_correct"
     if first_failure is None:
         return "execution_correct"
-    # ``first_failure`` is one of: tool_name_correct, argument_value_correct,
-    # call_plan_matches, execution_success, result_grounded. The argument
-    # chain (parse + schema + name + arg + plan) is conceptually correct
-    # but execution / grounding / answer fell short, so the dominant
-    # reward channel is ``argument_correct``.
+    # All remaining canonical ``first_failure`` values are argument-layer
+    # failures (or execution / grounding failures that imply the argument
+    # chain held but the execution chain fell short): bucket them under
+    # ``argument_correct``.
     return "argument_correct"
 
 

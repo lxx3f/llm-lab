@@ -68,7 +68,7 @@
 |---|---|
 | `schemas/reward_signal.schema.json` | reward_signal 结构定义（含 reward_type enum: parse_success / argument_correct / final_answer_correct / execution_correct）|
 | `scripts/reward_offline.py` | 离线 reward 计算 + CLI（含 `_dominant_reward()` 选择 reward_type 主导通道）|
-| `tests/test_reward_offline.py` | **35** 单测 = 8 层各 ≥ 3 例（共 25：parse_success 4 例 + 其他 7 层各 3 例）+ classifier 一致性（4 例）+ reward_type 映射（5 例）+ CLI 聚合（1 例）|
+| `tests/test_reward_offline.py` | **37** 单测 = 8 层各 ≥ 3 例（共 25：parse_success 4 例 + 其他 7 层各 3 例）+ classifier 一致性（4 例）+ reward_type 映射（7 例：5 主路径 + 2 鲁棒性）+ CLI 聚合（1 例）|
 | `tests/test_stage0_schemas.py` | 新增 reward schema 正负例测试（full pass / parse fail / 缺 reward_type / 未知 reward_type / reward_binary 越界）|
 | `examples/reward_signals/reward-sample-001.json` | reward_signal 正例样例（execution_correct）|
 | `examples/reward_signals/reward-sample-002-parse-fail.json` | reward_signal parse-fail 样例（reward_type=parse_success）|
@@ -87,7 +87,7 @@
     --output artifacts/<ckpt>-eval-d1dev-reward.json \
     --checkpoint <ckpt-name>
 
-# 单测（35 个 reward_offline + 5 个 stage0 reward case = 40 个 P2 阶段新增）
+# 单测（37 个 reward_offline + 5 个 stage0 reward case = 42 个 P2 阶段新增）
 .venv/python.exe -m unittest tests.test_reward_offline tests.test_stage0_schemas
 
 # stage0 schema 验证（含 reward_signal 校验）

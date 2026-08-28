@@ -99,6 +99,39 @@ Auditor 在 detached audit 中提出 4 项具体修复：
   3. P5-02：Transformers backend + 同一 reward offline 链路
   4. P4 GRPO：等 P3 + P5-02 就位后实现 advantage 计算 + policy 更新
 
+### Round 4 (2026-08-28 04:45–05:00 UTC, detached audit)
+
+Auditor 在 detached audit 中提出 4 项文档一致性修复：
+
+1. protocol §4.2 30 → 35 单测
+2. open-issues P2-06 30 / 220 / 40 P2 阶段新增 → 35 / 225 / 42
+3. stage review 主体段 8 ckpt / 104 signal → 5 ckpt / 65 signal
+4. README `argument_correct` 描述与实际 `first_failure = argument_value_correct` 一致
+
+修复后 reviewer r4（minimax-cn/MiniMax-M3）有条件通过；补加 2 个 README stale 描述（复现块 30→35、括号 13/13→64/1）同步。durable reviewer r4 输出保存到 `.pi-glla/scratch/stage-p2-evaluator-review-r4.txt`（gitignored）。
+
+### Round 5 (2026-08-28 05:00–05:30 UTC, cross-model 复核)
+
+用户授权使用独立 model `calculet/gpt-5.6-sol` 进行 cross-model reviewer 复核。实调 `subagent` 创建 project-local agent `.pi/agents/reviewer-cross-check.md`（`model: calculet/gpt-5.6-sol`）。PI_PROVIDER=calculet / PI_MODEL=gpt-5.6-sol 明确记录。
+
+gpt-sol reviewer r5 发现 5 项实质问题：
+
+- protocol §4.2 测试名 stale：`test_cli_aggregate_writes_json_and_aggregate` → 实际为 `test_cli_aggregate_writes_json`
+- CLI 集成测试未实际调用 `Draft202012Validator` 校验每个生成的 signal
+- `_dominant_reward` 对矛盾输入 / 未知 failure channel 缺乏显式白名单
+- schema `reward_type` description 与实现不完全一致（no_tool → execution_correct；argument_correct 涵盖 5 个 failure channel）
+- git status 不干净（`.pi/agents/reviewer-cross-check.md` 未 gitignore）
+
+修复（round 5）：
+
+- `.gitignore` 增加 `.pi/agents/`。
+- CLI 集成测试显式调用 `Draft202012Validator` 校验每个 CLI 生成的 signal。
+- `tests/test_reward_offline.py` 新增 2 个鲁棒性测试：`test_parse_fail_with_lying_first_failure_still_returns_parse_success` + `test_unknown_first_failure_falls_back_to_argument_correct`。
+- `scripts/reward_offline.py::_dominant_reward` 文档字符串更新显式 defensive contract。
+- `schemas/reward_signal.schema.json::reward_type.description` 重写，明确 4 值的语义与涵盖的 failure channel。
+
+总计：37 reward_offline 单测 + 5 stage0 reward 测试 = 42 P2 阶段新增；`scripts/run_tests.py full` → Ran 227 tests OK；stage0 validate 7/7 PASS；65 reward_signal 全 schema 校验通过。durable reviewer r5 输出保存到 `.pi-glla/scratch/stage-p2-evaluator-review-r5.txt`（gitignored）。
+
 ## 审查结论
 
 - 审查模型：`minimax-cn/MiniMax-M3`

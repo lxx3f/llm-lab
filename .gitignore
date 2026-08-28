@@ -79,3 +79,6 @@ artifacts/multi-seed-configs/
 
 # Local pi session/runtime state
 .pi-glla/
+
+# Project-local pi subagent files (cross-check reviewers etc.)
+.pi/agents/

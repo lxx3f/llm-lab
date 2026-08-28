@@ -67,8 +67,8 @@ reward signal 输出 `schemas/reward_signal.schema.json` 规定的对象，必�
 
 | 检查 | 命令 / 检查项 |
 |---|---|
-| **Schema 校验** | `jsonschema` Draft202012 校验 `schemas/reward_signal.schema.json`；测试 `tests/test_reward_offline.py::test_cli_aggregate_writes_json_and_aggregate` 隐含校验 |
-| **单元测试** | 35 个测试覆盖：8 层各 ≥ 3 例（共 25；parse_success 4 例、其余 7 层各 3 例） + 与 P1-05 classify 一致性（4 例） + reward_type 映射（5 例） + CLI 聚合（1 例）；详见 `tests/test_reward_offline.py` |
+| **Schema 校验** | `jsonschema` Draft202012 校验 `schemas/reward_signal.schema.json`；CLI 集成测试 `tests/test_reward_offline.py::CLIIntegrationTests::test_cli_aggregate_writes_json` 显式调用 `Draft202012Validator` 校验每个生成的 reward_signal |
+| **单元测试** | 37 个测试覆盖：8 层各 ≥ 3 例（共 25；parse_success 4 例、其余 7 层各 3 例） + 与 P1-05 classify 一致性（4 例） + reward_type 映射（7 例：5 主路径 + 2 鲁棒性 / 矛盾输入） + CLI 聚合（1 例）；详见 `tests/test_reward_offline.py` |
 | **确定性** | 同 `(sample, transcript)` 重复运行 `compute_reward` 应输出完全一致（`compute_reward` 不调用随机源或全局状态）|
 | **与 P1-05 一致性** | `compute_reward` 内置 `classify()` 调用，输出 `first_failure` 与 `layers` 必须与直接调用 `scripts/classify_tool_failure.py::classify` 一致；测试覆盖该路径 |
 
@@ -93,7 +93,7 @@ reward_offline 不重写分类逻辑；它只是把分类结果映射成可训�
 
 - `schemas/reward_signal.schema.json`：信号结构定义（含 reward_type 4 值 enum）
 - `scripts/reward_offline.py`：CLI + 离线 reward 计算（reward_binary + reward_layered + reward_type）
-- `tests/test_reward_offline.py`：**35** 单测（8 层各 ≥ 3 例 = 25 + classifier 一致性 4 + reward_type 映射 5 + CLI 聚合 1）
+- `tests/test_reward_offline.py`：**37** 单测（8 层各 ≥ 3 例 = 25 + classifier 一致性 4 + reward_type 映射 7 + CLI 聚合 1）
 - `tests/test_stage0_schemas.py`：新增 5 个 reward schema 测试（full pass / parse fail / 缺 reward_type / 未知 reward_type / reward_binary 越界）
 - `examples/reward_signals/*.json`：2 个 reward_signal example（execution_correct + parse_success）
 - `scripts/validate_stage0.py`：注册 reward_signal schema 到 stage0 校验

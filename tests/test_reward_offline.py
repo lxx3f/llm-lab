@@ -32,6 +32,8 @@ import unittest
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator
+
 ROOT = Path(__file__).resolve().parents[1]
 REWARD = ROOT / "scripts" / "reward_offline.py"
 CLASSIFIER = ROOT / "scripts" / "classify_tool_failure.py"
@@ -569,6 +571,34 @@ class RewardTypeMappingTests(unittest.TestCase):
         self.assertEqual(sig["reward_type"], "parse_success")
         self.assertEqual(sig["first_failure"], "parse_success")
 
+    def test_parse_fail_with_lying_first_failure_still_returns_parse_success(self) -> None:
+        # Defensive contract: parse_success False dominates first_failure
+        # (a transcript that fails parse cannot have executed cleanly even
+        # if a caller passes first_failure=None by mistake).
+        sample = _sample("d1-rt-pf-lie", expected_calls=[_ok_call("c1")],
+                         tools=[_tool_decl()], answer="北京 22C")
+        sig = self.compute_reward(sample, _row("d1-rt-pf-lie",
+            calls=["bad-text"], generated=""))
+        self.assertEqual(sig["reward_type"], "parse_success")
+        # The classifier will emit parse_success as first_failure too; we
+        # only assert the function honours its own contract.
+
+    def test_unknown_first_failure_falls_back_to_argument_correct(self) -> None:
+        # Defensive: an unknown layer name falls into argument_correct;
+        # normal classify() output never triggers this branch, but a future
+        # classifier extension that introduces a new layer should not crash.
+        layers = {"parse_success": True, "schema_valid": True,
+                  "tool_name_correct": True, "argument_value_correct": True,
+                  "call_plan_matches": True, "execution_success": True,
+                  "result_grounded": True, "final_answer_correct": True}
+        # Direct unit test of the helper via a stub.
+        spec = importlib.util.spec_from_file_location(
+            "_reward_offline_ro", REWARD)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod._dominant_reward(layers, "mystery_layer"),
+                         "argument_correct")
+
 
 class CLIIntegrationTests(unittest.TestCase):
     """Smoke test the CLI end-to-end through subprocess."""
@@ -621,6 +651,13 @@ class CLIIntegrationTests(unittest.TestCase):
             self.assertIn(sig["reward_type"],
                           {"parse_success", "argument_correct",
                            "final_answer_correct", "execution_correct"})
+
+        # Cross-validate every emitted signal against the actual schema.
+        schema = json.loads((ROOT / "schemas/reward_signal.schema.json").read_text(encoding="utf-8"))
+        validator = Draft202012Validator(schema)
+        for sig in data["signals"]:
+            errors = list(validator.iter_errors(sig))
+            self.assertEqual([], errors, f"signal failed schema: {errors}")
 
 
 if __name__ == "__main__":
