@@ -3,7 +3,7 @@
 > 阶段：P5-02
 > 审查时间：2026-08-28
 > 审查流程：subagent reviewer (`reviewer` dispatch, minimax-cn/MiniMax-M3) + detached auditor (calculet/gpt-5.6-terra)
-> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `217b0c4`）。本 stage review 评测在 P5-02 benchmark evaluation subset（benchmark 子集规模详见协议 §3）上完成；自研 5 ckpt 在该 benchmark 子集上的历史评测（与本 stage 不同时间点）见 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
+> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `53f698a`）。本 stage review 评测在 P5-02 benchmark evaluation subset（benchmark 子集规模详见协议 §3）上完成；自研 5 ckpt 在该 benchmark 子集上的历史评测（与本 stage 不同时间点）见 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
 
 ## 阶段目标
 
@@ -72,5 +72,5 @@ Done when：
 ### 遗留风险
 
 - P5-03 vLLM backend 未启动；硬件 / 环境需求超出当前阶段，待 P5-02 终审通过后启动。
-- 当前 D2 契约 5000/3500/750/750 已稳定（HEAD `217b0c4`，见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14）：6 类各 833/834 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、MANIFEST 含 `build_count` 字段、`datasets/tool-calling-d2/` 加入 `.gitignore` 并 `git rm --cached` 隔离。
+- 当前 D2 契约 5000/3500/750/750 已稳定（HEAD `53f698a`，见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14）：6 类各 833/834 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、MANIFEST 含 `build_count` 字段、`datasets/tool-calling-d2/` 加入 `.gitignore` 并 `git rm --cached` 隔离。
 - 5 个公开模型 `reward_binary=0` 为诚实负结果：D2 expected_answer 与公开模型生成的 final_answer 字面不一致；如需严格一致，可加后处理归一化或引入轻量 evaluator prompt。这是 D2 eval 设计（`expected_answer == final assistant content`）的固有约束，不应在 P5-02 范围修改。
