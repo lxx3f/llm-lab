@@ -38,6 +38,7 @@ from scripts.grpo_train import (  # noqa: E402
     ADVANTAGE_EPS,
     GRPO_STEP_SCHEMA_VERSION,
     _advantage_stats,
+    _apply_config_defaults,
     _assemble_step_artifact,
     _capture_rng_state,
     _config_matches,
@@ -51,10 +52,14 @@ from scripts.grpo_train import (  # noqa: E402
     _load_binary_state,
     _load_samples,
     _load_state,
+    _load_yaml_config,
+    _resolve_dtype,
     _restore_optimizer,
     _restore_rng_state,
+    _run_step,
     _save_state,
     _seed_all,
+    run_loop,
 )
 
 
@@ -669,6 +674,235 @@ class TestUnconditionalSmoke(unittest.TestCase):
             self.assertTrue(final["completed"])
 
 
+from scripts.grpo_mocks import make_mock_policy_and_tokenizer  # noqa: E402
+
+
+# ---------------------------------------------------------------------------
+# Dtype resolution
+# ---------------------------------------------------------------------------
+
+class TestResolveDtype(unittest.TestCase):
+    """``_resolve_dtype`` must honor the contract: fp32 on CPU, bf16 default
+    on CUDA, fp16 / fp32 / bf16 explicitly supported on CUDA."""
+
+    def test_cpu_forces_fp32(self):
+        d = _resolve_dtype(None, "cpu")
+        self.assertEqual(d, torch.float32)
+        d = _resolve_dtype("bf16", "cpu")
+        self.assertEqual(d, torch.float32)
+        d = _resolve_dtype("fp16", "cpu")
+        self.assertEqual(d, torch.float32)
+        d = _resolve_dtype("fp32", "cpu")
+        self.assertEqual(d, torch.float32)
+
+    def test_cuda_default_is_bf16(self):
+        d = _resolve_dtype(None, "cuda")
+        self.assertEqual(d, torch.bfloat16)
+
+    def test_cuda_explicit_dtype(self):
+        self.assertEqual(_resolve_dtype("bf16", "cuda"), torch.bfloat16)
+        self.assertEqual(_resolve_dtype("fp16", "cuda"), torch.float16)
+        self.assertEqual(_resolve_dtype("fp32", "cuda"), torch.float32)
+
+
+# ---------------------------------------------------------------------------
+# Mock policy + tokenizer (NO HF / NO network)
+# ---------------------------------------------------------------------------
+
+
+class _MockArgs:
+    """Stand-in for argparse.Namespace used by ``run_loop`` tests."""
+
+    def __init__(self, **kw):
+        defaults = {
+            "checkpoint_dir": Path("/tmp/grpo-mock-test"),
+            "max_steps": 2,
+            "k_rollouts": 2,
+            "max_new_tokens": 4,
+            "temperature": 1.0,
+            "smoke_deterministic": True,
+            "learning_rate": 1e-3,
+            "max_grad_norm": 1.0,
+            "seed": 2026,
+            "policy_model": "mock/policy",
+            "samples_dir": Path("datasets/tool-calling-d2/train"),
+            "device": "cpu",
+            "save_every": 1,
+        }
+        defaults.update(kw)
+        for k, v in defaults.items():
+            setattr(self, k, v)
+
+
+def _make_d2_sample(idx: int = 0) -> dict[str, Any]:
+    """Return a minimal D2-shaped sample for mock rollout.
+
+    The shape matches the real D2 contract:
+    ``tools`` is a list of ``{type: "function", function: {name, ...}}``
+    entries; ``messages`` is a list of role/content/tool_calls objects;
+    ``schema_version`` is required.
+    """
+    return {
+        "schema_version": "1.0",
+        "id": f"mock-{idx:04d}",
+        "metadata": {"task_type": "tool_not_available"},
+        "expected_answer": "the expected answer",
+        "expected_tool_calls": [],
+        "tools": [{
+            "type": "function",
+            "function": {
+                "name": "mock_tool",
+                "description": "a mock tool",
+                "parameters": {"type": "object", "properties": {}},
+            },
+        }],
+        "messages": [
+            {"role": "user", "content": f"hello {idx}",
+             "tool_calls": []},
+            {"role": "assistant", "content": "the expected answer",
+             "tool_calls": []},
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# _run_step + run_loop with mock policy (NO HF / NO network)
+# ---------------------------------------------------------------------------
+
+class TestRunStepWithMockPolicy(unittest.TestCase):
+    """End-to-end ``_run_step`` with the mock tokenizer + policy.
+
+    Exercises rollout → reward → advantage → policy update without HF.
+    """
+
+    def test_run_step_returns_valid_artifacts(self):
+        model, tokenizer = make_mock_policy_and_tokenizer()
+        sample = _make_d2_sample(0)
+        update, rollouts, rewards, advantages, opt = _run_step(
+            model=model, tokenizer=tokenizer, sample=sample,
+            global_step=0, k_rollouts=2, max_new_tokens=4,
+            temperature=0.0, device="cpu", deterministic=True,
+            learning_rate=1e-3, max_grad_norm=1.0, seed=2026,
+            policy_model_id="mock/policy", optimizer=None,
+        )
+        self.assertEqual(len(rollouts), 2)
+        self.assertEqual(len(rewards), 2)
+        self.assertEqual(len(advantages), 2)
+        for r in rewards:
+            self.assertGreaterEqual(float(r["reward_layered"]), 0.0)
+            self.assertLessEqual(float(r["reward_layered"]), 1.0)
+        self.assertIn("policy_gradient_loss", update)
+        self.assertIsNotNone(opt)
+
+    def test_run_step_with_four_rollouts(self):
+        model, tokenizer = make_mock_policy_and_tokenizer()
+        sample = _make_d2_sample(1)
+        update, rollouts, rewards, advantages, opt = _run_step(
+            model=model, tokenizer=tokenizer, sample=sample,
+            global_step=0, k_rollouts=4, max_new_tokens=4,
+            temperature=0.0, device="cpu", deterministic=True,
+            learning_rate=1e-3, max_grad_norm=1.0, seed=2026,
+            policy_model_id="mock/policy", optimizer=None,
+        )
+        self.assertEqual(len(rollouts), 4)
+        self.assertEqual(len(rewards), 4)
+        self.assertEqual(len(advantages), 4)
+
+
+class TestRunLoopEndToEnd(unittest.TestCase):
+    """``run_loop`` runs the full GRPO loop and persists state."""
+
+    def test_run_loop_completes_and_persists_state(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            args = _MockArgs(checkpoint_dir=td_path, max_steps=2)
+            model, tokenizer = make_mock_policy_and_tokenizer()
+            samples = [_make_d2_sample(i) for i in range(2)]
+
+            rc = run_loop(
+                args, model=model, tokenizer=tokenizer, device="cpu",
+                samples=samples, resume_step=0, resume_cursor=0,
+                binary_state=None, optimizer=None,
+            )
+            self.assertEqual(rc, 0)
+
+            self.assertTrue((td_path / "state.json").exists())
+            self.assertTrue((td_path / "state.pt").exists())
+            step_files = sorted(td_path.glob("step-*.json"))
+            self.assertEqual(len(step_files), 2)
+
+            state = json.loads((td_path / "state.json").read_text())
+            self.assertEqual(state["global_step"], 1)
+            self.assertEqual(state["samples_consumed"], 2)
+            self.assertTrue(state["completed"])
+
+    def test_run_loop_save_every_keeps_state_pt_in_sync(self):
+        """When ``save_every=2``, the FINAL step still writes state.pt
+        so a resume-from-the-end never sees stale weights."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            args = _MockArgs(checkpoint_dir=td_path, max_steps=3,
+                             save_every=2)
+            model, tokenizer = make_mock_policy_and_tokenizer()
+            samples = [_make_d2_sample(i) for i in range(3)]
+            rc = run_loop(
+                args, model=model, tokenizer=tokenizer, device="cpu",
+                samples=samples, resume_step=0, resume_cursor=0,
+                binary_state=None, optimizer=None,
+            )
+            self.assertEqual(rc, 0)
+            self.assertTrue((td_path / "state.pt").exists())
+            state = json.loads((td_path / "state.json").read_text())
+            self.assertEqual(state["global_step"], 2)
+            blob = torch.load(td_path / "state.pt", map_location="cpu",
+                              weights_only=False)
+            self.assertEqual(blob["version"], "1.0")
+            self.assertIn("model_state", blob)
+
+    def test_run_loop_resume_continues_at_cursor(self):
+        """Resume from a partial state: must NOT re-use samples[0..cursor-1]."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+
+            # First run: 2 steps, samples_consumed will be 2
+            args1 = _MockArgs(checkpoint_dir=td_path, max_steps=2)
+            model1, tokenizer1 = make_mock_policy_and_tokenizer()
+            samples = [_make_d2_sample(i) for i in range(3)]
+            rc = run_loop(
+                args1, model=model1, tokenizer=tokenizer1, device="cpu",
+                samples=samples, resume_step=0, resume_cursor=0,
+                binary_state=None, optimizer=None,
+            )
+            self.assertEqual(rc, 0)
+
+            # Capture step artifact filenames from the first run
+            first_run_steps = sorted(td_path.glob("step-*.json"))
+            self.assertEqual(len(first_run_steps), 2)
+
+            # Second run: resume from the saved state with a fresh model
+            args2 = _MockArgs(checkpoint_dir=td_path, max_steps=3,
+                              resume_from=td_path / "state.json")
+            model2, tokenizer2 = make_mock_policy_and_tokenizer()
+            # Pre-load the binary state the same way main() does
+            binary_state = _load_binary_state(td_path)
+            rc = run_loop(
+                args2, model=model2, tokenizer=tokenizer2, device="cpu",
+                samples=samples, resume_step=2, resume_cursor=2,
+                binary_state=binary_state, optimizer=None,
+            )
+            self.assertEqual(rc, 0)
+
+            # Only ONE new step artifact (the resumed step)
+            new_step_files = sorted(td_path.glob("step-*.json"))
+            self.assertEqual(len(new_step_files), 3)
+            # The newest artifact's prompt_id must NOT be the first sample
+            newest = json.loads(new_step_files[-1].read_text())
+            self.assertNotEqual(newest["prompt_id"], samples[0]["id"])
+
+
 # ---------------------------------------------------------------------------
 
 @unittest.skipUnless(
@@ -681,12 +915,61 @@ class TestGrpoSmokeIntegration(unittest.TestCase):
 
     Disabled by default; opt-in via ``GRPO_SMOKE=1``.
     """
+    pass  # replaced by TestGrpoSubprocessSmoke below
 
-    def test_smoke_runs_on_cpu(self):
+
+class TestYamlConfigLoader(unittest.TestCase):
+    """``_load_yaml_config`` reads the example config and applies it to
+    an argparse.Namespace. This makes the YAML config a real supported
+    path (not decorative)."""
+
+    def test_load_example_yaml(self):
+        cfg = _load_yaml_config(ROOT / "configs" / "grpo_mvp.example.yaml")
+        self.assertEqual(cfg["policy_model"], "Qwen/Qwen2.5-0.5B-Instruct")
+        self.assertEqual(cfg["max_steps"], 8)
+        self.assertEqual(cfg["k_rollouts"], 4)
+        self.assertEqual(cfg["learning_rate"], 1e-5)
+        self.assertEqual(cfg["max_grad_norm"], 1.0)
+        self.assertEqual(cfg["save_every"], 1)
+
+    def test_apply_config_overlays_namespace(self):
+        args = _MockArgs()
+        cfg = _load_yaml_config(ROOT / "configs" / "grpo_mvp.example.yaml")
+        _apply_config_defaults(args, cfg)
+        self.assertEqual(args.policy_model, "Qwen/Qwen2.5-0.5B-Instruct")
+        self.assertEqual(args.max_steps, 8)
+        self.assertEqual(args.learning_rate, 1e-5)
+
+
+# ---------------------------------------------------------------------------
+# Optional subprocess smoke (only if a local HF model is on disk)
+# ---------------------------------------------------------------------------
+
+class TestGrpoSubprocessSmoke(unittest.TestCase):
+    """Run the CLI in a subprocess against a local HF model directory.
+
+    Skipped unless ``GRPO_SMOKE=1`` AND a local model dir exists at
+    ``GRPO_SMOKE_MODEL`` (default: ``./artifacts/grpo-smoke-model``).
+    The auditor's round-3 review correctly identified that the prior
+    gated smoke relied on a Hugging Face download, which fails on
+    offline hosts. The unconditional evidence for the loop is
+    ``TestRunLoopEndToEnd`` (in-process mocks). This subprocess smoke
+    is an OPTIONAL additional check; it is skipped unless the
+    environment explicitly provides a local model.
+    """
+
+    @unittest.skipUnless(
+        os.environ.get("GRPO_SMOKE") == "1",
+        "Set GRPO_SMOKE=1 and GRPO_SMOKE_MODEL=<path> to enable.",
+    )
+    def test_smoke_runs_against_local_model(self):
         import subprocess
+        model_dir = os.environ.get("GRPO_SMOKE_MODEL", "artifacts/grpo-smoke-model")
+        if not Path(model_dir).exists():
+            self.skipTest(f"GRPO_SMOKE_MODEL={model_dir} not on disk")
         cmd = [
             sys.executable, "scripts/grpo_train.py",
-            "--policy-model", "sshleifer/tiny-gpt2",
+            "--policy-model", model_dir,
             "--samples-dir", "datasets/tool-calling-d2/train",
             "--checkpoint-dir", ".tmp/grpo-smoke",
             "--max-steps", "1", "--k-rollouts", "2", "--limit", "1",

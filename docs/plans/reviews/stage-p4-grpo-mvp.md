@@ -20,14 +20,15 @@
 
 ## Done when
 
-- (a) `scripts/grpo_train.py` 在 `--device cpu --max-steps 1 --k-rollouts 2 --limit 1 --smoke-deterministic` 下完成 1 step 并落盘 `<checkpoint-dir>/state.json` + `state.pt` + `step-*.json`；
-- (b) 每个 step artifact 通过 `schemas/grpo_step_result.schema.json` 校验（test `tests/test_grpo_mvp.py::TestAssembleStepArtifact::test_artifact_validates_against_schema`）；
-- (c) `tests/test_grpo_mvp.py` 至少 30 个单测全绿：advantage / hash / load_samples / iter_prompts / checkpoint I/O / artifact / RNG seed + capture + restore / resume cursor / config match / optimizer restore / unconditional smoke（含 round-trip 验证权重保留）/ gated integration smoke；
-- (d) `--resume-from <state.json>` 恢复 model weights + optimizer state + RNG + sample cursor（test `tests/test_grpo_mvp.py::TestUnconditionalSmoke::test_smoke_full_checkpoint_round_trip` + `TestResumeCursor::test_resume_continues_after_cursor`）；
-- (e) `docs/protocols/grpo.md` 描述 CLI、流程、determinism、checkpoint/resume（含 state.pt 二进制结构）、CPU/GPU smoke、已知边界；
-- (f) `configs/grpo_mvp.example.yaml` 给出最小 smoke 配置；
-- (g) reviewer dispatch (minimax-M3) 通过；
-- (h) `scripts/run_tests.py full` 全绿（含 `test_grpo_mvp.py` 注册到 `COMMON_TESTS` + `MODULES["training"]`）。
+- (a) `scripts/grpo_train.py` 支持 `--dtype {bf16,fp16,fp32}` 与 `--config <yaml>`；`_resolve_dtype` 在 CUDA 默认 bf16 / CPU 默认 fp32 / 显式选择都成立。
+- (b) 全循环（rollout → reward → advantage → policy-update → checkpoint）使用 mock policy + mock tokenizer（`scripts/grpo_mocks.py`）可在 CPU 上无条件运行并落盘 `<checkpoint-dir>/state.json` + `state.pt` + `step-*.json`（test `TestRunStepWithMockPolicy` + `TestRunLoopEndToEnd`）。
+- (c) 每个 step artifact 通过 `schemas/grpo_step_result.schema.json` 校验（test `TestAssembleStepArtifact::test_artifact_validates_against_schema`）。
+- (d) `tests/test_grpo_mvp.py` 47 个单测全绿：advantage / hash / load_samples / iter_prompts / checkpoint I/O / artifact / RNG seed + capture + restore / resume cursor / config match / optimizer restore / unconditional mock-based end-to-end smoke（含 final-step state.pt 同步 + resume-correct cursor）/ dtype 解析 / YAML config 加载 / run_loop + _run_step / gated HF subprocess smoke。
+- (e) `--resume-from <state.json>` 恢复 model weights + optimizer state + RNG + sample cursor（test `TestRunLoopEndToEnd::test_run_loop_resume_continues_at_cursor` + `TestUnconditionalSmoke::test_smoke_full_checkpoint_round_trip` + `TestResumeCursor::test_resume_continues_after_cursor`）。
+- (f) `docs/protocols/grpo.md` 描述 CLI、流程、determinism、checkpoint/resume（含 state.pt 二进制结构 + final-step invariant）、CPU/GPU smoke、dtype、YAML config、mock-based unconditional smoke、已知边界。
+- (g) `configs/grpo_mvp.example.yaml` 给出最小 smoke 配置，并被 `TestYamlConfigLoader` 验证可被 `_load_yaml_config` 读取与 overlay。
+- (h) reviewer dispatch (minimax-M3) 通过；
+- (i) `scripts/run_tests.py full` 全绿（含 `test_grpo_mvp.py` 注册到 `COMMON_TESTS` + `MODULES["training"]`）。
 
 ## 实施改动（首次交付）
 
@@ -53,7 +54,7 @@
 
 不引入新的数据格式 / schema（除 step artifact 自身）；不修改现有 reward / eval_transformers 接口。
 
-## 测试覆盖（37 tests）
+## 测试覆盖（47 tests）
 
 | 测试类 | 测试数 | 覆盖 |
 |---|---|---|
@@ -69,7 +70,11 @@
 | `TestConfigMatches` | 2 | config diff detection |
 | `TestOptimizerRestore` | 1 | Adam moments round-trip |
 | `TestUnconditionalSmoke` | 2 | full save/restore with torch.nn mock (no HF dependency) |
-| `TestGrpoSmokeIntegration` | 1 | end-to-end smoke（gated by `GRPO_SMOKE=1`） |
+| `TestResolveDtype` | 3 | CPU forces fp32; CUDA default bf16; explicit dtype honored |
+| `TestRunStepWithMockPolicy` | 2 | `_run_step` runs K rollouts → rewards → advantages → update end-to-end |
+| `TestRunLoopEndToEnd` | 3 | full `run_loop` + state.pt cadence + resume-correct cursor |
+| `TestYamlConfigLoader` | 2 | YAML config loads + applies to argparse Namespace |
+| `TestGrpoSubprocessSmoke` | 1 | optional subprocess smoke (gated by `GRPO_SMOKE=1` + local model dir) |
 
 `scripts/run_tests.py full` → `test_grpo_mvp.py` 集成在 fast + training 模块。
 
