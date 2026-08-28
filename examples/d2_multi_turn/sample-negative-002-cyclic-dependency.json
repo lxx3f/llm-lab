@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "id": "d2-train-9102",
+  "messages": [
+    {"role": "system", "content": "You are a helpful assistant with tool access."},
+    {"role": "user", "content": "执行循环依赖测试。"},
+    {"role": "assistant", "content": null, "tool_calls": [
+      {"id": "call-d2-train-9102-0001", "type": "function", "function": {"name": "d1_calculate", "arguments": "{\"expression\": \"2 + 2\"}"}},
+      {"id": "call-d2-train-9102-0002", "type": "function", "function": {"name": "d1_calculate", "arguments": "{\"expression\": \"3 + 3\"}"}}
+    ]},
+    {"role": "assistant", "content": "依赖图无效。"}
+  ],
+  "tools": [],
+  "expected_tool_calls": [
+    {"call_id": "call-d2-train-9102-0001", "name": "d1_calculate", "arguments": {"expression": "2 + 2"}, "depends_on": ["call-d2-train-9102-0002"], "expected_result": "4"},
+    {"call_id": "call-d2-train-9102-0002", "name": "d1_calculate", "arguments": {"expression": "3 + 3"}, "depends_on": ["call-d2-train-9102-0001"], "expected_result": "6"}
+  ],
+  "expected_answer": "依赖图无效。",
+  "metadata": {
+    "source": "d2-synthetic-negative-fixture",
+    "license": "project-internal",
+    "task_type": "multi_tool_sequential",
+    "task_template": "cyclic_dependency",
+    "data_version": "D2",
+    "pipeline_version": "tests/d2-negative/v1.0",
+    "created_at": "2026-08-27T10:00:00+00:00",
+    "split": "train"
+  }
+}

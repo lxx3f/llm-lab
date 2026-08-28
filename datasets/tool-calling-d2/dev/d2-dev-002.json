@@ -8,72 +8,52 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下深圳的天气。"
+      "content": "请把 'Good morning.' 翻译成中文。"
     },
     {
       "role": "assistant",
       "content": null,
       "tool_calls": [
         {
-          "id": "call-d2-tmp-0422-0001",
+          "id": "call-d2-dev-002-0001",
           "type": "function",
           "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"深圳\"}"
+            "name": "d1_translate",
+            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"zh\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "深圳 当前天气：晴，22°C，微风。",
-      "tool_call_id": "call-d2-tmp-0422-0001",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "user",
-      "content": "算了，改成查北京的天气吧。"
+      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "tool_call_id": "call-d2-dev-002-0001",
+      "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": null,
-      "tool_calls": [
-        {
-          "id": "call-d2-dev-002-tmp-0422-0002",
-          "type": "function",
-          "function": {
-            "name": "d1_get_weather",
-            "arguments": "{\"city\": \"北京\"}"
-          }
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "content": "北京 当前天气：晴，22°C，微风。",
-      "tool_call_id": "call-d2-dev-002-tmp-0422-0002",
-      "name": "d1_get_weather"
-    },
-    {
-      "role": "assistant",
-      "content": "北京天气：北京 当前天气：晴，22°C，微风。"
+      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。"
     }
   ],
   "tools": [
     {
       "type": "function",
       "function": {
-        "name": "d1_get_weather",
-        "description": "Look up the current weather for a city.",
+        "name": "d1_translate",
+        "description": "Translate text to a target language.",
         "parameters": {
           "type": "object",
           "properties": {
-            "city": {
+            "text": {
+              "type": "string"
+            },
+            "target_lang": {
               "type": "string"
             }
           },
           "required": [
-            "city"
+            "text",
+            "target_lang"
           ]
         }
       }
@@ -81,23 +61,24 @@
   ],
   "expected_tool_calls": [
     {
-      "call_id": "call-d2-dev-002-tmp-0422-0002",
-      "name": "d1_get_weather",
+      "call_id": "call-d2-dev-002-0001",
+      "name": "d1_translate",
       "arguments": {
-        "city": "北京"
+        "text": "Good morning.",
+        "target_lang": "zh"
       },
-      "expected_result": "北京 当前天气：晴，22°C，微风。",
+      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
       "depends_on": []
     }
   ],
-  "expected_answer": "按最新要求：北京 当前天气：晴，22°C，微风。",
+  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "multi_turn_req_change",
-    "task_template": "req_change_to_beijing",
+    "task_type": "tool_error_response",
+    "task_template": "translate_error_report",
     "data_version": "D2",
-    "pipeline_version": "generate_d2_dataset.py/v1.0",
+    "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-08-27T00:07:02+00:00",
     "validation": {
       "schema_valid": true,

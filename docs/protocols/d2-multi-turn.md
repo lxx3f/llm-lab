@@ -15,17 +15,17 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 
 ## 2. 数据 schema 与 task_type
 
-D2 沿用 `schemas/tool_calling_sample.schema.json`，仅扩展 `metadata.task_type` enum：
+- D2 沿用 `schemas/d2_multi_turn_sample.schema.json`，而不是仅扩展 D1 的通用 schema；该独立 schema 强制 6 个规范 task_type 名称、D2 id/call_id 格式和多轮消息字段。
 
 | D1 task_type | D2 task_type | 含义 |
 |---|---|---|
 | `single_tool`, `multi_tool`, `no_tool`, `tool_error`, `insufficient_result`, `requirement_change` | （保留）| D1 单轮/投影 |
-| — | `multi_turn_tool_chain` | 链式多工具调用（calc → search → answer），2-3 轮 |
-| — | `multi_turn_error_recovery` | 工具返回错误，模型识别后调整或上报 |
-| — | `multi_turn_req_change` | 用户在第 2 轮改变需求，模型重新执行 |
-| — | `multi_turn_insufficient_result` | 工具返回有限结果，模型追问用户 |
-| — | `multi_turn_tool_not_available` | 用户要求的工具不在列表中，模型不调用 |
-| — | `multi_turn_clarification` | 用户需求模糊，模型先反问澄清 |
+| — | `multi_tool_sequential` | 链式多工具调用（calc → search → answer），2-3 轮 |
+| — | `tool_error_response` | 工具返回错误，模型观察并上报，不传播错误结果 |
+| — | `req_change_city` | 用户在第 2 轮改变需求，模型重新执行 |
+| — | `insufficient_result_search` | 工具返回有限结果，模型追问用户 |
+| — | `tool_not_available` | 用户要求的工具不在列表中，模型不调用 |
+| — | `error_recovery` | 工具结果不足/失败，模型调整参数后重试 |
 
 每类 ≥ 100 样本；总规模 **≥ 600 样本**，默认 `--count 600`。
 
@@ -42,7 +42,7 @@ D2 沿用 `schemas/tool_calling_sample.schema.json`，仅扩展 `metadata.task_t
 - `expected_tool_calls` 用 `call_id` + `depends_on` 表达链式依赖，`depends_on[]` 列出所有前置 `call_id`；
 - `expected_answer` 关闭整个 transcript。
 
-`scripts/generate_d2_dataset.py` 在生成时端到端通过 `MockExecutor` 验证每个 `expected_tool_calls[i].expected_result == mock(**arguments)`，因此每个 D2 样本既是 schema 合法也是语义合法。
+`scripts/generate_d2_dataset.py` 在生成时先通过独立 D2 schema 校验，再通过依赖图语义校验，最后为每个样本注册工具并调用真实 `MockExecutor.execute_sequence()`；它检查每个 `expected_tool_calls[i].expected_result` 与 executor 返回值一致。因此每个 D2 样本既是 schema 合法也是执行语义合法。
 
 ## 4. Held-out split
 
@@ -83,7 +83,7 @@ D2 沿用 `schemas/tool_calling_sample.schema.json`，仅扩展 `metadata.task_t
     {
       "path": "train/d2-train-0001.json",
       "sha256": "<hex64>",
-      "task_type": "multi_turn_error_recovery",
+      "task_type": "tool_error_response",
       "split": "train"
     },
     ...

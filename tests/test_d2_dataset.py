@@ -30,16 +30,17 @@ from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
 D2 = ROOT / "datasets" / "tool-calling-d2"
-SCHEMA = ROOT / "schemas" / "tool_calling_sample.schema.json"
+SCHEMA = ROOT / "schemas" / "d2_multi_turn_sample.schema.json"
+GENERATOR = ROOT / "scripts" / "generate_d2_dataset.py"
 
 EXPECTED_SPLITS = {"train", "dev", "test"}
 EXPECTED_TASK_TYPES = {
-    "multi_turn_tool_chain",
-    "multi_turn_error_recovery",
-    "multi_turn_req_change",
-    "multi_turn_insufficient_result",
-    "multi_turn_tool_not_available",
-    "multi_turn_clarification",
+    "tool_not_available",
+    "tool_error_response",
+    "insufficient_result_search",
+    "req_change_city",
+    "multi_tool_sequential",
+    "error_recovery",
 }
 
 
@@ -92,10 +93,18 @@ class D2DatasetSchemaTests(unittest.TestCase):
                         f"missing flavours: {EXPECTED_TASK_TYPES - seen}")
 
     def test_all_six_flavours_present_in_each_split(self) -> None:
-        """Round-robin generation guarantees that each of the six
-        multi-turn ``task_type``s appears in every split (``train`` /
-        ``dev`` / ``test``). The exact per-split counts depend on
-        ``--count``; we only assert coverage here, not a minimum count."""
+        """Every generated split contains each canonical D2 task type."""
+        for split, samples in (("train", self.train),
+                               ("dev", self.dev),
+                               ("test", self.test)):
+            with self.subTest(split=split):
+                seen = {sample["metadata"]["task_type"] for sample in samples}
+                self.assertEqual(
+                    seen,
+                    EXPECTED_TASK_TYPES,
+                    f"split {split!r} task types differ: "
+                    f"missing={EXPECTED_TASK_TYPES - seen}, extra={seen - EXPECTED_TASK_TYPES}",
+                )
 
 
 @unittest.skipUnless(_dataset_present(), "D2 dataset not generated yet")
@@ -142,11 +151,7 @@ class D2MultiTurnStructureTests(unittest.TestCase):
                 self.assertIsNotNone(msg.get("content"))
 
     def test_expected_tool_calls_match_transcript_call_ids(self) -> None:
-        """Every ``expected_tool_calls[i].call_id`` must appear in at
-        least one assistant message's ``tool_calls[].id``. The
-        transcript MAY contain extra call_ids (e.g. the abandoned
-        ``city_a`` call in ``multi_turn_req_change`` is part of the
-        dialogue history but is not in ``expected_tool_calls``)."""
+        """Every assistant tool call belongs to the canonical expected plan."""
         for sample in self.train:
             transcript_ids = {
                 call["id"]
@@ -154,12 +159,25 @@ class D2MultiTurnStructureTests(unittest.TestCase):
                 for call in msg.get("tool_calls", [])
             }
             expected_ids = {c["call_id"] for c in sample["expected_tool_calls"]}
-            # expected ⊆ transcript
-            self.assertTrue(
-                expected_ids.issubset(transcript_ids),
-                f"{sample['id']} expected ids {expected_ids} "
-                f"not fully present in transcript {transcript_ids}",
+            self.assertEqual(
+                transcript_ids,
+                expected_ids,
+                f"{sample['id']} transcript ids {transcript_ids} "
+                f"!= expected ids {expected_ids}",
             )
+
+    def test_call_ids_use_final_sample_namespace(self) -> None:
+        for sample in self.train:
+            prefix = f"call-{sample['id']}-"
+            for message in sample["messages"]:
+                for call in message.get("tool_calls", []):
+                    self.assertTrue(call["id"].startswith(prefix))
+                if message.get("role") == "tool":
+                    self.assertTrue(message["tool_call_id"].startswith(prefix))
+            for call in sample["expected_tool_calls"]:
+                self.assertTrue(call["call_id"].startswith(prefix))
+                for dependency in call.get("depends_on", []) or []:
+                    self.assertTrue(dependency.startswith(prefix))
 
 
 @unittest.skipUnless(_dataset_present(), "D2 dataset not generated yet")
@@ -168,35 +186,153 @@ class D2MockExecutorReplayTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.train = _load_split("train")
 
-    def test_mock_executor_returns_expected_result(self) -> None:
-        """End-to-end MockExecutor replay returns the declared
-        ``expected_result`` for every expected tool call."""
-        from examples.d1_mocks import (  # type: ignore
+    def test_mock_executor_execute_sequence_returns_expected_results(self) -> None:
+        """Replay every expected plan through the real MockExecutor API."""
+        from architecture_lab.execution.mock_executor import MockExecutor
+        from examples.d1_mocks import (
             d1_calculate, d1_get_weather, d1_web_search, d1_translate,
         )
-        mocks_by_name = {
+        mock_functions = {
             "d1_calculate": d1_calculate,
             "d1_get_weather": d1_get_weather,
             "d1_web_search": d1_web_search,
             "d1_translate": d1_translate,
         }
-        skipped = 0
         for sample in self.train:
-            for i, call in enumerate(sample["expected_tool_calls"]):
-                name = call.get("name")
-                if name not in mocks_by_name:
-                    skipped += 1
-                    continue
-                args = call.get("arguments", {})
-                actual = mocks_by_name[name](**args)
-                self.assertEqual(
-                    str(actual), str(call.get("expected_result")),
-                    f"{sample['id']} call #{i} {name}({args}): "
-                    f"expected {call.get('expected_result')!r} got {actual!r}",
-                )
-        # Some samples intentionally have no tool calls (tool_not_available
-        # etc.) — we don't fail the suite for that.
-        self.assertGreaterEqual(skipped, 0)
+            executor = MockExecutor()
+            for tool in sample["tools"]:
+                function = tool["function"]
+                name = function["name"]
+                executor.register_mock(name, mock_functions[name], function["parameters"])
+            calls = [
+                {
+                    "tool_name": call["name"],
+                    "call_id": call["call_id"],
+                    "arguments": call["arguments"],
+                    "depends_on": call.get("depends_on", []),
+                }
+                for call in sample["expected_tool_calls"]
+            ]
+            results = executor.execute_sequence(calls)
+            self.assertEqual(len(results), len(calls), sample["id"])
+            for expected, actual in zip(sample["expected_tool_calls"], results):
+                with self.subTest(sample_id=sample["id"], call_id=expected["call_id"]):
+                    self.assertEqual(actual["call_id"], expected["call_id"])
+                    self.assertEqual(actual["outcome"], "success")
+                    self.assertEqual(str(actual["result"]), str(expected["expected_result"]))
+
+    def test_execute_sequence_uses_topological_order_for_shuffled_input(self) -> None:
+        """A dependent call submitted first is held until its predecessor
+        completes; returned results are in actual execution order."""
+        from architecture_lab.execution.mock_executor import MockExecutor
+        from examples.d1_mocks import d1_calculate, d1_web_search
+
+        executor = MockExecutor()
+        executor.register_mock(
+            "d1_calculate", d1_calculate,
+            {"type": "object", "properties": {"expression": {"type": "string"}},
+             "required": ["expression"]},
+        )
+        executor.register_mock(
+            "d1_web_search", d1_web_search,
+            {"type": "object", "properties": {
+                "query": {"type": "string"}, "limit": {"type": "integer"}},
+             "required": ["query"]},
+        )
+        results = executor.execute_sequence([
+            {"tool_name": "d1_web_search", "call_id": "c2",
+             "arguments": {"query": "result 4", "limit": 3},
+             "depends_on": ["c1"]},
+            {"tool_name": "d1_calculate", "call_id": "c1",
+             "arguments": {"expression": "2 + 2"}},
+        ])
+        self.assertEqual([result["call_id"] for result in results], ["c1", "c2"])
+        self.assertEqual([result["outcome"] for result in results], ["success", "success"])
+        self.assertEqual(results[1]["result"], "关于「result 4」找到 3 条结果。")
+
+    def test_execute_sequence_rejects_failed_dependency_step(self) -> None:
+        """A failed first step prevents its dependent step from executing."""
+        from architecture_lab.execution.mock_executor import MockExecutor
+        from examples.d1_mocks import d1_calculate
+
+        executor = MockExecutor()
+        executor.register_mock(
+            "d1_calculate", d1_calculate,
+            {"type": "object", "properties": {"expression": {"type": "string"}},
+             "required": ["expression"]},
+        )
+        results = executor.execute_sequence([
+            {"tool_name": "d1_calculate", "call_id": "c1",
+             "arguments": {"expression": "not valid"}},
+            {"tool_name": "d1_calculate", "call_id": "c2",
+             "arguments": {"expression": "2 + 2"}, "depends_on": ["c1"]},
+        ])
+        self.assertEqual([result["outcome"] for result in results],
+                         ["mock_exception", "mock_not_found"])
+        self.assertIn("did not complete", results[1]["error"])
+
+
+@unittest.skipUnless(_dataset_present(), "D2 dataset not generated yet")
+class D2DependencyGraphTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.samples = _load_split("train") + _load_split("dev") + _load_split("test")
+
+    def test_depends_on_references_exist(self) -> None:
+        for sample in self.samples:
+            ids = {call["call_id"] for call in sample["expected_tool_calls"]}
+            for call in sample["expected_tool_calls"]:
+                for dep in call.get("depends_on", []) or []:
+                    self.assertIn(dep, ids, f"{sample['id']}: dangling {dep}")
+
+    def test_depends_on_references_are_strictly_earlier(self) -> None:
+        for sample in self.samples:
+            positions = {call["call_id"]: index
+                         for index, call in enumerate(sample["expected_tool_calls"])}
+            for index, call in enumerate(sample["expected_tool_calls"]):
+                for dep in call.get("depends_on", []) or []:
+                    self.assertLess(positions[dep], index,
+                                    f"{sample['id']}: dependency is not earlier")
+
+    def test_depends_on_graph_is_acyclic(self) -> None:
+        for sample in self.samples:
+            calls = {call["call_id"]: call for call in sample["expected_tool_calls"]}
+            remaining = set(calls)
+            while remaining:
+                ready = {
+                    call_id for call_id in remaining
+                    if all(dep not in remaining
+                           for dep in calls[call_id].get("depends_on", []) or [])
+                }
+                self.assertTrue(ready, f"{sample['id']}: dependency cycle")
+                remaining -= ready
+
+    def test_invalid_examples_fail_dependency_semantics(self) -> None:
+        """The negative fixtures are schema-shaped but fail D2 graph rules."""
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("generate_d2_for_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for path in sorted((ROOT / "examples" / "d2_multi_turn").glob("sample-negative-*.json")):
+            with self.subTest(path=path.name):
+                sample = json.loads(path.read_text(encoding="utf-8"))
+                errors = module.validate_semantics(sample)
+                self.assertTrue(errors, f"negative fixture unexpectedly valid: {path}")
+
+    def test_dependency_chain_has_semantic_stepwise_order(self) -> None:
+        """The generated sequential examples have real dependency edges."""
+        chained = [sample for sample in self.samples
+                    if any(call.get("depends_on") for call in sample["expected_tool_calls"])]
+        self.assertGreater(len(chained), 0)
+        for sample in chained:
+            positions = {call["call_id"]: index
+                         for index, call in enumerate(sample["expected_tool_calls"])}
+            for call in sample["expected_tool_calls"]:
+                for dep in call.get("depends_on", []) or []:
+                    self.assertLess(positions[dep], positions[call["call_id"]])
 
 
 @unittest.skipUnless(_dataset_present(), "D2 dataset not generated yet")

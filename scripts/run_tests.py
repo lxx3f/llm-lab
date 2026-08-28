@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-FAST_MODULES = (
+COMMON_TESTS = (
     ("tests", "test_batching.py"),
     ("tests", "test_experiment_metadata.py"),
     ("tests", "test_n2_benchmark.py"),
@@ -36,6 +36,9 @@ FAST_MODULES = (
     ("tests", "test_sweep_doc_consistency.py"),
     ("tests", "test_artifact_provenance.py"),
     ("tests", "test_token_cache.py"),
+)
+
+FAST_MODULES = COMMON_TESTS + (
     ("architecture_lab/tests", "test_dense_transformer.py"),
     ("architecture_lab/tokenization/tests", "test_bpe.py"),
     ("architecture_lab/training/tests", "test_sft_training.py"),
@@ -48,6 +51,9 @@ MODULES = {
         ("tests", "test_token_cache.py"),
         ("tests", "test_token_cache_cli.py"),
         ("tests", "test_tokenizer_artifact_cli.py"),
+        ("tests", "test_d0_manifest.py"),
+        ("tests", "test_d2_dataset.py"),
+        ("tests", "test_stage0_schemas.py"),
     ),
     "training": (
         ("tests", "test_dense_training.py"),
@@ -57,12 +63,10 @@ MODULES = {
         ("tests", "test_dense_result_schema.py"),
         ("tests", "test_plot_dense_curve.py"),
         ("tests", "test_experiment_metadata.py"),
-        ("tests", "test_d0_manifest.py"),
-    ("tests", "test_d2_dataset.py"),
         ("tests", "test_d1_failure.py"),
-    ("tests", "test_reward_offline.py"),
-    ("tests", "test_aggregate_d256_eval.py"),
-    ("tests", "test_d1_llm.py"),
+        ("tests", "test_d1_llm.py"),
+        ("tests", "test_reward_offline.py"),
+        ("tests", "test_aggregate_d256_eval.py"),
         ("tests", "test_sweep_doc_consistency.py"),
         ("tests", "test_artifact_provenance.py"),
     ),
@@ -72,8 +76,6 @@ MODULES = {
     ),
     "tokenization": (
         ("architecture_lab/tokenization/tests", "test_bpe.py"),
-    ("architecture_lab/training/tests", "test_sft_training.py"),
-    ("architecture_lab/training/tests", "test_sft_moe_training.py"),
         ("tests", "test_tokenizer_artifact_cli.py"),
     ),
 }
@@ -133,32 +135,21 @@ def main(argv: list[str] | None = None) -> int:
         modules = MODULES[args.name]
     else:
         modules = (
-            ("tests", "test_batching.py"),
-            ("tests", "test_experiment_metadata.py"),
-            ("tests", "test_n2_benchmark.py"),
-            ("tests", "test_n2_result_schema.py"),
-            ("tests", "test_dense_result_schema.py"),
-            ("tests", "test_plot_dense_curve.py"),
-            ("tests", "test_dense_training.py"),
-            ("tests", "test_mock_executor.py"),
-    ("tests", "test_d2_dataset.py"),
-            ("tests", "test_moe_training.py"),
-            ("tests", "test_stage0_schemas.py"),
-    ("tests", "test_reward_offline.py"),
-            ("tests", "test_d0_manifest.py"),
-    ("tests", "test_aggregate_d256_eval.py"),
-            ("tests", "test_d1_failure.py"),
-    ("tests", "test_d1_llm.py"),
-            ("tests", "test_sweep_doc_consistency.py"),
-            ("tests", "test_artifact_provenance.py"),
-            ("tests", "test_token_cache.py"),
-            ("tests", "test_token_cache_cli.py"),
-            ("tests", "test_tokenizer_artifact_cli.py"),
-            ("architecture_lab/tests", "test_dense_transformer.py"),
-            ("architecture_lab/tests", "test_moe_transformer.py"),
-            ("architecture_lab/tokenization/tests", "test_bpe.py"),
-    ("architecture_lab/training/tests", "test_sft_training.py"),
-    ("architecture_lab/training/tests", "test_sft_moe_training.py"),
+            COMMON_TESTS[:7]
+            + (
+                ("tests", "test_dense_training.py"),
+                ("tests", "test_mock_executor.py"),
+            )
+            + COMMON_TESTS[7:]
+            + (
+                ("tests", "test_token_cache_cli.py"),
+                ("tests", "test_tokenizer_artifact_cli.py"),
+                ("architecture_lab/tests", "test_dense_transformer.py"),
+                ("architecture_lab/tests", "test_moe_transformer.py"),
+                ("architecture_lab/tokenization/tests", "test_bpe.py"),
+                ("architecture_lab/training/tests", "test_sft_training.py"),
+                ("architecture_lab/training/tests", "test_sft_moe_training.py"),
+            )
         )
 
     if not run_modules(modules):

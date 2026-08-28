@@ -133,34 +133,77 @@ class MockExecutor:
         return result
 
     def execute_sequence(self, calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Execute calls in dependency order.
+        """Execute calls in dependency order using a stable topological sort.
 
-        ``depends_on`` is a list of earlier ``call_id`` values (as in the
-        tool_calling_sample schema). A call whose dependency failed is
-        reported as ``mock_not_found`` with a note (simple topological
-        order, no parallelism).
+        ``depends_on`` contains call ids that must complete successfully
+        before the dependent call executes.  The returned list is ordered by
+        actual execution order, not necessarily by input order.  Missing
+        dependencies and cycles are represented as validated skip results so
+        callers receive one result per input call without silently executing
+        an invalid plan.
         """
         by_id = {str(call.get("call_id", "")): call for call in calls}
+        input_order = {str(call.get("call_id", "")): index
+                       for index, call in enumerate(calls)}
         results: list[dict[str, Any]] = []
-        done: set[str] = set()
-        for call in calls:
-            deps = call.get("depends_on") or []
-            failed_dep = next((dep for dep in deps if dep in by_id and dep not in done), None)
-            if failed_dep is not None:
-                results.append({
-                    "schema_version": "1.0",
-                    "tool_name": str(call.get("tool_name", "")),
-                    "call_id": str(call.get("call_id", "")),
-                    "outcome": "mock_not_found",
-                    "arguments": call.get("arguments", {}),
-                    "result": None,
-                    "error": f"dependency {failed_dep!r} did not complete; skipped",
-                    "execution_time_ms": 0.0,
-                    "mock_metadata": {},
-                })
-                continue
-            result = self.execute(call)
-            results.append(result)
-            if result["outcome"] == "success":
-                done.add(str(call.get("call_id", "")))
+        result_by_id: dict[str, dict[str, Any]] = {}
+        remaining = set(by_id)
+
+        def skipped(call: dict[str, Any], reason: str) -> dict[str, Any]:
+            result = {
+                "schema_version": "1.0",
+                "tool_name": str(call.get("tool_name", "")),
+                "call_id": str(call.get("call_id", "")),
+                "outcome": "mock_not_found",
+                "arguments": call.get("arguments", {}),
+                "result": None,
+                "error": reason,
+                "execution_time_ms": 0.0,
+                "mock_metadata": {},
+            }
+            validate_execution_result(result)
+            return result
+
+        while remaining:
+            ready: list[str] = []
+            for call_id in remaining:
+                deps = [str(dep) for dep in (by_id[call_id].get("depends_on") or [])]
+                if any(dep not in by_id for dep in deps):
+                    result_by_id[call_id] = skipped(
+                        by_id[call_id],
+                        f"missing dependency: {next(dep for dep in deps if dep not in by_id)!r}",
+                    )
+                    ready.append(call_id)
+                elif all(dep in result_by_id for dep in deps):
+                    ready.append(call_id)
+            if not ready:
+                # Remaining nodes form a dependency cycle. Emit one
+                # validated result per node rather than silently dropping it.
+                for call_id in sorted(remaining, key=input_order.__getitem__):
+                    result_by_id[call_id] = skipped(
+                        by_id[call_id], "dependency cycle detected; skipped")
+                remaining.clear()
+                break
+
+            for call_id in sorted(ready, key=input_order.__getitem__):
+                if call_id not in remaining:
+                    continue
+                call = by_id[call_id]
+                deps = [str(dep) for dep in (call.get("depends_on") or [])]
+                missing_or_failed = next(
+                    (dep for dep in deps
+                     if dep not in by_id or result_by_id[dep]["outcome"] != "success"),
+                    None,
+                )
+                if missing_or_failed is not None:
+                    result = skipped(
+                        call,
+                        f"dependency {missing_or_failed!r} did not complete; skipped",
+                    )
+                else:
+                    result = self.execute(call)
+                result_by_id[call_id] = result
+                results.append(result)
+                remaining.remove(call_id)
+
         return results

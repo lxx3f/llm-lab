@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "id": "d2-train-9001",
+  "messages": [
+    {"role": "system", "content": "You are a helpful assistant with tool access."},
+    {"role": "user", "content": "先计算 17 * 4，然后搜索结果 '68' 的相关背景。"},
+    {"role": "assistant", "content": null, "tool_calls": [
+      {"id": "call-d2-train-9001-0001", "type": "function", "function": {"name": "d1_calculate", "arguments": "{\"expression\": \"17 * 4\"}"}}
+    ]},
+    {"role": "tool", "content": "68", "tool_call_id": "call-d2-train-9001-0001", "name": "d1_calculate"},
+    {"role": "assistant", "content": null, "tool_calls": [
+      {"id": "call-d2-train-9001-0002", "type": "function", "function": {"name": "d1_web_search", "arguments": "{\"query\": \"result 68\", \"limit\": 3}"}}
+    ]},
+    {"role": "tool", "content": "关于「result 68」找到 3 条结果。", "tool_call_id": "call-d2-train-9001-0002", "name": "d1_web_search"},
+    {"role": "assistant", "content": "计算 17 * 4 = 68；搜索结果：关于「result 68」找到 3 条结果。"}
+  ],
+  "tools": [
+    {"type": "function", "function": {
+      "name": "d1_calculate",
+      "description": "Evaluate a simple arithmetic expression on integers.",
+      "parameters": {"type": "object", "properties": {"expression": {"type": "string"}}, "required": ["expression"]}
+    }},
+    {"type": "function", "function": {
+      "name": "d1_web_search",
+      "description": "Search the web for information.",
+      "parameters": {"type": "object", "properties": {"query": {"type": "string"}, "limit": {"type": "integer", "minimum": 1}}, "required": ["query"]}
+    }}
+  ],
+  "expected_tool_calls": [
+    {"call_id": "call-d2-train-9001-0001", "name": "d1_calculate", "arguments": {"expression": "17 * 4"}, "expected_result": "68"},
+    {"call_id": "call-d2-train-9001-0002", "name": "d1_web_search", "arguments": {"query": "result 68", "limit": 3}, "depends_on": ["call-d2-train-9001-0001"], "expected_result": "关于「result 68」找到 3 条结果。"}
+  ],
+  "expected_answer": "计算 17 * 4 = 68；搜索结果：关于「result 68」找到 3 条结果。",
+  "metadata": {
+    "source": "d2-synthetic-template",
+    "license": "project-internal",
+    "task_type": "multi_tool_sequential",
+    "task_template": "chain_calc_search",
+    "data_version": "D2",
+    "pipeline_version": "examples/d2_multi_turn/sample-positive-001.json/v1.0",
+    "created_at": "2026-08-27T10:00:00+00:00",
+    "split": "train"
+  }
+}

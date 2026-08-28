@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llm-lab.local/schemas/d2_multi_turn_sample.schema.json",
+  "title": "LLM Lab D2 Multi-Turn Tool Calling Sample",
+  "description": "D2 数据版本的样本 schema。扩展 tool_calling_sample.schema.json，强制 D2 多轮约束：task_type ∈ 6 类客观命名；depends_on 链存在 / 排序 / 无环；messages 含 assistant + tool 角色且 tool_call_id 引用 transcript 中的 call_id。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "messages",
+    "tools",
+    "expected_tool_calls",
+    "expected_answer",
+    "metadata"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^d2-(train|dev|test)-[0-9]+$"
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 2,
+      "contains": {
+        "type": "object",
+        "properties": {"role": {"const": "assistant"}},
+        "required": ["role"]
+      },
+      "items": {
+        "$ref": "#/$defs/message"
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/tool"
+      }
+    },
+    "expected_tool_calls": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/expectedToolCall"
+      }
+    },
+    "expected_answer": {
+      "type": ["string", "null"]
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    }
+  },
+  "$defs": {
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "content"],
+      "properties": {
+        "role": {
+          "enum": ["system", "user", "assistant", "tool"]
+        },
+        "content": {
+          "type": ["string", "null"]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_call_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_calls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modelToolCall"
+          }
+        }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "function"],
+      "properties": {
+        "type": {"const": "function"},
+        "function": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "description", "parameters"],
+          "properties": {
+            "name": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+            "description": {"type": "string", "minLength": 1},
+            "parameters": {"type": "object"}
+          }
+        }
+      }
+    },
+    "modelToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "function"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "type": {"const": "function"},
+        "function": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "arguments"],
+          "properties": {
+            "name": {"type": "string", "minLength": 1},
+            "arguments": {"type": ["string", "object"]}
+          }
+        }
+      }
+    },
+    "expectedToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["call_id", "name", "arguments"],
+      "properties": {
+        "call_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^call-d2-(train|dev|test)-[0-9]+-[0-9]{4}$"
+        },
+        "name": {"type": "string", "minLength": 1},
+        "arguments": {"type": "object"},
+        "depends_on": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^call-d2-(train|dev|test)-[0-9]+-[0-9]{4}$"
+          },
+          "default": []
+        },
+        "expected_result": {}
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["source", "license", "task_type", "data_version",
+                   "pipeline_version", "created_at"],
+      "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "license": {"type": "string", "minLength": 1},
+        "task_type": {
+          "enum": [
+            "tool_not_available",
+            "tool_error_response",
+            "insufficient_result_search",
+            "req_change_city",
+            "multi_tool_sequential",
+            "error_recovery"
+          ]
+        },
+        "data_version": {"const": "D2"},
+        "pipeline_version": {"type": "string", "minLength": 1},
+        "created_at": {"type": "string", "format": "date-time"},
+        "split": {
+          "enum": ["train", "dev", "test"]
+        }
+      }
+    }
+  }
+}

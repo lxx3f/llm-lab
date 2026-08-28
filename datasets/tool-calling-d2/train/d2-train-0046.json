@@ -8,32 +8,58 @@
     },
     {
       "role": "user",
-      "content": "请帮我查一下美元对人民币的实时汇率并换算 100 美元。"
+      "content": "帮我查一下上海的天气。"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有汇率查询功能，无法完成此任务。请安装相关工具后重试。"
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0046-0001",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"上海\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "上海 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-train-0046-0001",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "user",
+      "content": "改成查北京的天气吧。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call-d2-train-0046-0002",
+          "type": "function",
+          "function": {
+            "name": "d1_get_weather",
+            "arguments": "{\"city\": \"北京\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "北京 当前天气：晴，22°C，微风。",
+      "tool_call_id": "call-d2-train-0046-0002",
+      "name": "d1_get_weather"
+    },
+    {
+      "role": "assistant",
+      "content": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。"
     }
   ],
   "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_calculate",
-        "description": "Evaluate a simple arithmetic expression on integers.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "expression"
-          ]
-        }
-      }
-    },
     {
       "type": "function",
       "function": {
@@ -51,39 +77,38 @@
           ]
         }
       }
-    },
-    {
-      "type": "function",
-      "function": {
-        "name": "d1_web_search",
-        "description": "Search the web for information.",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string"
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1
-            }
-          },
-          "required": [
-            "query"
-          ]
-        }
-      }
     }
   ],
-  "expected_tool_calls": [],
-  "expected_answer": "工具不可用：当前没有汇率/换算工具。",
+  "expected_tool_calls": [
+    {
+      "call_id": "call-d2-train-0046-0001",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "上海"
+      },
+      "expected_result": "上海 当前天气：晴，22°C，微风。",
+      "depends_on": []
+    },
+    {
+      "call_id": "call-d2-train-0046-0002",
+      "name": "d1_get_weather",
+      "arguments": {
+        "city": "北京"
+      },
+      "depends_on": [
+        "call-d2-train-0046-0001"
+      ],
+      "expected_result": "北京 当前天气：晴，22°C，微风。"
+    }
+  ],
+  "expected_answer": "按最新要求，北京天气：北京 当前天气：晴，22°C，微风。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
-    "task_type": "multi_turn_tool_not_available",
-    "task_template": "tool_not_available_currency",
+    "task_type": "req_change_city",
+    "task_template": "abandoned_old_city_then_retry",
     "data_version": "D2",
-    "pipeline_version": "generate_d2_dataset.py/v1.0",
+    "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-08-27T00:00:46+00:00",
     "validation": {
       "schema_valid": true,

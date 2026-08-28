@@ -71,6 +71,14 @@ def main() -> int:
             ROOT / "examples/reward_signals/reward-sample-002-parse-fail.json",
             ROOT / "schemas/reward_signal.schema.json",
         ),
+        (
+            ROOT / "examples/d2_multi_turn/sample-positive-001-multi-tool-sequential.json",
+            ROOT / "schemas/d2_multi_turn_sample.schema.json",
+        ),
+        (
+            ROOT / "examples/d2_multi_turn/sample-positive-002-error-recovery.json",
+            ROOT / "schemas/d2_multi_turn_sample.schema.json",
+        ),
     ]
 
     failed = False
