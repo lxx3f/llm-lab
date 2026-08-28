@@ -150,6 +150,26 @@ class Stage0SchemaTests(unittest.TestCase):
         document["reward_binary"] = 1.5
         self.assert_invalid(document, "reward_signal.schema.json")
 
+    def test_reward_signal_accepts_d2_task_types(self) -> None:
+        """reward_offline can now tag signals with the six canonical D2
+        multi-turn task types; the schema must accept them."""
+        base = copy.deepcopy(load_json(
+            EXAMPLES / "reward_signals/reward-sample-001.json"))
+        for task_type in ("tool_not_available", "tool_error_response",
+                          "insufficient_result_search", "req_change_city",
+                          "multi_tool_sequential", "error_recovery"):
+            with self.subTest(task_type=task_type):
+                document = copy.deepcopy(base)
+                document["task_type"] = task_type
+                self.assertEqual([], errors_for(
+                    document, "reward_signal.schema.json"))
+
+    def test_reward_signal_rejects_unknown_task_type(self) -> None:
+        document = copy.deepcopy(load_json(
+            EXAMPLES / "reward_signals/reward-sample-001.json"))
+        document["task_type"] = "multi_turn_tool_chain"
+        self.assert_invalid(document, "reward_signal.schema.json")
+
 
 if __name__ == "__main__":
     unittest.main()

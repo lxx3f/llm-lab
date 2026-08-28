@@ -38,7 +38,13 @@
         "multi_tool",
         "tool_error",
         "insufficient_result",
-        "requirement_change"
+        "requirement_change",
+        "tool_not_available",
+        "tool_error_response",
+        "insufficient_result_search",
+        "req_change_city",
+        "multi_tool_sequential",
+        "error_recovery"
       ]
     },
     "transcript_kind": {

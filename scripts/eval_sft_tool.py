@@ -9,6 +9,11 @@ Pipeline:
 4. Classify the transcript through the P1-05 8-level failure classifier
    and report per-layer failure distribution.
 
+``--prompt-mode multi_turn`` serializes the full D2 messages history
+(``### User`` / ``### Assistant`` / ``### Result`` rounds) into the prompt
+and generates the continuation — the standard entry point for evaluating
+models on the D2 multi-turn held-out split.
+
 Because the model is small and imperfect, generated text is often
 malformed; the evaluator deliberately exercises the classifier's
 robustness (parse_success=False paths) as well as correct transcripts.
@@ -49,6 +54,63 @@ from architecture_lab.training.sft_training import (  # noqa: E402
 from scripts.classify_tool_failure import classify  # noqa: E402
 
 DEFAULT_TOKENIZER = ROOT / "artifacts" / "tokenizers" / "owt-bpe" / "v0.2.0" / "tokenizer.json"
+
+
+def render_multi_turn_prompt(messages: list[dict]) -> str:
+    """Serialize a D2 multi-turn transcript into the SFT prompt template.
+
+    ``### User`` / ``### Assistant`` / ``### Result`` separators mirror
+    ``architecture_lab.training.sft_training`` so the model sees the same
+    surface it was trained on. The final assistant message (the target
+    span) is excluded; ``### Assistant\n`` is appended so generation
+    produces the continuation the classifier will score against
+    ``sample.expected_tool_calls``.
+    """
+    from architecture_lab.training.sft_training import (  # noqa: F401
+        USER_SEP, ASSISTANT_SEP, RESULT_SEP)
+    from architecture_lab.training.sft_training import render_plan_json
+
+    body: list[str] = []
+    messages = [m for m in messages if m.get("role") in ("system", "user", "assistant", "tool")]
+    # Drop a leading system message (mirror _find_user_turn behavior).
+    messages = [m for m in messages if m.get("role") != "system"]
+    # Exclude the final assistant message if it carries no tool_calls.
+    if messages and messages[-1].get("role") == "assistant" and not messages[-1].get("tool_calls"):
+        messages = messages[:-1]
+    for message in messages:
+        role = message.get("role")
+        content = message.get("content")
+        if role == "user":
+            if content:
+                body.append(f"{USER_SEP}{content}\n")
+        elif role == "assistant":
+            calls = message.get("tool_calls") or []
+            if calls:
+                plan = render_plan_json([{
+                    "call_id": call.get("id"),
+                    "name": call.get("function", {}).get("name"),
+                    "arguments": _parse_args(call.get("function", {}).get("arguments")),
+                } for call in calls])
+                body.append(f"{ASSISTANT_SEP}{plan}\n")
+            elif content:
+                body.append(f"{ASSISTANT_SEP}{content}\n")
+        elif role == "tool":
+            if content is not None:
+                body.append(f"{RESULT_SEP}{content}\n")
+    body.append(ASSISTANT_SEP)
+    return "".join(body)
+
+
+def _parse_args(raw: object) -> dict:
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else {}
+        except json.JSONDecodeError:
+            return {}
+    return {}
 
 
 def extract_tool_calls(generated: str) -> list[dict] | None:
@@ -157,6 +219,10 @@ def main() -> int:
     parser.add_argument("--max-new-tokens", type=int, default=200)
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts" / "sft-eval-result.json")
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--prompt-mode", choices=("last_user", "multi_turn"),
+                        default="last_user",
+                        help="last_user=prompt only the final user turn (single-turn); "
+                             "multi_turn=serialize the full transcript history")
     args = parser.parse_args()
 
     tokenizer = BPETokenizer.load(args.tokenizer)
@@ -192,8 +258,12 @@ def main() -> int:
     total = len(sample_paths)
     for path in sample_paths:
         sample = json.loads(path.read_text(encoding="utf-8"))
-        user_turn = _find_user_turn(sample["messages"])
-        prompt_ids = tokenizer.encode(USER_SEP + user_turn + "\n" + ASSISTANT_SEP)
+        if args.prompt_mode == "multi_turn":
+            prompt_text = render_multi_turn_prompt(sample["messages"])
+        else:
+            user_turn = _find_user_turn(sample["messages"])
+            prompt_text = USER_SEP + user_turn + "\n" + ASSISTANT_SEP
+        prompt_ids = tokenizer.encode(prompt_text)
         generated = generate(model, tokenizer, prompt_ids,
                              max_new_tokens=args.max_new_tokens, device=device)
         calls = extract_tool_calls(generated)
@@ -206,7 +276,7 @@ def main() -> int:
         rows.append({
             "sample_id": sample.get("id"),
             "task_type": sample.get("metadata", {}).get("task_type"),
-            "user_turn": user_turn,
+            "user_turn": user_turn if args.prompt_mode == "last_user" else prompt_text[:200],
             "generated": generated[:200],
             "extracted_calls": calls,
             "layers": result["layers"],

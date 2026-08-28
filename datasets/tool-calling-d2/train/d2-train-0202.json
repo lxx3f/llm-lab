@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "帮我查一下深圳的天气。"
+      "content": "帮我查一下上海的天气。"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_get_weather",
-            "arguments": "{\"city\": \"深圳\"}"
+            "arguments": "{\"city\": \"上海\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "深圳 当前天气：晴，22°C，微风。",
+      "content": "上海 当前天气：晴，22°C，微风。",
       "tool_call_id": "call-d2-train-0202-0001",
       "name": "d1_get_weather"
     },
@@ -84,9 +84,9 @@
       "call_id": "call-d2-train-0202-0001",
       "name": "d1_get_weather",
       "arguments": {
-        "city": "深圳"
+        "city": "上海"
       },
-      "expected_result": "深圳 当前天气：晴，22°C，微风。",
+      "expected_result": "上海 当前天气：晴，22°C，微风。",
       "depends_on": []
     },
     {

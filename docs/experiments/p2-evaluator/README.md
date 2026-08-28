@@ -58,25 +58,27 @@
 ### 2.4 已知边界
 
 - **D1 dev 仅 13 样本，5 checkpoint × 13 = 65 signals 不是一个有统计意义的 reward benchmark**；
-- **D2 dev 90 样本** 是首个有统计意义的 held-out reward split（详见 `docs/protocols/d2-multi-turn.md`）。本轮已验证 reward_offline 在 D2 dev 多轮 transcript pipeline 上工作正常：mock transcript (手工重建 D2 dev 中 expected_tool_calls 的成功执行轨迹) → reward_offline → **90/90 reward_binary=1.0、reward_layered=1.0**（`artifacts/d2-mock-reward-d2dev.json`）。该 mock pipeline 验证仅证明 reward_offline 能消费 D2 dev 多轮 transcript，不等同于在 D2 dev 上跑模型推理的 reward 评测。
+- **D2 dev 90 样本** 是首个有统计意义的 held-out reward split（详见 `docs/protocols/d2-multi-turn.md`）。本节第 6 节已用真实模型推理在 D2 dev 上跑完 5 ckpt × 90 = 450 reward_signal：**全部 reward_binary=0.0（450/450 parse_success 失败）**——自研单轮 SFT 模型在 D2 多轮 transcript 上完全无法产出可解析的工具调用。该结果是诚实负结果，说明：(a) D2 dev 评测管线可跑通；(b) 单轮模型不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。
+- `artifacts/d2-mock-reward-d2dev.json`（mock transcript 90/90 reward_binary=1.0）仅验证 reward_offline 能消费 D2 dev 多轮 transcript 的**管线兼容性**，不等同于模型推理 reward 评测；
 - D1.1 train 50-sample 聚合不是 held-out split，不能用于正式 reward 分布对比；
 - 5 ckpt 之外的多 seed 聚合（d256 5k × 3 seeds）属 SFT MVP 阶段的多 seed 协议（P1-03）产出，本表不重复列举；
-- 下一阶段：5 ckpt 实际在 D2 dev 上跑推理（需先确保 checkpoint 接受多轮 messages；当前自研 12M 模型均为单轮训练，D2 dev 跨多轮场景尚未生成实际 transcript）。P5-02 公开 instruction-tuned 模型可以直接接受 D2 dev 多轮 messages，是首个能在 D2 dev 上跑实际 reward 评测的场景。
+- 下一阶段：P5-02 公开 instruction-tuned 模型可直接接受 D2 dev 多轮 messages，是首个能在 D2 dev 上获得非退化 reward 分布的场景。
 
 ## 3. 文件
 
 | 文件 | 含义 |
 |---|---|
-| `schemas/reward_signal.schema.json` | reward_signal 结构定义（含 reward_type enum: parse_success / argument_correct / final_answer_correct / execution_correct）|
+| `schemas/reward_signal.schema.json` | reward_signal 结构定义（含 reward_type enum: parse_success / argument_correct / final_answer_correct / execution_correct；task_type enum 含 D1 + D2 六类多轮）|
 | `scripts/reward_offline.py` | 离线 reward 计算 + CLI（含 `_dominant_reward()` 选择 reward_type 主导通道）|
 | `tests/test_reward_offline.py` | **37** 单测 = 8 层各 ≥ 3 例（共 25：parse_success 4 例 + 其他 7 层各 3 例）+ classifier 一致性（4 例）+ reward_type 映射（7 例：5 主路径 + 2 鲁棒性）+ CLI 聚合（1 例）|
-| `tests/test_stage0_schemas.py` | 新增 reward schema 正负例测试（full pass / parse fail / 缺 reward_type / 未知 reward_type / reward_binary 越界）|
+| `tests/test_stage0_schemas.py` | reward schema 正负例测试（full pass / parse fail / 缺 reward_type / 未知 reward_type / reward_binary 越界 / D2 task_type 接受 / 未知 task_type 拒绝）|
 | `examples/reward_signals/reward-sample-001.json` | reward_signal 正例样例（execution_correct）|
 | `examples/reward_signals/reward-sample-002-parse-fail.json` | reward_signal parse-fail 样例（reward_type=parse_success）|
 | `scripts/validate_stage0.py` | 注册 reward schema + 两个 examples |
 | `docs/protocols/p2-evaluator.md` | P2 协议文档 |
 | `docs/experiments/p2-evaluator/README.md` | 本文件 |
 | `artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d1dev-reward.json` | 5 ckpt × D1 dev 13 = **65** reward_signal + aggregate（gitignored）|
+| `artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d2dev-reward.json` | 5 ckpt × D2 dev 90 = **450** reward_signal + aggregate（gitignored）|
 | `artifacts/d2-mock-reward-d2dev.json` | mock transcript pipeline 验证：reward_offline 在 D2 dev 90 多轮 transcript 上输出 90/90 reward_binary=1.0（gitignored）|
 
 ## 4. 复现
@@ -98,6 +100,52 @@
 
 ## 5. 下一步
 
-1. **P3 数据版本 D2 多轮对话**：解决 held-out split 不足的问题，让 reward 分布对比有统计意义；
+1. **P3 数据版本 D2 多轮对话**：解决 held-out split 不足的问题，让 reward 分布对比有统计意义（本节第 6 节已完成 5 ckpt × D2 dev 真实推理评测）；
 2. **P5-02 Transformers backend**：让公开 instruction-tuned 模型能跑同一 reward signal，做公平对比；
 3. **P4 GRPO**：当 P3 + P5-02 就位后，把 `reward_binary` / `reward_layered` 作为 GRPO advantage 计算的输入。
+
+## 6. D2 dev 90 样本：5 ckpt 真实推理 reward 评测（2026-08-28）
+
+P3 阶段交付 D2 dev（90 多轮样本，独立 IID held-out split，与 D1.1 train 不重叠）后，按目标第 5 项对 SFT MVP 的 5 个 checkpoint 在 D2 dev 上跑真实模型推理 + reward_offline。
+
+### 6.1 方法
+
+- 推理入口：`scripts/eval_sft_tool.py --prompt-mode multi_turn`。多轮提示把 D2 样本的完整 `messages` 历史按 SFT 模板序列化为 `### User` / `### Assistant` / `### Result` 轮次，末尾追加 `### Assistant\n`，贪婪生成续写；
+- 每个 checkpoint 对 D2 dev 90 样本生成 1 个 eval JSON（`artifacts/sft-<name>-eval-d2dev.json`）；
+- 再用 `scripts/reward_offline.py` 计算 90 个 reward_signal（`artifacts/sft-<name>-eval-d2dev-reward.json`）；
+- `schemas/reward_signal.schema.json` 的 task_type enum 已扩展 D2 六类，450 个新 signal 全部通过 Draft202012 校验。
+
+### 6.2 结果（5 ckpt × 90 = 450 reward_signal）
+
+| # | Checkpoint | reward_binary | reward_layered | reward_type 分布 |
+|---|---|---|---|---|
+| 1 | `sft-tool-large-v1` | 0.0000 | 0.0000 | parse_success × 90 |
+| 2 | `sft-tool-large-night` | 0.0000 | 0.0000 | parse_success × 90 |
+| 3 | `sft-tool-d256-5k-seed42` | 0.0000 | 0.0000 | parse_success × 90 |
+| 4 | `sft-tool-d256-20k-seed42` | 0.0000 | 0.0000 | parse_success × 90 |
+| 5 | `sft-moe-v1` | 0.0000 | 0.0000 | parse_success × 90 |
+
+### 6.3 解读（诚实负结果）
+
+- **450/450 reward_binary=0.0、reward_layered=0.0、reward_type=parse_success**：自研单轮 SFT 模型面对 D2 多轮 transcript（含历史 assistant 工具调用 + tool 结果）无法产出任何可解析的工具调用 JSON，`extract_tool_calls` 全部返回 None；
+- 这与 D1 dev 的 65/65 parse 失败一致，但 D2 dev 是**首个有统计意义的 held-out split**（90 样本 vs 13 样本），且首次暴露“单轮模型不具多轮工具调用能力”这一本质局限；
+- 该结果不贬低 D2 数据集本身：D2 dev 的 expected_tool_calls / depends_on / multi-turn 结构均经 MockExecutor 与 schema 校验正确（见 `docs/protocols/d2-multi-turn.md`）；退化分布源于模型能力，而非数据或评测管线；
+- **后续动作**：P5-02 公开 instruction-tuned 模型（可直接消费多轮 messages）是首个能在 D2 dev 上获得非退化 reward 分布的场景；或先训练自研多轮 SFT（messages 含 assistant + tool 角色）。
+
+### 6.4 复现
+
+```bash
+# 5 个 checkpoint 中的 1 个：D2 dev 多轮推理
+.venv/python.exe scripts/eval_sft_tool.py \
+    --checkpoint artifacts/checkpoints/<ckpt>.pt \
+    --samples-dir datasets/tool-calling-d2/dev \
+    --output artifacts/sft-<name>-eval-d2dev.json \
+    --prompt-mode multi_turn
+
+# reward_offline
+.venv/python.exe scripts/reward_offline.py \
+    --samples-dir datasets/tool-calling-d2/dev \
+    --transcripts artifacts/sft-<name>-eval-d2dev.json \
+    --output artifacts/sft-<name>-eval-d2dev-reward.json \
+    --checkpoint sft-tool-<name>
+```

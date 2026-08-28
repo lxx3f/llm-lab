@@ -792,11 +792,19 @@ P3/P4 后续动作：
 - `docs/plans/roadmap.md`：P3 加入已完成阶段表；当前阶段仍 P5。
 - `docs/plans/reviews/stage-p3-d2-multi-turn.md`：阶段审查记录（reviewer r1/r2 PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）；4 warnings 已修：call_id 命名空间一致性、req_change 保留首轮废弃轨迹并标记 abandoned、open-issues.md 本条目同步、第 9 节表格双 `|` 修正。
 
-验证：`scripts/run_tests.py full` → Ran **245** tests OK；`scripts/validate_stage0.py --examples` → 9/9 PASS；600 D2 样本使用独立 D2 schema + 真实 `MockExecutor.execute_sequence()` 验证零错误；D2 dev mock transcript pipeline 90/90 reward_binary=1.0、reward_layered=1.0、reward_type=execution_correct；reviewer r1/r2 通过。
+验证：`scripts/run_tests.py full` → Ran **247** tests OK；`scripts/validate_stage0.py --examples` → 9/9 PASS；600 D2 样本使用独立 D2 schema + 真实 `MockExecutor.execute_sequence()` 验证零错误；D2 dev mock transcript pipeline 90/90 reward_binary=1.0、reward_layered=1.0、reward_type=execution_correct；**5 ckpt × D2 dev 90 = 450 真实推理 reward_signal 已产出（全部 parse_success 诚实负结果，见 `docs/experiments/p2-evaluator/README.md` 第 6 节）**；`tool_not_available` 多样化修复（12 个不同用户请求变体）；reviewer r1/r2/r3 通过。
+
+审计 round 7 修复：
+
+- 跑完 5 ckpt × D2 dev 推理 + reward_offline（`artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d2dev-reward.json`，450 signals 全 schema 合法）；
+- `schemas/reward_signal.schema.json` task_type enum 扩展 D2 六类多轮；
+- `scripts/eval_sft_tool.py` 新增 `--prompt-mode multi_turn`（多轮历史序列化提示）；
+- `tool_not_available` 模板改 12 变体池（缺失能力 / 用户请求 / 拒绝理由各不相同）；
+- `docs/experiments/p2-evaluator/README.md` 用真实 5 ckpt × D2 dev 结果替换 mock 主表（mock 降为管线兼容性验证）。
 
 遗留：
 
-- 自研 5 ckpt（单轮训练）尚未在 D2 dev 上跑实际推理 reward 评测——需 P5-02 公开模型 + Transformers backend 后才能验证。
+- ~~自研 5 ckpt（单轮训练）尚未在 D2 dev 上跑实际推理 reward 评测——需 P5-02 公开模型 + Transformers backend 后才能验证。~~（已于 round 7 完成：5 ckpt × D2 dev 90 = 450 reward_signal，全部 parse_success 诚实负结果，详见 `docs/experiments/p2-evaluator/README.md` 第 6 节。）
 - D2 数据规模 600（420 train / 90 dev / 90 test）属 MVP；正式 GRPO rollout 池需 D2 扩样到 5000+。
 
 ---

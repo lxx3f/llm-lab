@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请查询美元兑人民币的实时汇率。"
+      "content": "请帮我查一下美元兑人民币的实时汇率。"
     },
     {
       "role": "assistant",
@@ -81,7 +81,7 @@
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_exchange_rate_tool",
+    "task_template": "missing_实时汇率查询",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-08-27T00:04:55+00:00",

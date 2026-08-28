@@ -43,7 +43,7 @@ commit 候选变更：见下方“完成范围”节。
 
 ### 已知边界
 
-- 自研 5 ckpt 均为单轮训练，当前**未在 D2 dev 上跑实际推理 reward 评测**（仅 mock pipeline 验证）；
+- ~~自研 5 ckpt 均为单轮训练，当前未在 D2 dev 上跑实际推理 reward 评测（仅 mock pipeline 验证）~~（已于 round 7 完成：450/450 parse_success 诚实负结果，见第 6 节 Round 3 修复记录）
 - D2 数据规模 600（420 train / 90 dev / 90 test）属 MVP；正式 GRPO rollout 池需 D2 扩样到 5000+；
 - D2 与 D1 / D1.1 train id 互斥保证靠 id 命名空间 + 目录物理隔离 + `D2SplitDisjointnessTests` 三重保证。
 
@@ -57,6 +57,18 @@ commit 候选变更：见下方“完成范围”节。
 ### durable 证据
 
 - **durable 证据**：本轮 reviewer 输出保存到 `.pi-glla/scratch/stage-p3-d2-multi-turn-review-r1.txt`（gitignored）；本轮 post-fix 验证由命令输出和 full suite 记录补充。
+
+### Round 3（2026-08-28，auditor round 7 修复）
+
+Auditor round 7 提出 3 项阻塞，全部修复：
+
+1. **5 ckpt × D2 dev reward_offline 未跑**：已用 `scripts/eval_sft_tool.py --prompt-mode multi_turn` 对 5 个 checkpoint 在 D2 dev 90 样本上跑真实推理，再跑 reward_offline，产出 `artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d2dev-reward.json`（450 signals，全部 parse_success 诚实负结果）；`schemas/reward_signal.schema.json` task_type enum 扩展 D2 六类多轮。
+2. **README 仍以 mock 为主表**：`docs/experiments/p2-evaluator/README.md` 新增第 6 节真实 5 ckpt × D2 dev 结果表 + 方法 + 复现命令；mock pipeline 降级为管线兼容性验证说明。
+3. **tool_not_available 语义多样性不足**：`_NOT_AVAILABLE_VARIANTS` 12 变体池（缺失能力 / 用户请求 / 拒绝理由各不相同），train 70 样本覆盖 12 个不同请求。
+
+新增测试：`tests/test_stage0_schemas.py` 增加 D2 task_type 接受 + 未知 task_type 拒绝 2 例。
+
+验证：`scripts/run_tests.py full` → Ran 247 tests OK；stage0 9/9；450 D2 reward signals 全 schema 合法。
 
 ## 审查结论
 

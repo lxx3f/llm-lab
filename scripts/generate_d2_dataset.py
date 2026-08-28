@@ -310,17 +310,53 @@ def _req_change_city(rng: random.Random, sid: str, created: str) -> dict[str, An
     )
 
 
+_NOT_AVAILABLE_VARIANTS: tuple[tuple[str, str, str], ...] = (
+    # (missing capability, user request, refusal rationale)
+    ("实时汇率查询", "请帮我查一下美元兑人民币的实时汇率。",
+     "当前可用工具中没有汇率查询功能，无法完成此任务。"),
+    ("股票行情查询", "帮我查一下特斯拉今天的股价。",
+     "当前可用工具中没有股票行情查询功能，无法获取实时股价。"),
+    ("发送邮件", "请帮我给 luna@example.com 发一封提醒邮件。",
+     "当前可用工具中没有邮件发送功能，我无法代你发邮件。"),
+    ("创建日历日程", "帮我在明天下午 3 点创建一个会议日程。",
+     "当前可用工具中没有日历日程功能，无法创建日程。"),
+    ("航班查询", "查一下后天北京到上海的航班。",
+     "当前可用工具中没有航班查询功能，无法获取航班信息。"),
+    ("食谱查询", "帮我找一份番茄炒蛋的做法。",
+     "当前可用工具中没有食谱查询功能，无法提供菜谱。"),
+    ("停车位查询", "帮我看看公司楼下有没有停车位。",
+     "当前可用工具中没有停车位查询功能，无法查询。"),
+    ("工单创建", "请帮我创建一个新的 IT 工单。",
+     "当前可用工具中没有工单创建功能，无法创建工单。"),
+    ("加密货币价格", "查一下比特币现在的价格。",
+     "当前可用工具中没有加密货币价格查询功能，无法获取行情。"),
+    ("天气预警", "帮我订阅明天北京的大风预警。",
+     "当前可用工具中没有天气预警订阅功能，无法完成订阅。"),
+    ("翻译成英文", "请帮我把这份合同翻译成英文。",
+     "当前可用工具中没有合同翻译功能，无法完成翻译。"),
+    ("图片生成", "帮我生成一张秋天森林的图片。",
+     "当前可用工具中没有图片生成功能，无法生成图片。"),
+)
+
+
 def _tool_not_available(rng: random.Random, sid: str, created: str) -> dict[str, Any]:
-    answer = "当前可用工具中没有汇率查询功能，无法完成此任务。"
+    """User asks for a capability that is NOT among the available tools.
+
+    The expected transcript: assistant does NOT call any tool and reports
+    that the requested capability is unavailable. Each sample draws from
+    a pool of (capability, request, rationale) triples so the task keeps
+    its semantics while the user request, available-tool set, and refusal
+    wording differ across samples (auditor round 7 diversity fix)."""
+    capability, request, rationale = rng.choice(_NOT_AVAILABLE_VARIANTS)
     return _sample(
         sid,
         [
             {"role": "system", "content": "You are a helpful assistant with tool access."},
-            {"role": "user", "content": "请查询美元兑人民币的实时汇率。"},
-            {"role": "assistant", "content": answer},
+            {"role": "user", "content": request},
+            {"role": "assistant", "content": rationale},
         ],
-        [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL], [], answer,
-        "tool_not_available", "missing_exchange_rate_tool", created,
+        [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL], [], rationale,
+        "tool_not_available", f"missing_{capability[:8]}", created,
     )
 
 

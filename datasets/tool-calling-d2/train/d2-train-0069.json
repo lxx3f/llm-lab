@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "搜索 'GRPO 强化学习' 的资料，如果不够请追问。"
+      "content": "搜索 'LLM 评测' 的资料，如果不够请追问。"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"GRPO 强化学习\", \"limit\": 1}"
+            "arguments": "{\"query\": \"LLM 评测\", \"limit\": 1}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「GRPO 强化学习」找到 1 条结果。",
+      "content": "关于「LLM 评测」找到 1 条结果。",
       "tool_call_id": "call-d2-train-0069-0001",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "仅找到 1 条结果：关于「GRPO 强化学习」找到 1 条结果。。请补充你关注的方向。"
+      "content": "仅找到 1 条结果：关于「LLM 评测」找到 1 条结果。。请补充你关注的方向。"
     },
     {
       "role": "user",
@@ -72,14 +72,14 @@
       "call_id": "call-d2-train-0069-0001",
       "name": "d1_web_search",
       "arguments": {
-        "query": "GRPO 强化学习",
+        "query": "LLM 评测",
         "limit": 1
       },
-      "expected_result": "关于「GRPO 强化学习」找到 1 条结果。",
+      "expected_result": "关于「LLM 评测」找到 1 条结果。",
       "depends_on": []
     }
   ],
-  "expected_answer": "仅找到 1 条结果：关于「GRPO 强化学习」找到 1 条结果。。请补充你关注的方向。",
+  "expected_answer": "仅找到 1 条结果：关于「LLM 评测」找到 1 条结果。。请补充你关注的方向。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

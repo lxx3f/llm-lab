@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "先计算 3 ** 4，再搜索结果 result 81。"
+      "content": "先计算 100 / 5，再搜索结果 result 20。"
     },
     {
       "role": "assistant",
@@ -19,14 +19,14 @@
           "type": "function",
           "function": {
             "name": "d1_calculate",
-            "arguments": "{\"expression\": \"3 ** 4\"}"
+            "arguments": "{\"expression\": \"100 / 5\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "81",
+      "content": "20",
       "tool_call_id": "call-d2-train-0053-0001",
       "name": "d1_calculate"
     },
@@ -39,20 +39,20 @@
           "type": "function",
           "function": {
             "name": "d1_web_search",
-            "arguments": "{\"query\": \"result 81\", \"limit\": 3}"
+            "arguments": "{\"query\": \"result 20\", \"limit\": 3}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "关于「result 81」找到 3 条结果。",
+      "content": "关于「result 20」找到 3 条结果。",
       "tool_call_id": "call-d2-train-0053-0002",
       "name": "d1_web_search"
     },
     {
       "role": "assistant",
-      "content": "计算结果为 81；搜索结果：关于「result 81」找到 3 条结果。"
+      "content": "计算结果为 20；搜索结果：关于「result 20」找到 3 条结果。"
     }
   ],
   "tools": [
@@ -102,25 +102,25 @@
       "call_id": "call-d2-train-0053-0001",
       "name": "d1_calculate",
       "arguments": {
-        "expression": "3 ** 4"
+        "expression": "100 / 5"
       },
-      "expected_result": 81,
+      "expected_result": 20,
       "depends_on": []
     },
     {
       "call_id": "call-d2-train-0053-0002",
       "name": "d1_web_search",
       "arguments": {
-        "query": "result 81",
+        "query": "result 20",
         "limit": 3
       },
       "depends_on": [
         "call-d2-train-0053-0001"
       ],
-      "expected_result": "关于「result 81」找到 3 条结果。"
+      "expected_result": "关于「result 20」找到 3 条结果。"
     }
   ],
-  "expected_answer": "计算结果为 81；搜索结果：关于「result 81」找到 3 条结果。",
+  "expected_answer": "计算结果为 20；搜索结果：关于「result 20」找到 3 条结果。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

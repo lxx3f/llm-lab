@@ -125,6 +125,10 @@ P2 阶段交付的 `scripts/reward_offline.py` 直接消费 D2 dev 90 样本作�
 
 D1 dev 13 样本保留作为早期 dev 探针；D2 dev 是首个有统计意义的 reward 评测 split。
 
+**P3 阶段已在 D2 dev 上完成 5 ckpt × 90 = 450 个真实推理 reward_signal**：自研单轮 SFT 模型全部 450/450 `parse_success` 失败（reward_binary=0.0，见 `docs/experiments/p2-evaluator/README.md` 第 6 节）。该诚实负结果证明：(a) D2 dev 评测管线可跑通；(b) 单轮模型不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。
+
+`scripts/eval_sft_tool.py --prompt-mode multi_turn` 负责把 D2 多轮 messages 序列化为 SFT 模板历史并生成续写，是 D2 dev 评测的标准推理入口。
+
 ## 8. 与 P4 GRPO / P5-02 的衔接
 
 - P4 GRPO：以 D2 train (420 样本) 作为 GRPO rollouts 的 prompt 池；D2 dev / test 作为 advantage 估计的对照基线；

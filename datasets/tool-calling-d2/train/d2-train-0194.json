@@ -8,7 +8,7 @@
     },
     {
       "role": "user",
-      "content": "请把 'Good morning.' 翻译成中文。"
+      "content": "请把 'Test sentence.' 翻译成中文。"
     },
     {
       "role": "assistant",
@@ -19,20 +19,20 @@
           "type": "function",
           "function": {
             "name": "d1_translate",
-            "arguments": "{\"text\": \"Good morning.\", \"target_lang\": \"zh\"}"
+            "arguments": "{\"text\": \"Test sentence.\", \"target_lang\": \"zh\"}"
           }
         }
       ]
     },
     {
       "role": "tool",
-      "content": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "content": "ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')",
       "tool_call_id": "call-d2-train-0194-0001",
       "name": "d1_translate"
     },
     {
       "role": "assistant",
-      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。"
+      "content": "翻译工具返回错误：ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')。无法完成翻译。"
     }
   ],
   "tools": [
@@ -64,14 +64,14 @@
       "call_id": "call-d2-train-0194-0001",
       "name": "d1_translate",
       "arguments": {
-        "text": "Good morning.",
+        "text": "Test sentence.",
         "target_lang": "zh"
       },
-      "expected_result": "ERROR: translation service unavailable (text='Good morning.', target_lang='zh')",
+      "expected_result": "ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')",
       "depends_on": []
     }
   ],
-  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Good morning.', target_lang='zh')。无法完成翻译。",
+  "expected_answer": "翻译工具返回错误：ERROR: translation service unavailable (text='Test sentence.', target_lang='zh')。无法完成翻译。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

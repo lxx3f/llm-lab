@@ -8,11 +8,11 @@
     },
     {
       "role": "user",
-      "content": "请查询美元兑人民币的实时汇率。"
+      "content": "帮我找一份番茄炒蛋的做法。"
     },
     {
       "role": "assistant",
-      "content": "当前可用工具中没有汇率查询功能，无法完成此任务。"
+      "content": "当前可用工具中没有食谱查询功能，无法提供菜谱。"
     }
   ],
   "tools": [
@@ -76,12 +76,12 @@
     }
   ],
   "expected_tool_calls": [],
-  "expected_answer": "当前可用工具中没有汇率查询功能，无法完成此任务。",
+  "expected_answer": "当前可用工具中没有食谱查询功能，无法提供菜谱。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",
     "task_type": "tool_not_available",
-    "task_template": "missing_exchange_rate_tool",
+    "task_template": "missing_食谱查询",
     "data_version": "D2",
     "pipeline_version": "generate_d2_dataset.py/v2.0",
     "created_at": "2026-08-27T00:02:25+00:00",
