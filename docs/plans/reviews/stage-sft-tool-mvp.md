@@ -1,11 +1,31 @@
 # 阶段 SFT 工具调用训练 MVP 审查
 
-审查模型：`minimax-cn/MiniMax-M3`
+审查模型：`minimax-cn/MiniMax-M3`（project-level `reviewer` agent，frontmatter 明记）
 审查 agent：`reviewer`（subagent dispatch 名称）
 实际 provider/model：`PI_PROVIDER=minimax-cn`，`PI_MODEL=MiniMax-M3`
 可选运行标识：`PI_AGENT_NAME` 未由 harness 注入
 审查文件路径：`docs/plans/reviews/stage-sft-tool-mvp.md`
-commit 候选变更：`docs/plans/roadmap.md`、`docs/plans/reviews/stage-sft-tool-mvp.md`、`docs/plans/open-issues.md`
+commit 候选变更：`docs/plans/roadmap.md`、`docs/plans/reviews/stage-sft-tool-mvp.md`、`docs/plans/open-issues.md`、`docs/plans/review-process.md`
+
+## 审查与复核记录
+
+### 初次审查（2026-08-28 03:36 UTC）
+
+由主会话以 reviewer subagent 形式发起，仅读访问。项目设置 `.pi-glla/settings.json` 里的 `auditorModel=calculet/gpt-5.6-terra` 作用于 goal-list-loop-auditor 的 isolated 裁决，独立于 stage review。Initial review 输出了“有条件通过”，指出 stage review 记录与实际 README/roadmap 不一致以及 vLLM 范围语义问题。
+
+### 修正后复核（2026-08-28 04:09 UTC）
+
+主会话修复三处文档不一致（roadmap 加 P1-02、README 同步 D1/D1.1+评测+端到端、D1.1 / P1-04 同步 1500/6×250/sources/1555）后重新 dispatch reviewer subagent。本次复核环境实测 `PI_PROVIDER=minimax-cn`、`PI_MODEL=MiniMax-M3`，`BLOCKERS: none`，七项核对全部通过：
+
+1. roadmap 已完成阶段含 P1-02/P1-03/P1-04/P1-05/SFT MVP，当前阶段为 P5；
+2. stage-sft-tool-mvp.md 含六行（含 4b）实跑、多 seed 协议、聚合器、诚实负结果；
+3. D1.1 manifest 实测 `count=1500`，6×250，sources = 126 + 1374，1555 expected calls，与 README 一致；
+4. P1-04 区分模板版 126（100/13/13）与 D1.1 1500 train，mock executor 编号统一为 P1-02；
+5. README 状态仅 `Transformers/vLLM` 待勾，与 roadmap P5-02/03 对齐；
+6. `scripts/run_tests.py full` → `Ran 185 tests in 26.059s OK`；
+7. `BLOCKERS: none`，与 stage review 声称一致。
+
+复核报告原文已存档于 `.pi-glla/scratch/stage-sft-tool-mvp-review-r2.txt`（可选运行标识），供后续仓参。
 
 ## 阶段 sft-tool-mvp 审查
 

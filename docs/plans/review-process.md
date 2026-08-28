@@ -98,6 +98,10 @@ docs/plans/reviews/stage-<kebab-case-name>.md
 
 如果当前 agent harness 无法选择或确认 `minimax-cn/MiniMax-M3`，不得声称审查已完成；应暂停自动 commit 并报告阻塞原因。审查记录必须包含子 agent 返回的 `PI_PROVIDER`、`PI_MODEL` 和主 agent 调用时指定的审查 agent 名称；主 agent 在 commit 前核对这些字段。`PI_AGENT_NAME` 不是所有 harness 都会注入，因此仅在可用时记录，不作为阻塞条件。
 
+如果审查 subagent 实际返回的 `PI_PROVIDER` / `PI_MODEL` 与上述“审查模型”默认描述不一致（例如被 harness fallback），应以后者为正确值补动审查记录，不要复制 default 描述。 Stage review 记录中的 `审查模型` 字段仅描述 expected dispatch name，实际走接模型以 subagent 返回为准。
+
+另外，项目级 `auditorModel`（例如 `.pi-glla/settings.json` 中的 `auditorModel=calculet/gpt-5.6-terra`）作用于 goal-list-loop-auditor 的 isolated 裁决，与 stage review subagent 无关；不要混淆两者。
+
 ## 审查产物
 
 每次审查至少更新：

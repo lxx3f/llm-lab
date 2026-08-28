@@ -56,9 +56,9 @@ parse_success          ← transcript 结构可解析为 tool_calls 列表（空
 
 输出（`--output`）：`schema_version / sample_id / layers / first_failure`。
 
-## 与 P1-01 mock executor 的关系
+## 与 P1-02 mock executor 的关系
 
-- P1-01 MockExecutor 产生 `execution_outcome`（success / mock_not_found / argument_invalid / mock_exception）；
+- P1-02 MockExecutor 产生 `execution_outcome`（success / mock_not_found / argument_invalid / mock_exception；P1-02 为路线图现规范编号，历史阶段文档 `stage-p1-mock-executor.md` 早期正文曾写作 P1-01）；
 - P1-05 分类器消费这些 outcome 作为 `execution_success` 层的输入；
 - `result_grounded` 依赖样例的 `expected_result` 字段（D1 生成器对所有有 expected_tool_calls 的样例均写入 deterministic 值）。
 
