@@ -3,7 +3,7 @@
 > 阶段：P5-02
 > 审查时间：2026-08-28
 > 审查流程：subagent reviewer (`reviewer` dispatch, minimax-cn/MiniMax-M3) + detached auditor (calculet/gpt-5.6-terra)
-> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `217b0c4`）。本 stage review 评测在当前扩样版 D2 dev 750 子集 90 上完成；自研 5 ckpt 在该子集上的历史评测（与本 stage 不同时间点）见 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
+> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `217b0c4`）。本 stage review 评测在 P5-02 benchmark evaluation subset（benchmark 子集规模详见协议 §3）上完成；自研 5 ckpt 在该 benchmark 子集上的历史评测（与本 stage 不同时间点）见 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
 
 ## 阶段目标
 
@@ -40,7 +40,7 @@ Done when：
    - `test_apply_chat_template_does_not_include_expected_answer` — gold answer 字符串不会出现在 prompt
    - `test_apply_chat_template_keeps_context_tool_history` — 多轮 tool_calls + tool 结果被保留
    - `test_apply_chat_template_preserves_intermediate_assistant_calls` — 多 assistant tool_calls 全部保留
-3. 重跑 5 模型 eval + reward_offline（评测在 P5-02 benchmark evaluation subset，即从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集上，**不是 D2 数据集规模或 split 契约**）：
+3. 重跑 5 模型 eval + reward_offline（评测在 P5-02 benchmark evaluation subset 上，benchmark 子集规模详见 `docs/protocols/transformers-backend.md` §3，**不是 D2 数据集规模或 split 契约**）：
    - SmolLM2-360M: binary **0.0000**（原 0.0111 为伪）layered=0.4236
    - Qwen2.5-0.5B: binary=0 layered=0.3634
    - Qwen2.5-1.5B: binary=0 layered=0.3690

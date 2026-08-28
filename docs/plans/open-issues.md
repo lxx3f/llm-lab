@@ -790,7 +790,7 @@ P3/P4 后续动作：
   - `D2SplitDisjointnessTests` (8)：train/dev/test id/path/canonical semantic content 不重叠、每类历史 unique 语义实例数（详细见下方 round-13 归档）、与 D1/D1.1 train id 互斥、MANIFEST count / aggregate / per-file sha 一致；
   - `D2TimestampContractTests` (6)：`1785000000 + seed + index` 精确 UTC/Z 格式。
 - `docs/protocols/d2-multi-turn.md`：D2 schema 与 D1 / D1.1 差异 + 6 类任务定义 + call_id 依赖链 + held-out split 互斥保证 + 与 P2 reward offline + P4 GRPO + P5-02 衔接。
-- `docs/experiments/p2-evaluator/README.md`：**历史 MVP 样本版（详细数字见下方 round-13 归档）**引用 D2 dev 历史子集（详细数字见下方 round-13 归档） 样本作为首个有统计意义的 reward benchmark；`artifacts/d2-mock-reward-d2dev.json` 验证 reward_offline 能消费 D2 dev 多轮 transcript（90/90（历史数字；见下方 round-13 归档） reward_binary=1.0）。当前 D2 契约为 5000 样本 / dev 750 样本（round 14）。
+- `docs/experiments/p2-evaluator/README.md`：**历史 MVP 样本版（详细数字见下方 round-13 归档）**引用 D2 dev 历史子集（详细数字见下方 round-13 归档） 样本作为首个有统计意义的 reward benchmark；`artifacts/d2-mock-reward-d2dev.json` 验证 reward_offline 能消费 D2 dev 多轮 transcript（mock pipeline 全部 reward_binary=1.0；详见下方 round-13 归档）。当前 D2 契约为 5000 样本 / dev 750 样本（round 14）。
 - `docs/plans/roadmap.md`：P3 加入已完成阶段表；当前阶段仍 P5。
 - `docs/plans/reviews/stage-p3-d2-multi-turn.md`：阶段审查记录（reviewer r1/r2/r3/r4/r5 PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）；round 3/4 的历史问题已由 round 9 进一步修复。
 

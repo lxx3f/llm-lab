@@ -160,12 +160,12 @@ P2 阶段交付的 `scripts/reward_offline.py` 直接消费 D2 dev **750 样本*
 
 D1 dev 13 样本保留作为早期 dev 探针；D2 dev 750 样本是首个有统计意义的 reward 评测 split（vs D1 dev 的 13 样本 = 57.7× 提升）。
 
-`scripts/eval_sft_tool.py --prompt-mode multi_turn` 负责把 D2 多轮 messages 序列化为 SFT 模板历史并生成续写，是 D2 dev 评测的标准推理入口。P3 阶段自研 5 ckpt 在该 split 上的历史评测（当前 active 范围外）归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）；P5-02 阶段公开 5 模型在**P5-02 benchmark evaluation subset**（从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上的当前评测见 §7 后续段落。
+`scripts/eval_sft_tool.py --prompt-mode multi_turn` 负责把 D2 多轮 messages 序列化为 SFT 模板历史并生成续写，是 D2 dev 评测的标准推理入口。P3 阶段自研 5 ckpt 在该 split 上的历史评测（当前 active 范围外）归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）；P5-02 阶段公开 5 模型在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的固定 benchmark 子集，benchmark 子集规模详见 `docs/protocols/transformers-backend.md` §3，**不是 D2 数据集规模或 split 契约**）上的当前评测见 §7 后续段落。
 
 ## 8. 与 P4 GRPO / P5-02 的衔接
 
 - P4 GRPO：以 D2 train (**3500** 样本) 作为 GRPO rollouts 的 prompt 池；D2 dev / test 作为 advantage 估计的对照基线；
-- P5-02 Transformers backend：同一 `--samples-dir` 路径可在公开 instruction-tuned 模型上跑同一 reward offline 链路，与自研模型做公平对比。P5-02 阶段实际评测在 **P5-02 benchmark evaluation subset**（从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上完成；公开 5 模型在该 benchmark 子集上产出 reward_binary 全部 = 0（诚实负结果）、reward_layered 0.33–0.42，详见 `docs/plans/reviews/stage-p5-02-transformers-backend.md` 与 `docs/experiments/p2-evaluator/README.md` §7。
+- P5-02 Transformers backend：同一 `--samples-dir` 路径可在公开 instruction-tuned 模型上跑同一 reward offline 链路，与自研模型做公平对比。P5-02 阶段实际评测在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的固定 benchmark 子集，benchmark 子集规模详见 `docs/protocols/transformers-backend.md` §3，**不是 D2 数据集规模或 split 契约**）上完成；公开 5 模型在该 benchmark 子集上产出 reward_binary 全部 = 0（诚实负结果）、reward_layered 0.33–0.42，详见 `docs/plans/reviews/stage-p5-02-transformers-backend.md` 与 `docs/experiments/p2-evaluator/README.md` §7。
 
 ## 9. 与 D1 / D1.1 的差异
 
