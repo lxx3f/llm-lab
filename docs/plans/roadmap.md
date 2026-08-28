@@ -47,7 +47,7 @@
 | P1-04 数据版本 D0/D1 | `docs/protocols/p1-04-data-version-d0.md`；D1 数据集目录 + MANIFEST；filter 脚本 | (内嵌于 sft-tool-mvp stage review) |
 | P1-05 八级分类器 | parse_success → schema_valid → tool_name_correct → argument_value_correct → call_plan_matches → execution_success → result_grounded → final_answer_correct；含 `_norm_name`/`_norm_args` 鲁棒性；`scripts/classify_tool_failure.py`；44 单测 | (内嵌于 sft-tool-mvp stage review) |
 | SFT 工具调用训练 MVP | Dense + MoE 训练管线（数据构造 → 增强 → 训练 → 生成 → 评测）；5 次实跑对比（medium/large/large-night/d256×2/MoE）；多 seed eval 聚合器；185 单测；诚实负结果 | `stage-sft-tool-mvp.md` |
-| P2 确定性 evaluator | `schemas/reward_signal.schema.json`（v1.0）；`scripts/reward_offline.py`（reward_binary + reward_layered 双信号）；8 个跨 checkpoint D1 dev reward 评测；5 单测；与 P1-05 八级分类器对齐 | `stage-p2-evaluator.md` |
+| P2 确定性 evaluator | `schemas/reward_signal.schema.json`（v1.0，含 reward_type 4 值 enum）；`scripts/reward_offline.py`（reward_binary + reward_layered + reward_type 主导通道）；5 个 SFT MVP checkpoint × D1 dev 13 样本 = 65 reward_signal 全 schema 校验通过；**35** 单测（8 层各 ≥ 3 例 = 25 + classifier 一致性 4 + reward_type 映射 5 + CLI 聚合 1）；与 P1-05 八级分类器对齐 | `stage-p2-evaluator.md` |
 
 这些阶段都已通过阶段审查（`minimax-cn/MiniMax-M3` reviewer），不允许回退。
 
@@ -64,13 +64,13 @@
 
 任一子阶段失败必须先更新本路线图和 `open-issues.md`。
 
-## 下一阶段：P2 确定性 evaluator + GRPO
+## 下一阶段：P3 D2 数据集 + P4 GRPO + P5 后端
 
 | 阶段 | 范围 | 触发条件 |
 |---|---|---|
-| P2 确定性 evaluator | 任务定义、reward schema、离线 reward 校验 | P5 基础就位 |
-| P3 数据版本 D0/D1/D2 | D2 真实多轮 + 错误恢复 | P5 基础就位 |
-| P4 GRPO | 基于 P1-05 reward signal + 离线 reward 校验 | P2 + P3 完成 |
+| P3 数据版本 D2 多轮 | D2 真实多轮对话 + 错误恢复 + IID held-out split | P5 基础就位 |
+| P4 GRPO | 基于 P1-05 reward signal + P2 offline reward 校验 + P3 数据 | P2 + P3 完成 |
+| P5-01 开源 instruction-tuned 模型选定 | Qwen2.5-0.5B-Instruct / LLaMA-3.2-1B-Instruct；LICENSE + 模型卡记录 | — |
 | D2 数据集 | 多轮对话 + 错误恢复；≥5000 样 | P5 基础就位 |
 
 ## 暂缓阶段

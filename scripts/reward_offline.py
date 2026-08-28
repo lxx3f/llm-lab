@@ -71,33 +71,39 @@ def _dominant_reward(layers_full: dict[str, Any],
                     first_failure: str | None) -> str:
     """Map the P1-05 layer outcome to one of the four canonical reward channels.
 
-    Order of precedence (matches the ``parse_success``-first logic of the
-    P1-05 classifier):
+    The reward_type is the **first failure channel** in the P1-05 chain,
+    aligned with its documented semantics:
 
-    - ``parse_success`` is the dominant reward when the transcript is not
-      a structurally parseable list of dicts (i.e. parse_success is False).
-    - ``final_answer_correct`` is dominant when tool-name / argument /
-      execution / result / answer all pass but the answer text never
-      matches expected_answer; in that case ``first_failure`` is
-      ``final_answer_correct``.
-    - ``execution_correct`` is dominant when tool calls ran cleanly with
-      grounded results, regardless of the final-answer text: this covers
-      no_tool samples where ``expected_answer`` is None and the tool-calling
-      chain is trivially correct.
-    - ``argument_correct`` is dominant when the parse, schema, name,
-      argument value, and call-plan layers all pass but execution or
-      result grounding did not.
+    - ``parse_success``: transcript is not a structurally parseable list of
+      dicts (``layers.parse_success is not True``). This is the only
+      branch that does NOT inspect ``first_failure``.
+    - ``final_answer_correct``: tool name + argument + plan + execution +
+      grounding all pass; only ``final_answer_correct`` failed
+      (``first_failure == "final_answer_correct"``).
+    - ``execution_correct``: every applicable layer passes
+      (``first_failure is None``).
+    - ``argument_correct``: parse + schema + tool name + argument value +
+      plan layers all pass but execution / grounding fell short
+      (``first_failure`` in {execution_success, result_grounded,
+      tool_name_correct, argument_value_correct, call_plan_matches}).
+
+    Note that the previous version of this function returned
+    ``execution_correct`` whenever ``first_failure in (None,
+    "execution_success", "result_grounded")`` — that mapping was wrong:
+    execution_success and result_grounded failures were labelled as
+    "execution_correct" even though execution/grounding did not pass.
     """
     if layers_full.get("parse_success") is not True:
         return "parse_success"
     if first_failure == "final_answer_correct":
         return "final_answer_correct"
-    # For no_tool samples with no expected_answer, parse_success+schema+
-    # name+argument+plan all pass trivially; first_failure is None and the
-    # "execution" is the absence of a tool call (defined as
-    # execution_success=True when expected_calls_count == 0).
-    if first_failure in (None, "execution_success", "result_grounded"):
+    if first_failure is None:
         return "execution_correct"
+    # ``first_failure`` is one of: tool_name_correct, argument_value_correct,
+    # call_plan_matches, execution_success, result_grounded. The argument
+    # chain (parse + schema + name + arg + plan) is conceptually correct
+    # but execution / grounding / answer fell short, so the dominant
+    # reward channel is ``argument_correct``.
     return "argument_correct"
 
 

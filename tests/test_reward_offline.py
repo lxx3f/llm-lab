@@ -482,6 +482,94 @@ class ClassifierConsistencyTests(unittest.TestCase):
             )
 
 
+class RewardTypeMappingTests(unittest.TestCase):
+    """Verify the ``_dominant_reward`` mapping covers every failure channel
+    in the P1-05 chain. The mapping must emit ``execution_correct`` only
+    when execution + grounding passed (``first_failure is None``); a
+    failure at ``execution_success`` / ``result_grounded`` must be labelled
+    ``argument_correct`` (because the argument chain — parse / schema /
+    name / arg / plan — is the first thing that conceptually held; the
+    execution / grounding chain is what actually failed).
+
+    See ``scripts/reward_offline.py::_dominant_reward`` for the contract.
+    """
+
+    def setUp(self) -> None:
+        self.compute_reward = _load_compute_reward()
+
+    def _ok_call_with_outcome(self, **overrides) -> dict:
+        call = _ok_call("c1")
+        call.update(overrides)
+        return call
+
+    def _expect_reward_type(self, *, calls: list[dict],
+                            answer: str | None = "北京 22C",
+                            generated: str | None = None,
+                            expected_reward_type: str,
+                            expected_first_failure: str | None) -> None:
+        sample = _sample("d1-rt", expected_calls=[
+            self._ok_call_with_outcome()
+        ], tools=[_tool_decl()], answer=answer)
+        # When ``generated`` is not given, mirror ``answer`` so the
+        # final-answer layer trivially passes (overridable per test).
+        gen = answer if generated is None else generated
+        sig = self.compute_reward(sample, _row("d1-rt",
+            calls=calls, generated=gen or ""))
+        self.assertEqual(sig["reward_type"], expected_reward_type,
+                         f"reward_type mismatch: first_failure={sig['first_failure']}")
+        self.assertEqual(sig["first_failure"], expected_first_failure)
+
+    def test_execution_success_failure_maps_to_argument_correct(self) -> None:
+        # parse / schema / name / arg / plan all pass; execution fails.
+        bad = self._ok_call_with_outcome()
+        bad["execution_outcome"] = "mock_exception"
+        # Drop result so result_grounded is not declared.
+        bad.pop("result", None)
+        # expected_result present so result_grounded still gets a value.
+        self._expect_reward_type(
+            calls=[bad], answer="北京 22C",
+            expected_reward_type="argument_correct",
+            expected_first_failure="execution_success",
+        )
+
+    def test_result_grounded_failure_maps_to_argument_correct(self) -> None:
+        # execution succeeds but result != expected_result.
+        bad = self._ok_call_with_outcome()
+        bad["execution_outcome"] = "success"
+        bad["result"] = "上海 25C"  # different from expected_result
+        self._expect_reward_type(
+            calls=[bad], answer="北京 22C",
+            expected_reward_type="argument_correct",
+            expected_first_failure="result_grounded",
+        )
+
+    def test_full_pass_maps_to_execution_correct(self) -> None:
+        # everything passes; reward_type must be execution_correct.
+        self._expect_reward_type(
+            calls=[_ok_call("c1")], answer="北京 22C",
+            expected_reward_type="execution_correct",
+            expected_first_failure=None,
+        )
+
+    def test_final_answer_failure_maps_to_final_answer_correct(self) -> None:
+        # tool / arg / plan / exec / grounding all pass; final answer
+        # does not contain expected_answer (override ``generated``).
+        self._expect_reward_type(
+            calls=[_ok_call("c1")], answer="北京 22C",
+            generated="我不知道",
+            expected_reward_type="final_answer_correct",
+            expected_first_failure="final_answer_correct",
+        )
+
+    def test_parse_failure_maps_to_parse_success(self) -> None:
+        sample = _sample("d1-rt-pf", expected_calls=[_ok_call("c1")],
+                         tools=[_tool_decl()], answer="北京 22C")
+        sig = self.compute_reward(sample, _row("d1-rt-pf",
+            calls=["raw-text"], generated=""))
+        self.assertEqual(sig["reward_type"], "parse_success")
+        self.assertEqual(sig["first_failure"], "parse_success")
+
+
 class CLIIntegrationTests(unittest.TestCase):
     """Smoke test the CLI end-to-end through subprocess."""
 

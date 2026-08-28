@@ -7,6 +7,50 @@
 审查文件路径：`docs/plans/reviews/stage-p2-evaluator.md`
 commit 候选变更：`schemas/reward_signal.schema.json`、`scripts/reward_offline.py`、`tests/test_reward_offline.py`、`scripts/run_tests.py`、`docs/protocols/p2-evaluator.md`、`docs/experiments/p2-evaluator/README.md`、`docs/plans/roadmap.md`
 
+## 审查与复核记录
+
+### 初次审查 + Round 1 (2026-08-28 03:18–04:11 UTC)
+
+详见 reviewer 输出存档 `.pi-glla/scratch/stage-p2-evaluator-review-r1.txt`（gitignored）。
+
+### Round 2 (2026-08-28 04:13–04:25 UTC)
+
+修复内容：
+
+- schema: 增加 `reward_type` enum = {parse_success, argument_correct, final_answer_correct, execution_correct}；`compute_reward` 增加 `_dominant_reward()` 选择主导通道；
+- 测试: 从 5 个扩充到 30 个（8 层各 ≥ 3 例 + classifier 一致性 + CLI 聚合）；
+- stage0: 注册 reward_signal schema + 两个 examples + 5 个新测试 case；
+- demo: 从 8 个 checkpoint 收敛到 5 个 SFT MVP checkpoint，65 reward_signal 全部 schema 校验通过；
+- open-issues P2-06: 登记 P2 完成 + P3/P4 follow-up。
+
+reviewer 实际身份：`minimax-cn/MiniMax-M3`，有条件通过（3 个文档 warnings：README 命名一致表 / protocol 测试数量 / README 30 单测拆分）。三个 warnings 已在 commit `7f30b9b` 中修复。
+
+### Round 3 (2026-08-28 04:30–04:45 UTC, 本轮)
+
+Auditor 在 detached audit 中提出 4 项具体修复：
+
+1. **Reviewer 耐久证据**：补充到 `.pi-glla/scratch/stage-p2-evaluator-review-r3.txt`（本文件 gitignored，供后续仓参）。
+2. **Roadmap 内部矛盾**：删除“下一阶段”中的 P2 行；修正“已完成阶段”中 P2 行的描述（8→5、5→30）。
+3. **Protocol §6 stale 5 个单测**：补上正确数字 30 + stage0 reward 测试 + examples。
+4. **reward_type 映射语义错误**：原 `_dominant_reward` 在 `first_failure in (None, "execution_success", "result_grounded")` 返回 `execution_correct`，与文档语义矛盾（execution_success / result_grounded 失败不应标记 execution_correct）。重构为：仅在 `first_failure is None` 时返回 `execution_correct`；`execution_success` / `result_grounded` / `tool_name_correct` / `argument_value_correct` / `call_plan_matches` 全部映射为 `argument_correct`。
+
+同时 `tests/test_reward_offline.py` 增加 5 个 RewardTypeMapping 测试：
+
+- `test_execution_success_failure_maps_to_argument_correct`
+- `test_result_grounded_failure_maps_to_argument_correct`
+- `test_full_pass_maps_to_execution_correct`
+- `test_final_answer_failure_maps_to_final_answer_correct`
+- `test_parse_failure_maps_to_parse_success`
+
+总计 35 个 reward_offline 单测。
+
+验证：
+
+- `scripts/run_tests.py full` → Ran 225 tests OK
+- `scripts/validate_stage0.py --examples` → 7/7 PASS
+- 5 ckpt × 13 = 65 reward_signal 全部 schema 校验通过
+- reviewer subagent（本次：minimax-cn/MiniMax-M3）记录在 `.pi-glla/scratch/stage-p2-evaluator-review-r3.txt`
+
 ## 阶段 p2-evaluator 审查
 
 - 完成范围：

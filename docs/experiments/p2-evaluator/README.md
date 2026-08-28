@@ -16,6 +16,8 @@
 | 4 | `sft-tool-d256-20k-seed42` | `artifacts/sft-d256-20k-seed42-eval-d1dev-reward.json` | Dense d256 12.0M | OWT d256 init + 1500 × 20k steps seed42 | 0.0000 | 0.0769 | parse_success × 13 |
 | 5 | `sft-moe-v1` | `artifacts/sft-moe-v1-eval-d1dev-reward.json` | MoE 4-expert (~2M active) | OWT long init + 1500 × 2k steps | 0.0000 | 0.0000 | parse_success × 13 |
 
+> **reward_type 映射契约**：见 `scripts/reward_offline.py::_dominant_reward()`。`execution_correct` 仅在所有适用层通过（`first_failure is None`）时返回；`execution_success` / `result_grounded` 失败映射为 `argument_correct`（因为 argument chain 通过了，但 execution / grounding 失败）。本轮 5 ckpt 没有样本进入 execution / grounding failure 分支（所有 13 个 first_failure 都是 `parse_success`），所以表格里只出现 `parse_success` + 1 个 `argument_correct`（来自 sft-tool-large-v1，其 first_failure = `argument_value_correct`）。
+
 > **Checkpoint 名与产物名**：表头使用 SFT MVP README 的 `sft-tool-*` 命名（说明模型身份）；实际产物文件名省略 `tool-`（如 `sft-large-v1-eval-d1dev-reward.json`）是 orchestrator 原始命名习惯。两者一一对应。
 
 > **reward_binary = 0** 对全部 5 个 checkpoint 成立：没有任何样本的 P1-05 八级全部通过；所有样本的 first_failure 都是 `parse_success`。
@@ -66,7 +68,7 @@
 |---|---|
 | `schemas/reward_signal.schema.json` | reward_signal 结构定义（含 reward_type enum: parse_success / argument_correct / final_answer_correct / execution_correct）|
 | `scripts/reward_offline.py` | 离线 reward 计算 + CLI（含 `_dominant_reward()` 选择 reward_type 主导通道）|
-| `tests/test_reward_offline.py` | **30** 单测 = 8 层各 ≥ 3 例（共 25：parse_success 4 例 + 其他 7 层各 3 例）+ classifier 一致性（4 例）+ CLI 聚合（1 例）|
+| `tests/test_reward_offline.py` | **35** 单测 = 8 层各 ≥ 3 例（共 25：parse_success 4 例 + 其他 7 层各 3 例）+ classifier 一致性（4 例）+ reward_type 映射（5 例）+ CLI 聚合（1 例）|
 | `tests/test_stage0_schemas.py` | 新增 reward schema 正负例测试（full pass / parse fail / 缺 reward_type / 未知 reward_type / reward_binary 越界）|
 | `examples/reward_signals/reward-sample-001.json` | reward_signal 正例样例（execution_correct）|
 | `examples/reward_signals/reward-sample-002-parse-fail.json` | reward_signal parse-fail 样例（reward_type=parse_success）|

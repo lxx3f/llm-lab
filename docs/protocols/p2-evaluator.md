@@ -91,10 +91,13 @@ reward_offline 不重写分类逻辑；它只是把分类结果映射成可训�
 
 ## 6. 交付物
 
-- `schemas/reward_signal.schema.json`：信号结构定义
-- `scripts/reward_offline.py`：CLI + 离线 reward 计算
-- `tests/test_reward_offline.py`：5 个单测
-- `docs/experiments/p2-evaluator/README.md`：在 D1 dev 上跨 checkpoint 的 reward 分布
+- `schemas/reward_signal.schema.json`：信号结构定义（含 reward_type 4 值 enum）
+- `scripts/reward_offline.py`：CLI + 离线 reward 计算（reward_binary + reward_layered + reward_type）
+- `tests/test_reward_offline.py`：**35** 单测（8 层各 ≥ 3 例 = 25 + classifier 一致性 4 + reward_type 映射 5 + CLI 聚合 1）
+- `tests/test_stage0_schemas.py`：新增 5 个 reward schema 测试（full pass / parse fail / 缺 reward_type / 未知 reward_type / reward_binary 越界）
+- `examples/reward_signals/*.json`：2 个 reward_signal example（execution_correct + parse_success）
+- `scripts/validate_stage0.py`：注册 reward_signal schema 到 stage0 校验
+- `docs/experiments/p2-evaluator/README.md`：在 D1 dev 上跨 5 个 SFT MVP checkpoint 的 reward 分布
 - `docs/protocols/p2-evaluator.md`：本协议文档
 
 ## 7. 与 P4 GRPO 的衔接
