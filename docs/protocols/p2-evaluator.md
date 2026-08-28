@@ -106,6 +106,6 @@ P4 必须满足以下前置才能进入：
 
 1. ✅ reward_offline 在 D1 dev 上对所有 SFT checkpoint 输出有效 JSON；
 2. ✅ reward 信号满足 schema 校验；
-3. ✅ P3 数据版本 D2 多轮对话就绪（2026-08-28：**当前扩样版 D2 dev 750 样本** + IID split + 独立 schema；MVP 600 样本版曾在 dev 90 样本上完成 5 ckpt 真实推理评测，历史结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节；当前契约见 `docs/protocols/d2-multi-turn.md` §4）；
+3. ✅ P3 数据版本 D2 多轮对话就绪（2026-08-28：**当前扩样版 D2 dev 750 样本** + IID split + 独立 schema + 5000/3500/750/750 严格命中；当前契约见 `docs/protocols/d2-multi-turn.md` §4）；P2 阶段自研 5 ckpt 历史评测归档于 `docs/plans/open-issues.md` P3-01 段 line 769-841 + `docs/experiments/p2-evaluator/README.md` §6。
 4. ⏳ P5-02 Transformers backend 让 policy 模型可调用 GRPO rollout（仍待办）；
-5. ✅ D1.1 train 之外已新增独立 held-out split（**当前 D2 dev 750 样本；MVP 600 样本版历史为 90 样本**，P2-05 已解决）。
+5. ✅ D1.1 train 之外已新增独立 held-out split（当前扩样版 D2 dev 750 样本；P2-05 已解决）。

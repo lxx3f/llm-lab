@@ -3,13 +3,14 @@
 > 阶段：P5-02
 > 审查时间：2026-08-28
 > 审查流程：subagent reviewer (`reviewer` dispatch, minimax-cn/MiniMax-M3) + detached auditor (calculet/gpt-5.6-terra)
+> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `fdfc519`）。本 stage review 评测在当前扩样版 D2 dev 750 子集 90 上完成；自研 5 ckpt 在该子集上的历史评测（与本 stage 不同时间点）见 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
 
 ## 阶段目标
 
-实现 `scripts/eval_transformers.py` Transformers 推理后端，在**当前扩样版 D2 dev (750 样本) 子集 90** 上对 5 个公开 instruction-tuned 模型跑真实推理 + reward_offline，产出 5×90=450 reward_signal；与自研 5 ckpt 在同一 reward pipeline 上做横向对比（自研 5 ckpt 评测历史在 **MVP 600 样本版** D2 dev 90 样本上完成，见 `docs/experiments/p2-evaluator/README.md` §6）。
+实现 `scripts/eval_transformers.py` Transformers 推理后端，在当前扩样版 D2 dev (750 样本) 的固定 90 样本子集上对 5 个公开 instruction-tuned 模型跑真实推理 + reward_offline，产出 5×90=450 reward_signal；与自研 5 ckpt 在同一 reward pipeline 上做公平对比。
 
 Done when：
-- (a) 5 个公开模型 × 当前扩样版 D2 dev (750 样本) 子集 90 signals schema 合法（450/450）；
+- (a) 5 个公开模型 × 当前扩样版 D2 dev 750 子集 90 signals schema 合法（450/450）；
 - (b) ≥1 模型 reward_binary > 0 或 reward_layered > 0.05；
 - (c) `docs/experiments/p2-evaluator/README.md` §7 公开模型 reward 表 + 与自研 ckpt 对比；
 - (d) `tests/test_transformers_backend.py` ≥10 单测全绿；
@@ -39,7 +40,7 @@ Done when：
    - `test_apply_chat_template_does_not_include_expected_answer` — gold answer 字符串不会出现在 prompt
    - `test_apply_chat_template_keeps_context_tool_history` — 多轮 tool_calls + tool 结果被保留
    - `test_apply_chat_template_preserves_intermediate_assistant_calls` — 多 assistant tool_calls 全部保留
-3. 重跑 5 模型 eval + reward_offline：
+3. 重跑 5 模型 eval + reward_offline（评测在当前扩样版 D2 dev 750 子集 90 上）：
    - SmolLM2-360M: binary **0.0000**（原 0.0111 为伪）layered=0.4236
    - Qwen2.5-0.5B: binary=0 layered=0.3634
    - Qwen2.5-1.5B: binary=0 layered=0.3690
@@ -52,7 +53,7 @@ Done when：
 
 - `scripts/run_tests.py fast` → Ran **270** tests OK（含 P5-02 25 个新增单测）。
 - `scripts/validate_stage0.py --examples` → 9/9 PASS。
-- 5 个 reward JSON 全部 schema 合法（**MVP 600 样本版历史**：自研 5 ckpt × 当前扩样版 D2 dev (750 样本) 子集 90 = 450 signals；公开 5 模型 × 当前扩样版 D2 dev (750 样本) 子集 90 = 450 signals；总 900 signals 已落盘）。
+- 5 个 reward JSON 全部 schema 合法（公开 5 模型 × 当前扩样版 D2 dev 750 子集 90 = 450 signals 已落盘；自研 5 ckpt 在该子集上的等量评测见 `docs/plans/open-issues.md` P3-01 段 line 769-841）。
 - 5 个 `no_failure` 全部 = 0（修复前 SmolLM2-360M 为 1）。
 - 修复后文档 reward_layered 数值与 artifact 字节对齐（5/5 模型）。
 - 修复后文档 reward_type + first_failure 分布与 `Counter()` 计算字节对齐（25 对全部命中）。
@@ -71,5 +72,5 @@ Done when：
 ### 遗留风险
 
 - P5-03 vLLM backend 未启动；硬件 / 环境需求超出当前阶段，待 P5-02 终审通过后启动。
-- D2 数据集扩样到 5000+ **已完成**（HEAD `fdfc519`，见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14）：5000 samples（4×833 + 2×834）、train 3500 / dev 750 / test 750 严格命中、6 类 ≥833 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、datasets/ 已加入 `.gitignore` 并 `git rm --cached` 隔离。
+- 当前 D2 契约 5000/3500/750/750 已稳定（HEAD `fdfc519`，见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14）：6 类各 833/834 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、MANIFEST 含 `build_count` 字段、`datasets/tool-calling-d2/` 加入 `.gitignore` 并 `git rm --cached` 隔离。
 - 5 个公开模型 `reward_binary=0` 为诚实负结果：D2 expected_answer 与公开模型生成的 final_answer 字面不一致；如需严格一致，可加后处理归一化或引入轻量 evaluator prompt。这是 D2 eval 设计（`expected_answer == final assistant content`）的固有约束，不应在 P5-02 范围修改。

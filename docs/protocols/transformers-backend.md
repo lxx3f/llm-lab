@@ -49,7 +49,7 @@
 - `expected_tool_calls`：可选；不存在时表示该样本不期望工具调用（`tool_not_available` task_type）；
 - `expected_answer`：可选；与 transcript 终态 assistant content 字节相同（见 `docs/protocols/d2-multi-turn.md` §3）。
 
-`--samples-dir` 默认指向当前扩样版 D2 dev（750 样本）；其他 split（train / test）可通过修改 flag 切换。P5-02 的已交付横向评测使用该 dev split 中的固定 90 样本子集；MVP 600 样本版历史也使用过 90 样本。
+`--samples-dir` 默认指向当前扩样版 D2 dev（750 样本）；其他 split（train / test）可通过修改 flag 切换。P5-02 的已交付横向评测使用该 dev split 中的固定 90 样本子集。
 
 ## 4. Chat template 与 prompt 渲染
 
@@ -145,7 +145,7 @@
 - **`reward_binary` 全部为 0**：5 个模型没有任何一个完整过 P1-05 8 层分类器；这是诚实负结果。修复前 `SmolLM2-360M reward_binary=0.0111`（1 个 `execution_correct`）是因为 target-answer 泄漏，模型仅复述了 prompt 里出现的 expected_answer。
 - **`reward_layered` 仍在 0.33–0.43**：5 模型全部显著高于自研 5 ckpt 的 0.0；说明 instruction-tuned 模型在多轮工具调用结构化生成上仍优于自研 SFT 模型。
 - **`tool_name_correct` 仍是主要失败层**：D2 使用 `d1_*` 工具名，公开 instruction-tuned 模型未在 D2 数据集上微调，这是诚实预期的行为。
-- **与自研 5 ckpt 横向对比（**MVP 600 样本版历史**：自研 ckpt 在 90 样本上评测）**（详见 `docs/experiments/p2-evaluator/README.md` §7）：自研 5 ckpt 全部 90/90 `parse_success` 失败、`reward_layered=0`；公开模型即使不做 D2 微调，仍能在多层分类器上获得非退化 reward 分。
+- **与自研 5 ckpt 横向对比**（自研 ckpt 在当前扩样版 D2 dev 750 子集 90 上的评测；与本 P5-02 评测同 split 同子集，由 `scripts/eval_sft_tool.py --prompt-mode multi_turn` + `scripts/reward_offline.py` 产出；详见 `docs/experiments/p2-evaluator/README.md` §6）：自研 5 ckpt 全部 90/90 `parse_success` 失败、`reward_layered=0`；公开模型即使不做 D2 微调，仍能在多层分类器上获得非退化 reward 分。
 
 复现命令（任选模型）：
 

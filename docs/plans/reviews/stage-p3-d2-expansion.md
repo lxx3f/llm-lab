@@ -6,7 +6,7 @@
 
 ## 阶段目标
 
-把 P3 D2 多轮数据集从 600 样本扩展到 **5000** 样本（每类 ≥833 unique canonical variants），作为后续 P4 GRPO rollout 池的统计基础。
+把 P3 D2 多轮数据集扩样到 **5000** 样本（每类 ≥833 unique canonical variants；详细扩样背景与历史 MVP 规模比较见 `docs/data/d2-expansion.md`），作为后续 P4 GRPO rollout 池的统计基础。
 
 Done when：
 - (a) 6 类各 ≥833 unique variants
@@ -57,7 +57,7 @@ Round 13 完成时使用 `count=5004`，split 实际为 3498/750/756，与目标
 
 ### 4. per-class running counter（关键变更）
 
-`build_samples()` 改用 `intra_class_index`（每个 task_type 内部 0..n-1）作为 `variant`，替代旧公式 `build_pos // len(TASK_TYPES)`。后者在总数变化（如 600→5000）时会重复返回 `variant=0`，破坏 canonical uniqueness。
+`build_samples()` 改用 `intra_class_index`（每个 task_type 内部 0..n-1）作为 `variant`，替代旧公式 `build_pos // len(TASK_TYPES)`。后者在总数变化（如 MVP → 5000；详见 `docs/data/d2-expansion.md`）时会重复返回 `variant=0`，破坏 canonical uniqueness。
 
 ### 5. 测试参数化（round 14）
 

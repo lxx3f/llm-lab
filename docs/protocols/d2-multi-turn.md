@@ -2,7 +2,7 @@
 
 > 状态：阶段交付（2026-08-28；round 14 扩样至 5000 样本后修订）。
 > 当前契约：`--count 5000`、train 3500 / dev 750 / test 750、6 类各 ≥833 unique canonical variants。
-> 历史 MVP（600 样本）：在 `21d1d7e`（round 13）交付，已于 `c6eac20`（round 14）被 5000 样本扩样版取代。
+> 历史 MVP（600 样本）阶段的初始交付文档在 `docs/plans/open-issues.md` P3-01 段（line 769-841）；5000 样本扩样阶段的实施记录与设计决策在 `docs/data/d2-expansion.md`；扩样 stage review 在 `docs/plans/reviews/stage-p3-d2-expansion.md`。
 
 本协议固定 D2 多轮工具调用数据集的结构、生成、split 边界、与 D1 / D1.1 的互斥关系，以及与 P2 离线 reward 校验的衔接。
 
@@ -30,8 +30,6 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 | — | `error_recovery` | 工具结果不足/失败，模型调整参数后重试 |
 
 **当前契约（round 14，HEAD `fdfc519`）**：每类 ≥833 unique canonical variants；总规模 **5000 样本**（4 类 833 + 2 类 834），默认 `--count 5000`。Variant pool 扩展与严格嵌套维度公式见 `docs/data/d2-expansion.md`。
-
-> **历史**：MVP 600 样本版本（每类 100）曾在 `21d1d7e`（round 13）交付；该版本已被 5000 样本取代，详见 `docs/plans/reviews/stage-p3-d2-multi-turn.md` 与 `docs/data/d2-expansion.md`。
 
 ## 3. 多轮 transcript 结构
 
@@ -79,8 +77,6 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 - 每个 task_type 都有 ≥833 个不同 canonical semantic instances；
 - train 与 D1/D1.1 train id 集合无交集；
 - 每个 `MANIFEST-{split}.json` 的 `count` / `build_count` / 每文件 sha256 与磁盘一致。
-
-> **历史**：MVP 600 样本版本下每类 100 个变体、`train/dev/test = 420/90/90`；该版本已被 5000 样本取代（round 14，HEAD `fdfc519`）。
 
 ## 5. MANIFEST 结构
 
@@ -154,8 +150,6 @@ fmt  = datetime.fromtimestamp(ts, tz=UTC).isoformat().replace("+00:00", "Z")
 
 确定性保证：同一 `--seed` 产生相同的 canonical content、文件 sha256 和 MANIFEST aggregate hash；`--count` 通过 `_plan_per_class_counts()` 自动在 6 类 task_type 间分配（5000 / 6 = 833 remainder 2 → 4 类 833 + 2 类 834）。生成器写盘前以 `canonical_content_signature()` 执行全局语义去重；去除 ID、时间戳、split、call_id 和依赖引用后，默认数据仍保持 5000/5000 唯一、每类 ≥833/833 唯一、三 split 无交集。
 
-> **历史**：`--count 600` 与每类 100 unique variants 是 MVP 版本（`21d1d7e`）参数；当前默认 `--count 5000` + 6 个 builder 严格嵌套 dimension formula（见 `docs/data/d2-expansion.md` §3.2）。
-
 ## 7. 与 P2 离线 reward 校验的衔接
 
 P2 阶段交付的 `scripts/reward_offline.py` 直接消费 D2 dev **750 样本**作为正式 reward 评测输入，命令：
@@ -170,18 +164,12 @@ P2 阶段交付的 `scripts/reward_offline.py` 直接消费 D2 dev **750 样本*
 
 D1 dev 13 样本保留作为早期 dev 探针；D2 dev 750 样本是首个有统计意义的 reward 评测 split（vs D1 dev 的 13 样本 = 57.7× 提升）。
 
-**P3 阶段已在 D2 dev 上完成 5 ckpt × 90 = 450 个真实推理 reward_signal（round 10 IID 分裂 + MVP 600 样本后重跑）**：5 个 checkpoint 均 `reward_binary=0.0`；large-v1 的 `reward_layered=0.0099`（87 个 `parse_success`，3 个 `argument_correct`），其余 4 个 checkpoint 为 0.0000。该诚实负结果证明：(a) D2 dev 评测管线可跑通；(b) 单轮模型基本不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。完整明细与 reward_type 分布见 `docs/experiments/p2-evaluator/README.md` §6。
-
-**P5-02 阶段在扩样后的 D2 dev（750 样本）上重跑 5 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）：5 × 90 = 450 reward_signal（dev 子集）。**全部 reward_binary=0、no_failure=0；reward_layered 0.33-0.42（远高于自研 5 ckpt 0.0）。详见 `docs/protocols/transformers-backend.md` §7-8 与 `docs/experiments/p2-evaluator/README.md` §7。
-
-`scripts/eval_sft_tool.py --prompt-mode multi_turn` 负责把 D2 多轮 messages 序列化为 SFT 模板历史并生成续写，是 D2 dev 评测的标准推理入口。
+`scripts/eval_sft_tool.py --prompt-mode multi_turn` 负责把 D2 多轮 messages 序列化为 SFT 模板历史并生成续写，是 D2 dev 评测的标准推理入口。P3 阶段自研 5 ckpt 在该 split 上的历史评测（当前 active 范围外）归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）；P5-02 公开 5 模型在 D2 dev 750 子集 90 上的当前评测见 §7 后续段落。
 
 ## 8. 与 P4 GRPO / P5-02 的衔接
 
 - P4 GRPO：以 D2 train (**3500** 样本) 作为 GRPO rollouts 的 prompt 池；D2 dev / test 作为 advantage 估计的对照基线；
-- P5-02 Transformers backend：同一 `--samples-dir` 路径可在公开 instruction-tuned 模型上跑同一 reward offline 链路，与自研模型做公平对比。
-
-> **历史**：P3 阶段 MVP 600 样本版本下 P4 GRPO 计划使用 D2 train (420 样本)；该规模已被扩样至 3500 样本（round 14，HEAD `fdfc519`）。
+- P5-02 Transformers backend：同一 `--samples-dir` 路径可在公开 instruction-tuned 模型上跑同一 reward offline 链路，与自研模型做公平对比。P5-02 阶段实际评测在当前扩样版 D2 dev 750 子集 90 上完成；公开 5 模型 reward_binary 全部 = 0（诚实负结果）、reward_layered 0.33–0.42，详见 `docs/plans/reviews/stage-p5-02-transformers-backend.md` 与 `docs/experiments/p2-evaluator/README.md` §7。
 
 ## 9. 与 D1 / D1.1 的差异
 
