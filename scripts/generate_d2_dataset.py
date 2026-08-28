@@ -353,10 +353,18 @@ def _multi_tool_sequential(rng: random.Random, sid: str, created: str, variant: 
         "11 + 29", "144 / 12", "7 * 8 - 9", "2 ** 6", "81 / 9 + 1",
         "(15 + 5) * 2", "99 - 37", "6 ** 2", "125 / 5", "13 * 7",
         "(20 - 6) * 3", "4 ** 3 + 2", "72 / 8", "18 + 27", "5 * 11",
+        "9 + 14 - 5", "20 * 3 + 7", "84 / 7", "11 ** 2", "36 + 48",
+        "256 / 16", "9 * 9 - 1", "45 - 18", "12 ** 2", "75 / 5",
+        "8 + 19", "23 * 4", "64 / 8", "5 ** 3", "100 - 47",
+        "31 + 28", "144 / 12 + 3", "7 * 12", "(9 - 4) ** 2", "60 / 4",
+        "15 * 5 - 7", "88 / 11", "27 + 13", "10 ** 2 - 1", "33 * 2",
+        "(7 + 8) * 3", "52 - 19", "9 ** 2 + 4", "63 / 7", "28 + 17",
     ]
     topics = [
         "result", "计算结果", "这个数字", "上面的答案", "所得数值",
         "算式输出", "第一步结果", "前一步数值", "运算答案", "该计算值",
+        "得到的数值", "中间结果", "当前数值", "新数值", "运算结果",
+        "算式返回值", "该中间数", "计算出来的值", "上一步输出", "刚才得到的数",
     ]
     user_styles = [
         "先计算 {expr}，再搜索{topic} {result}。",
@@ -366,23 +374,37 @@ def _multi_tool_sequential(rng: random.Random, sid: str, created: str, variant: 
         "依次完成：计算 {expr}，然后检索{topic}等于 {result} 的内容。",
         "请按顺序处理 {expr} 和后续搜索，搜索关键词使用 {topic} {result}。",
     ]
-    expr = expressions[variant % len(expressions)]
-    first_args = {"expression": expr}
-    first_result = _mock_result("d1_calculate", first_args)
-    topic = topics[(variant // len(expressions)) % len(topics)]
-    limit = 2 + ((variant // (len(expressions) * len(topics))) % 4)
-    second_args = {"query": f"{topic} {first_result}", "limit": limit}
-    second_result = _mock_result("d1_web_search", second_args)
-    c1, c2 = _call_id(sid, 1), _call_id(sid, 2)
     answer_styles = [
         "第一步结果为 {result}；随后搜索得到：{search_result}",
         "已完成计算（{result}），并根据该结果搜索：{search_result}",
         "计算输出是 {result}。相关检索结果为：{search_result}",
         "先得到 {result}，再完成相关检索：{search_result}",
     ]
-    answer = answer_styles[(variant // 2) % len(answer_styles)].format(
+    # Strictly-nested dimension indexing so each variant in
+    # ``[0, len(expressions) * len(topics) * 4 * len(user_styles) * len(answer_styles))``
+    # maps to a unique (expr, topic, limit, user_style, answer_style) tuple.
+    n_expr = len(expressions)
+    n_topic = len(topics)
+    n_limit = 4  # 2 + (idx % 4)
+    n_user = len(user_styles)
+    n_answer = len(answer_styles)
+    expr_i = variant % n_expr
+    topic_i = (variant // n_expr) % n_topic
+    limit_i = (variant // (n_expr * n_topic)) % n_limit
+    user_i = (variant // (n_expr * n_topic * n_limit)) % n_user
+    answer_i = (variant // (n_expr * n_topic * n_limit * n_user)) % n_answer
+
+    expr = expressions[expr_i]
+    first_args = {"expression": expr}
+    first_result = _mock_result("d1_calculate", first_args)
+    topic = topics[topic_i]
+    limit = 2 + limit_i
+    second_args = {"query": f"{topic} {first_result}", "limit": limit}
+    second_result = _mock_result("d1_web_search", second_args)
+    c1, c2 = _call_id(sid, 1), _call_id(sid, 2)
+    answer = answer_styles[answer_i].format(
         result=first_result, search_result=second_result)
-    user = user_styles[(variant // 3) % len(user_styles)].format(
+    user = user_styles[user_i].format(
         expr=expr, topic=topic, result=first_result)
     return _sample(
         sid,
@@ -414,31 +436,57 @@ _TRANSLATE_TEXTS = [
     "我们将在周五发布。", "Use a deterministic seed.", "The result is reproducible.",
     "欢迎参加本次讨论。", "Metrics should be recorded.", "Deploy after validation.",
     "请把这段话翻译一下。",
+    "Cache the embeddings locally.", "Run the regression suite nightly.",
+    "这条消息需要你处理。", "Reproducibility matters most.",
+    "Please verify the new pipeline.", "Optimize for tail latency, not p50.",
+    "模型指标已报到仪表盘。", "Refresh the cache before benchmarking.",
+    "Please align with the v3 schema.", "Use sliding-window attention here.",
+    "请在本地完成预训练。", "We benchmarked on 32 GPUs last week.",
+    "Faster inference means lower serving cost.", "请查看日志中最后一段输出。",
+    "Run unit tests before merging.", "Deploy canary to 5% of traffic first.",
+    "指标曲线已同步到仓库。", "Stop the gradient on the embedding layer.",
+    "Verify checksum on every artifact.", "把模型放进模型目录后再启动服务。",
+    "Splitting eval set by hash avoids leakage.", "请在 PR 中添加复现说明。",
+    "Sort the tokenizer merges deterministically.", "We benchmarked latency end-to-end.",
+    "请对比两版词表上的评测结果。", "Set the dropout before the attention block.",
+    "Refactor the loss into a dedicated file.", "请检查数据预处理是否实际起效。",
+    "Cache eviction policy matters at p99.", "请先用示例数据验证管线。",
+    "Tokenizer must round-trip the dev split.",
 ]
-_TRANSLATE_LANGS = ["zh", "en", "ja", "fr", "de"]
+_TRANSLATE_LANGS = ["zh", "en", "ja", "fr", "de", "ko", "es", "ru", "it", "pt"]
 _TRANSLATE_REQUESTS = [
     "请把“{text}”翻译成{lang_name}。",
     "帮我将下面这句话转换为{lang_name}：{text}",
     "请调用翻译服务处理这段文本，目标语言是{lang_name}：{text}",
     "我需要{lang_name}版本，请翻译：{text}",
 ]
-_TRANSLATE_LANG_NAMES = {"zh": "中文", "en": "英文", "ja": "日文", "fr": "法文", "de": "德文"}
+_TRANSLATE_LANG_NAMES = {
+    "zh": "中文", "en": "英文", "ja": "日文", "fr": "法文", "de": "德文",
+    "ko": "韩文", "es": "西班牙文", "ru": "俄文", "it": "意大利文", "pt": "葡萄牙文",
+}
 
 
 def _tool_error_response(rng: random.Random, sid: str, created: str, variant: int) -> dict[str, Any]:
-    text = _TRANSLATE_TEXTS[variant % len(_TRANSLATE_TEXTS)]
-    target_lang = _TRANSLATE_LANGS[(variant // len(_TRANSLATE_TEXTS)) % len(_TRANSLATE_LANGS)]
+    n_text = len(_TRANSLATE_TEXTS)
+    n_lang = len(_TRANSLATE_LANGS)
+    n_request = len(_TRANSLATE_REQUESTS)
+    text_i = variant % n_text
+    lang_i = (variant // n_text) % n_lang
+    request_i = (variant // (n_text * n_lang)) % n_request
+    answer_i = (variant // (n_text * n_lang * n_request)) % 4
+    text = _TRANSLATE_TEXTS[text_i]
+    target_lang = _TRANSLATE_LANGS[lang_i]
     args = {"text": text, "target_lang": target_lang}
     result = _mock_result("d1_translate", args)
     c1 = _call_id(sid, 1)
-    request = _TRANSLATE_REQUESTS[(variant // 3) % len(_TRANSLATE_REQUESTS)].format(
+    request = _TRANSLATE_REQUESTS[request_i].format(
         text=text, lang_name=_TRANSLATE_LANG_NAMES[target_lang])
     answer = [
         f"翻译工具返回错误：{result}。无法完成本次翻译。",
         f"翻译服务暂不可用（{result}），因此没有生成译文。",
         f"已调用翻译工具，但它报告错误：{result}。请稍后重试。",
         f"本次翻译失败，工具反馈为 {result}。",
-    ][variant % 4]
+    ][answer_i]
     return _sample(
         sid,
         [
@@ -463,6 +511,12 @@ def _insufficient_result_search(rng: random.Random, sid: str, created: str, vari
         "量化推理", "结构化剪枝", "RoPE 外推", "Mamba 状态空间模型",
         "speculative decoding", "PagedAttention", "工具调用数据集", "SFT 过拟合",
         "Transformer 归一化", "学习率调度", "多 seed 实验",
+        "Ħyperparameter sweep 2026", "reward hacking 检測", "softmax 数值稳定性",
+        "expert capacity factor", "dataset contamination 评估",
+        "精调数据合集", "agent benchmark 2026", "对齐 audit 流程",
+        "prompt cache 策略", "在线推理拼接", "mixture-of-depths",
+        "轻量化 attention", "腾出机器供项目", "training data dedup",
+        "gradient checkpointing 微调",
     ]
     request_styles = [
         "搜索『{query}』的资料，如果结果不够请追问。",
@@ -482,25 +536,39 @@ def _insufficient_result_search(rng: random.Random, sid: str, created: str, vari
         "请补充论文和实验结论。",
         "我主要关心部署成本。",
     ]
-    query = queries[variant % len(queries)]
-    limit = 1 + ((variant // len(queries)) % 2)
-    args = {"query": query, "limit": limit}
-    result = _mock_result("d1_web_search", args)
-    c1 = _call_id(sid, 1)
-    request = request_styles[(variant // 2) % len(request_styles)].format(query=query)
-    followup = followups[(variant // (len(request_styles) * 2)) % len(followups)]
-    answer = [
-        f"仅找到 {limit} 条结果：{result}。请补充你关注的方向。",
-        f"目前检索到的结果有限（{result}），请告诉我你想深入的角度。",
-        f"这次搜索范围较窄，仅返回 {result}；请进一步说明筛选条件。",
-        f"已有初步结果：{result}。为了继续整理，请补充具体关注点。",
-    ][variant % 4]
-    final_answer = [
+    answer_styles = [
+        f"仅找到 {{limit}} 条结果：{{result}}。请补充你关注的方向。",
+        f"目前检索到的结果有限（{{result}}），请告诉我你想深入的角度。",
+        f"这次搜索范围较窄，仅返回 {{result}}；请进一步说明筛选条件。",
+        f"已有初步结果：{{result}}。为了继续整理，请补充具体关注点。",
+    ]
+    final_answer_styles = [
         "收到，我会按这个方向继续。",
         "明白，我会据此收窄后续整理范围。",
         "了解，我将优先筛选符合该条件的资料。",
         "好的，我会按你的关注点继续检索。",
-    ][variant % 4]
+    ]
+    n_query = len(queries)
+    n_limit = 2  # 1 + (idx % 2)
+    n_request = len(request_styles)
+    n_followup = len(followups)
+    n_answer = len(answer_styles)
+    n_final = len(final_answer_styles)
+    query_i = variant % n_query
+    limit_i = (variant // n_query) % n_limit
+    request_i = (variant // (n_query * n_limit)) % n_request
+    followup_i = (variant // (n_query * n_limit * n_request)) % n_followup
+    answer_i = (variant // (n_query * n_limit * n_request * n_followup)) % n_answer
+    final_i = (variant // (n_query * n_limit * n_request * n_followup * n_answer)) % n_final
+    query = queries[query_i]
+    limit = 1 + limit_i
+    args = {"query": query, "limit": limit}
+    result = _mock_result("d1_web_search", args)
+    c1 = _call_id(sid, 1)
+    request = request_styles[request_i].format(query=query)
+    followup = followups[followup_i]
+    answer = answer_styles[answer_i].format(limit=limit, result=result)
+    final_answer = final_answer_styles[final_i]
     return _sample(
         sid,
         [
@@ -523,17 +591,26 @@ def _req_change_city(rng: random.Random, sid: str, created: str, variant: int) -
     cities = [
         "上海", "深圳", "广州", "杭州", "成都", "南京", "武汉", "西安",
         "厦门", "青岛", "苏州", "重庆", "天津", "昆明", "郑州", "福州",
+        "济南", "长沙", "哈尔滨", "长春", "贵阳", "石家庄", "太原", "兰州",
+        "拉萨", "乌鲁木齐", "海口", "三亚", "宁波", "无锡",
     ]
     # Pick distinct old/new city pairs deterministically from ``variant`` so
-    # the 100 req_change_city rows do not collapse onto the small set the
-    # rng.sample(cities, 2) call would otherwise produce. ``cities`` has 16
-    # entries, so 16*15/2 = 120 ordered pairs; ``variant % 120`` indexes one.
+    # the per-task rows do not cycle through a small sample-with-replacement
+    # set. With 30 cities there are 30*29/2 = 435 ordered pairs; using the
+    # strictly-nested ``(variant // N) % P`` formula yields 435 distinct
+    # pairs in the first 435 variants, then cycles to the same canonical
+    # content signature — which the canonical-uniqueness check rejects.
     ordered_pairs = [(a, b) for i, a in enumerate(cities)
                      for b in cities[i + 1:]]
-    old_city, new_city = ordered_pairs[variant % len(ordered_pairs)]
-    first_style_index = variant % 6
-    change_style_index = (variant // 6) % 6
-    answer_index = (variant // 36) % 4
+    n_pair = len(ordered_pairs)
+    n_first = 6
+    n_change = 6
+    n_answer = 4
+    pair_i = variant % n_pair
+    first_i = (variant // n_pair) % n_first
+    change_i = (variant // (n_pair * n_first)) % n_change
+    answer_i = (variant // (n_pair * n_first * n_change)) % n_answer
+    old_city, new_city = ordered_pairs[pair_i]
     old_args, new_args = {"city": old_city}, {"city": new_city}
     old_result = _mock_result("d1_get_weather", old_args)
     new_result = _mock_result("d1_get_weather", new_args)
@@ -559,15 +636,15 @@ def _req_change_city(rng: random.Random, sid: str, created: str, variant: int) -
         f"已按你的新要求查询{new_city}：{new_result}",
         f"忽略之前的{old_city}，当前结果是{new_result}",
         f"最新指定城市为{new_city}，天气信息如下：{new_result}",
-    ][answer_index]
+    ][answer_i]
     return _sample(
         sid,
         [
             {"role": "system", "content": "You are a helpful assistant with tool access."},
-            {"role": "user", "content": first_styles[first_style_index].format(city=old_city)},
+            {"role": "user", "content": first_styles[first_i].format(city=old_city)},
             _assistant_call(c1, "d1_get_weather", old_args),
             _tool_message(c1, "d1_get_weather", old_result),
-            {"role": "user", "content": change_styles[change_style_index].format(city=new_city)},
+            {"role": "user", "content": change_styles[change_i].format(city=new_city)},
             _assistant_call(c2, "d1_get_weather", new_args),
             _tool_message(c2, "d1_get_weather", new_result),
             {"role": "assistant", "content": answer},
@@ -703,19 +780,108 @@ _NOT_AVAILABLE_VARIANTS: tuple[tuple[str, list[dict[str, Any]], str, str, tuple[
      "帮我在公司 1 公里内找一家能彩打的店。",
      "当前可用工具中没有周边商铺查询功能，无法推荐店铺。",
      ("打印店",)),
+    ("列车到站查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "查一下 G7 次列车到北京南的时间。",
+     "当前可用工具中没有列车到站查询功能，无法获取列车动态。",
+     ("列车查询",)),
+    ("快递物流查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "查一下快递单号 YT12345678 的物流状态。",
+     "当前可用工具中没有快递物流查询功能，无法获取包裹轨迹。",
+     ("快递查询",)),
+    ("医院检查报告",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我查看上周体检的血液报告。",
+     "当前可用工具中没有检查报告查询功能，无法访问个人报告。",
+     ("体检报告",)),
+    ("工资条查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "查一下上个月我的工资条明细。",
+     "当前可用工具中没有工资条查询功能，无法访问薪资系统。",
+     ("工资条",)),
+    ("会议室预约",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我预订周三上午 10 点的 8 人会议室。",
+     "当前可用工具中没有会议室预约功能，无法预订会议室。",
+     ("会议室",)),
+    ("发票抬头校验",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "校验一下这张发票的抬头是否正确。",
+     "当前可用工具中没有发票抬头校验功能，无法核验发票。",
+     ("发票校验",)),
+    ("周边餐馆推荐",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "推荐公司附近人均 80 元以内的午餐馆。",
+     "当前可用工具中没有周边餐馆推荐功能，无法提供推荐。",
+     ("餐馆推荐",)),
+    ("天猫商品下单",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我在天猫下单这个型号的鼠标。",
+     "当前可用工具中没有电商下单功能，无法代你下单。",
+     ("电商下单",)),
+    ("笔记本壁纸查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "查一下我笔记本预装的壁纸分辨率。",
+     "当前可用工具中没有系统信息查询功能，无法读取系统状态。",
+     ("系统信息",)),
+    ("手机定位",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "查一下我手机现在的定位坐标。",
+     "当前可用工具中没有定位查询功能，无法获取设备位置。",
+     ("设备定位",)),
+    ("智能家居控制",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我把客厅灯调成暖色，亮度 60%。",
+     "当前可用工具中没有智能家居控制功能，无法操控家居设备。",
+     ("智能家居",)),
+    ("新闻头条推送",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "把今天的科技头条推送到我的邮箱。",
+     "当前可用工具中没有邮件推送功能，无法代你发送邮件。",
+     ("头条推送",)),
+    ("合同到期提醒",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "提醒我下周租客合同即将到期。",
+     "当前可用工具中没有合同到期提醒功能，无法设置日程提醒。",
+     ("合同提醒",)),
+    ("预算报销提交",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "帮我把这个月的差旅报销提交上去。",
+     "当前可用工具中没有报销提交功能，无法代你提交报销。",
+     ("报销提交",)),
+    ("电费余额查询",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL],
+     "查一下我家这个月的电费余额。",
+     "当前可用工具中没有水电费查询功能，无法获取账单。",
+     ("账单查询",)),
+    ("火车购票",
+     [CALC_TOOL, WEATHER_TOOL, SEARCH_TOOL, TRANSLATE_TOOL],
+     "帮我买后天早上北京到上海的高铁票。",
+     "当前可用工具中没有火车票购买功能，无法代你购票。",
+     ("火车购票",)),
 )
 
 
 def _tool_not_available(rng: random.Random, sid: str, created: str, variant: int) -> dict[str, Any]:
     """Generate a semantically varied unavailable-capability refusal.
 
-    The 24 capability records are combined with independent request,
-    context, and refusal styles using the deterministic per-task variant
-    index. This gives 100 distinct semantic combinations for the default
-    count instead of sampling a small pool with replacement.
+    Strictly-nested ``(variant // N) % P`` dimension indexing yields
+    ``len(_NOT_AVAILABLE_VARIANTS) * 5 * 4 * 4 = 3200`` unique canonical
+    semantic combinations for the per-task variant range, which exceeds
+    the per-class floor of 834 needed for the 5000+ scale-up.
     """
+    n_cap = len(_NOT_AVAILABLE_VARIANTS)
+    n_req = 5  # request_styles
+    n_ctx = 4  # contexts
+    n_ref = 4  # refusal_styles
+    cap_i = variant % n_cap
+    req_i = (variant // n_cap) % n_req
+    ctx_i = (variant // (n_cap * n_req)) % n_ctx
+    ref_i = (variant // (n_cap * n_req * n_ctx)) % n_ref
+
     capability, tools_subset, request, rationale, capability_tag = (
-        _NOT_AVAILABLE_VARIANTS[variant % len(_NOT_AVAILABLE_VARIANTS)])
+        _NOT_AVAILABLE_VARIANTS[cap_i])
     request_styles = (
         "{request}",
         "我现在有一个实际需求：{request}",
@@ -735,11 +901,8 @@ def _tool_not_available(rng: random.Random, sid: str, created: str, variant: int
         "我没有可用于{capability}的工具，不能假装已经完成这项操作。",
         "可用工具无法支持{capability}；本次请求不能由工具链完成。",
     )
-    style = (variant // len(_NOT_AVAILABLE_VARIANTS)) % len(request_styles)
-    context = contexts[(variant // (len(_NOT_AVAILABLE_VARIANTS) * len(request_styles))) % len(contexts)]
-    refusal = refusal_styles[(variant // 7) % len(refusal_styles)].format(
-        capability=capability)
-    user = request_styles[style].format(request=request) + " " + context
+    refusal = refusal_styles[ref_i].format(capability=capability)
+    user = request_styles[req_i].format(request=request) + " " + contexts[ctx_i]
     answer = refusal
     return _sample(
         sid,
@@ -789,11 +952,27 @@ _ERROR_RECOVERY_VARIANTS: tuple[tuple[str, str, str], ...] = (
 
 
 def _error_recovery(rng: random.Random, sid: str, created: str, variant: int) -> dict[str, Any]:
-    """Generate one deterministic, semantically distinct recovery trace."""
-    first_query, refined_query, intent = _ERROR_RECOVERY_VARIANTS[
-        variant % len(_ERROR_RECOVERY_VARIANTS)]
-    first_limit = 1 + ((variant // len(_ERROR_RECOVERY_VARIANTS)) % 2)
-    second_limit = 3 + ((variant // (len(_ERROR_RECOVERY_VARIANTS) * 2)) % 4)
+    """Generate one deterministic, semantically distinct recovery trace.
+
+    Strictly-nested ``(variant // N) % P`` dimension indexing yields
+    ``len(_ERROR_RECOVERY_VARIANTS) * 2 * 4 * 5 * 5 = 6000`` unique
+    canonical semantic combinations, well above the per-class floor of
+    834 needed for the 5000+ scale-up.
+    """
+    n_var = len(_ERROR_RECOVERY_VARIANTS)
+    n_first_limit = 2  # 1 + (idx % 2)
+    n_second_limit = 4  # 3 + (idx % 4)
+    n_answer = 5
+    n_first_ack = 5
+    var_i = variant % n_var
+    first_limit_i = (variant // n_var) % n_first_limit
+    second_limit_i = (variant // (n_var * n_first_limit)) % n_second_limit
+    answer_i = (variant // (n_var * n_first_limit * n_second_limit)) % n_answer
+    first_ack_i = (variant // (n_var * n_first_limit * n_second_limit * n_answer)) % n_first_ack
+
+    first_query, refined_query, intent = _ERROR_RECOVERY_VARIANTS[var_i]
+    first_limit = 1 + first_limit_i
+    second_limit = 3 + second_limit_i
     first_args = {"query": first_query, "limit": first_limit}
     second_args = {"query": refined_query, "limit": second_limit}
     first_result = _mock_result("d1_web_search", first_args)
@@ -813,7 +992,7 @@ def _error_recovery(rng: random.Random, sid: str, created: str, variant: int) ->
         "结果数量有限，我会根据任务目标重新组织查询。",
         "需要进一步细化主题后再搜索。",
     )
-    answer = answer_styles[variant % len(answer_styles)].format(
+    answer = answer_styles[answer_i].format(
         first=first_query, second=refined_query, intent=intent, result=second_result)
     return _sample(
         sid,
@@ -824,9 +1003,7 @@ def _error_recovery(rng: random.Random, sid: str, created: str, variant: int) ->
             )},
             _assistant_call(c1, "d1_web_search", first_args),
             _tool_message(c1, "d1_web_search", first_result),
-            {"role": "assistant", "content": first_ack_styles[
-                (variant // len(_ERROR_RECOVERY_VARIANTS)) % len(first_ack_styles)
-            ].format(first=first_query)},
+            {"role": "assistant", "content": first_ack_styles[first_ack_i].format(first=first_query)},
             _assistant_call(c2, "d1_web_search", second_args),
             _tool_message(c2, "d1_web_search", second_result),
             {"role": "assistant", "content": answer},
@@ -1252,7 +1429,8 @@ def _write_samples(out_dir: Path, samples: list[dict[str, Any]]) -> None:
         path.write_text(json.dumps(sample, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def _write_manifests(out_dir: Path, samples: list[dict[str, Any]], seed: int) -> None:
+def _write_manifests(out_dir: Path, samples: list[dict[str, Any]],
+                    seed: int, build_count: int) -> None:
     for split in ("train", "dev", "test"):
         items = [sample for sample in samples if sample["metadata"]["split"] == split]
         entries = []
@@ -1275,6 +1453,7 @@ def _write_manifests(out_dir: Path, samples: list[dict[str, Any]], seed: int) ->
             "seed": seed,
             "created_at": _now_ts(seed, 0),
             "count": len(items),
+            "build_count": build_count,
             "aggregate_sha256": digest.hexdigest(),
             "task_types": {task: sum(1 for item in items if item["metadata"]["task_type"] == task)
                            for task in TASK_TYPES},
@@ -1305,7 +1484,7 @@ def main() -> int:
             print(f"FAIL {error}")
         return 1
     _write_samples(args.out, samples)
-    _write_manifests(args.out, samples, args.seed)
+    _write_manifests(args.out, samples, args.seed, build_count=args.count)
     counts = {task: sum(1 for sample in samples if sample["metadata"]["task_type"] == task)
               for task in TASK_TYPES}
     splits = {split: sum(1 for sample in samples if sample["metadata"]["split"] == split)

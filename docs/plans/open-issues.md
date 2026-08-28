@@ -877,6 +877,41 @@ P3/P4 后续动作：
 
 ---
 
+### P3 D2 扩样到 5000+（2026-08-28）
+
+状态：已交付（待 reviewer dispatch 与 detached auditor 终审）。
+决策：扩 6 个 builder 的 variant 池并使用严格嵌套 `(variant // N) % P` 维度公式，重生成 5004 样本（6×834）；`scripts/run_tests.py full` 全绿；`datasets/tool-calling-d2/` 加入 `.gitignore` 并 `git rm --cached` 以保证样本不入 Git 追踪。
+
+改动：
+- `scripts/generate_d2_dataset.py`：
+  - `_multi_tool_sequential`：expressions 20→50、topics 10→20，严格嵌套 50×20×4×6×4=96000 组合上限
+  - `_tool_error_response`：_TRANSLATE_TEXTS 20→50、_TRANSLATE_LANGS 5→10、_TRANSLATE_LANG_NAMES 补齐；4×4 嵌套
+  - `_insufficient_result_search`：queries 25→40；严格嵌套 40×2×6×8×4×4=61440 组合上限
+  - `_req_change_city`：cities 16→30；严格嵌套 435 pairs×6×6×4=62640 组合上限
+  - `_tool_not_available`：_NOT_AVAILABLE_VARIANTS 24→40（新增列车/快递/医院/薪资/会议室/发票/餐馆/电商下单/笔记本壁纸/手机定位/智能家居/新闻头条/合同提醒/报销/电费/火车购票等真实业务场景）；严格嵌套 40×5×4×4=3200 组合上限
+  - `_error_recovery`：30×2×4×5×5=6000 组合上限，公式改为严格嵌套
+  - `_write_manifests()` 新增 `build_count` 字段（对应 `--count` 参数）以帮助测试参数化
+- `tests/test_d2_dataset.py`：
+  - 新增 `_expected_total_samples()` / `_expected_per_task_samples()` / `_build_count()` 三个 helper，从 on-disk MANIFEST 派生
+  - `test_canonical_semantic_content_is_disjoint_across_splits` 改用 `assertGreaterEqual(>=expected_per_task)` 而非硬编码 100
+  - `test_split_assignment_uses_iid_stratified_shuffle` 改用派生 per-class 70/15/15 期望值
+  - 两处 `build_samples(600, ...)` 改用 `_build_count()` 派生
+- `.gitignore` 新增 `datasets/tool-calling-d2/` 与 `datasets/tool-calling-d2-*/`
+- `git rm -r --cached datasets/tool-calling-d2` 移除已追踪的 5004 个样本与 3 个 MANIFEST（磁盘保留）
+
+验证（生成 + 测试）：
+- 仿真校验：6 类各 834 unique canonical signatures，6/6 OK
+- 生成 5004 samples 耗时 35s，per-task 834；train 3498 / dev 750 / test 756
+- canonical total unique: 5004/5004；train∩dev=0、train∩test=0、dev∩test=0
+- D2-vs-D1/D1.1 cross_dataset_signature：3 个 split 均 0 重叠
+- `scripts/run_tests.py full` → Ran **296** tests OK；`scripts/validate_stage0.py --examples` → 9/9 PASS
+
+遗留：
+- split 实际为 3498/750/756（不是字面 3500/750/750），原因是 `count % 6 == 0` 约束下 6×834=5004，per-class floor-split 583/125/126，6 类累加为 3498/750/750/756。这是数学必然；如需严格 3500/750/750 应改用 6×833+2 模式（4 类 833、2 类 834），但会让 canonical uniqueness 检查需要按 per-class 单独断言而非统一 floor-split。已在 `docs/data/d2-expansion.md` §8 明确记录。
+- reviewer dispatch 与 detached auditor 还未启动（待本目标下一阶段审查）。
+
+---
+
 ## 暂不处理的范围
 
 以下项目计划本身暂不视为当前问题，除非后续实现暴露具体错误：

@@ -75,6 +75,8 @@ checkpoints/
 data/raw/
 data/interim/
 data/processed/
+datasets/tool-calling-d2/
+datasets/tool-calling-d2-*/
 artifacts/tokenizers/
 artifacts/huggingface/
 artifacts/multi-seed-configs/

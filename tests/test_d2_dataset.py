@@ -54,6 +54,52 @@ def _dataset_present() -> bool:
         D2 / "MANIFEST-dev.json").exists() and (D2 / "MANIFEST-test.json").exists()
 
 
+def _expected_total_samples() -> int:
+    """Total samples across the three D2 splits, derived from on-disk MANIFESTs.
+
+    The D2 dataset is parameterizable by ``--count``; tests read the actual
+    manifest counts instead of hard-coding so a 5004-sample scale-up does
+    not require test edits.
+    """
+    total = 0
+    for split in EXPECTED_SPLITS:
+        manifest_path = D2 / f"MANIFEST-{split}.json"
+        if not manifest_path.exists():
+            return 0
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        total += manifest["count"]
+    return total
+
+
+def _expected_per_task_samples() -> int:
+    """Number of samples per task_type in the on-disk dataset.
+
+    The generator splits ``count`` evenly across the 6 task types via
+    ``count // len(TASK_TYPES)``; any remainder rows go to the first few
+    builders in TASK_TYPES order but tests treat the dataset as 6 equal
+    slices for clarity.
+    """
+    total = _expected_total_samples()
+    return total // len(EXPECTED_TASK_TYPES)
+
+
+def _build_count() -> int:
+    """Return the build_count used to generate the on-disk dataset.
+
+    The generator echoes ``--count`` into ``MANIFEST-*.json`` metadata as
+    ``build_count``; older manifests (D2 v2.0 round 9) may not have it,
+    so we fall back to the sum of split counts in that case.
+    """
+    for split in EXPECTED_SPLITS:
+        manifest_path = D2 / f"MANIFEST-{split}.json"
+        if not manifest_path.exists():
+            return 0
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if "build_count" in manifest:
+            return int(manifest["build_count"])
+    return _expected_total_samples()
+
+
 def _load_validator() -> Draft202012Validator:
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     return Draft202012Validator(schema)
@@ -595,17 +641,23 @@ class D2SplitDisjointnessTests(unittest.TestCase):
         self.assertEqual(set(), signatures["train"] & signatures["dev"])
         self.assertEqual(set(), signatures["train"] & signatures["test"])
         self.assertEqual(set(), signatures["dev"] & signatures["test"])
-        self.assertEqual(600, len(set().union(*signatures.values())))
+        expected_total = _expected_total_samples()
+        self.assertEqual(
+            expected_total, len(set().union(*signatures.values())),
+            f"expected {expected_total} unique canonical signatures",
+        )
         all_samples = self.train + self.dev + self.test
+        expected_per_task = _expected_per_task_samples()
         for task_type in EXPECTED_TASK_TYPES:
             task_signatures = {
                 module.canonical_content_signature(sample)
                 for sample in all_samples
                 if sample["metadata"]["task_type"] == task_type
             }
-            self.assertEqual(
-                100, len(task_signatures),
-                f"{task_type} must contain 100 unique semantic instances",
+            self.assertGreaterEqual(
+                len(task_signatures), expected_per_task,
+                f"{task_type} must contain >= {expected_per_task} unique "
+                f"semantic instances (got {len(task_signatures)})",
             )
 
     def test_d2_canonical_content_is_disjoint_from_d1_d1llm_train(self) -> None:
@@ -774,8 +826,9 @@ class D2SplitDisjointnessTests(unittest.TestCase):
 
         # Replay the build path with the default seed.
         import random
+        build_count = _build_count() or 600
         samples = module.assign_split_ids(
-            module.build_samples(600, random.Random(2026), seed=2026),
+            module.build_samples(build_count, random.Random(2026), seed=2026),
             seed=2026,
         )
         from collections import Counter
@@ -785,10 +838,14 @@ class D2SplitDisjointnessTests(unittest.TestCase):
         }
         for s in samples:
             per_type[s["metadata"]["task_type"]][s["metadata"]["split"]] += 1
+        per_class = _build_count() // len(EXPECTED_TASK_TYPES)
+        train_n = int(per_class * 0.70)
+        dev_n = int(per_class * 0.15)
+        test_n = per_class - train_n - dev_n
+        expected = {"train": train_n, "dev": dev_n, "test": test_n}
         for task, splits in per_type.items():
             self.assertEqual(
-                {"train": 70, "dev": 15, "test": 15},
-                splits,
+                expected, splits,
                 f"{task} split distribution not 70/15/15: {splits}",
             )
 
@@ -804,8 +861,9 @@ class D2SplitDisjointnessTests(unittest.TestCase):
                 "generate_d2_for_determinism", GENERATOR)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
+            build_count = _build_count() or 600
             samples = module.assign_split_ids(
-                module.build_samples(600, random.Random(2026), seed=2026),
+                module.build_samples(build_count, random.Random(2026), seed=2026),
                 seed=2026,
             )
             # Bucket each sample by its (task_type, first user message
