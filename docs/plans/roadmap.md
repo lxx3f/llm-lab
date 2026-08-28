@@ -73,7 +73,8 @@
 | P5-01 开源 instruction-tuned 模型选定 | SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct；5 模型均在 HF mirror 下载并 cache 到 `artifacts/huggingface/`；LICENSE + 模型卡记录入 `docs/protocols/transformers-backend.md` §7/§8 | — |
 | P5-02 Transformers 后端接入（公开模型） | 仅公开模型 + D2 dev 90 样本 reward 评测 | P3 完成 |
 | D2 数据集 | 多轮对话 + 错误恢复；≥5000 样 | P5-02 基础就位 |
-| D2 数据集扩样到 5000+ | 6 类各 ≥833 unique variants；5004 samples；834/类；cross-split canonical disjoint；D2 vs D1/D1.1 disjoint；MANIFEST 新增 `build_count` 字段；tests 参数化从 on-disk MANIFEST 派生；`datasets/tool-calling-d2/` 加入 .gitignore 并 `git rm --cached` 移除 Git 追踪 | P5-02 完成 |
+| D2 数据集扩样到 5000+ | 6 类各 ≥833 unique variants；5000 samples（4 类 833 + 2 类 834）；3500/750/750 split 契约命中；cross-split canonical disjoint；D2 vs D1/D1.1 disjoint；MANIFEST 新增 `build_count` 字段；tests 参数化从 on-disk MANIFEST 派生并显式断言 3500/750/750 契约；`datasets/tool-calling-d2/` 加入 .gitignore 并 `git rm --cached` 移除 Git 追踪 | round 14 完成 |
+| D2 数据集扩样到 5000+（round 1） | 5004 样本版本（误合同命中：3498/750/756） | detached auditor round 14 否决（偏离 3500/750/750 契约） |
 
 ## 暂缓阶段
 

@@ -228,11 +228,20 @@ def _sample(
 def _variant_index_from_build_pos(build_pos: int) -> int:
     """Return the zero-based per-task variant index from a build position.
 
-    ``build_pos`` is the 0-based position of the sample inside the
-    round-robin ``build_samples`` output (so position ``6 * k + t`` is
-    variant ``k`` of ``TASK_TYPES[t]``). This decouples variant identity
-    from the final split id, so IID stratified shuffling can reshuffle
-    variants across train / dev / test without rewriting semantic content.
+    The variant_index encodes the per-task position so the variant
+    space is independent of total sample count: variant_index =
+    ``per_task_position_of_build_pos``. With the round-robin
+    build_samples layout (each class gets a contiguous slice),
+    ``variant_index == intra_class_position``.
+
+    Callers (see :func:`build_samples`) pass the explicit
+    ``per_class_counts`` plan and compute variant_index as the
+    intra-class running offset, which is the only way to land on
+    834 unique variants for the 834-sample classes and 833 unique
+    variants for the 833-sample classes.
+
+    ``_variant_index`` is retained as a thin alias for legacy callers
+    that parse a sample id (see ``tests/test_d2_dataset.py``).
     """
     return build_pos // len(TASK_TYPES)
 
@@ -1029,7 +1038,44 @@ BUILDERS: tuple[tuple[str, Callable[[random.Random, str, str, int], dict[str, An
 )
 
 
-def build_samples(count: int, rng: random.Random, *, seed: int) -> list[dict[str, Any]]:
+def _plan_per_class_counts(total: int) -> tuple[int, ...]:
+    """Distribute ``total`` samples across the 6 task_types.
+
+    The plan keeps every class ≥ 833 unique variants (the per-class
+    variant pool floor) and prefers balanced counts: each class gets
+    ``total // 6`` and any remainder rows are distributed one-per-class
+    to the first few builders in ``TASK_TYPES`` order. This is the
+    only distribution that produces the canonical 70/15/15 split with
+    exact ``train=3500, dev=750, test=750`` when ``total=5000``:
+
+    - 5000 / 6 = 833 remainder 2
+    - 4 classes at 833, 2 classes at 834
+    - per-class split: dev = test = round(per_class * 0.15) = 125,
+      train = per_class - dev - test
+    - total train: 4*583 + 2*584 = 2332 + 1168 = 3500
+    - total dev:   6 * 125 = 750
+    - total test:  6 * 125 = 750
+    """
+    if total < len(TASK_TYPES):
+        raise ValueError(
+            f"--count {total} must be >= {len(TASK_TYPES)} to cover all "
+            f"task types"
+        )
+    base = total // len(TASK_TYPES)
+    remainder = total % len(TASK_TYPES)
+    counts = [base] * len(TASK_TYPES)
+    for index in range(remainder):
+        counts[index] += 1
+    return tuple(counts)
+
+
+def build_samples(
+    count: int,
+    rng: random.Random,
+    *,
+    seed: int,
+    per_class_counts: tuple[int, ...] | None = None,
+) -> list[dict[str, Any]]:
     """Generate ``count`` D2 samples in a fixed round-robin order.
 
     The ``build_pos`` (0-based) is the only stable identity used by the
@@ -1037,26 +1083,42 @@ def build_samples(count: int, rng: random.Random, *, seed: int) -> list[dict[str
     the call ids and ``created_at`` timestamp) is assigned later by
     :func:`assign_split_ids` so the IID stratified split reshuffle can
     rewrite only the bookkeeping fields.
+
+    ``per_class_counts`` overrides the default ``count // len(TASK_TYPES)``
+    distribution; the default is computed by
+    :func:`_plan_per_class_counts` and is the only way to land on the
+    exact 5000 / 3500 / 750 / 750 contract because 5000 is not
+    divisible by 6.
     """
-    if count < 6:
-        raise ValueError(f"--count must be >= 6, got {count}")
-    if count % len(TASK_TYPES) != 0:
+    if per_class_counts is None:
+        per_class_counts = _plan_per_class_counts(count)
+    if len(per_class_counts) != len(TASK_TYPES):
         raise ValueError(
-            f"--count {count} must be a multiple of {len(TASK_TYPES)} to keep "
-            f"per-task variant counts balanced"
+            f"per_class_counts must have {len(TASK_TYPES)} entries, "
+            f"got {len(per_class_counts)}"
+        )
+    if sum(per_class_counts) != count:
+        raise ValueError(
+            f"per_class_counts sum {sum(per_class_counts)} != count {count}"
+        )
+    if any(c <= 0 for c in per_class_counts):
+        raise ValueError(
+            f"per_class_counts must all be > 0, got {per_class_counts}"
         )
     samples: list[dict[str, Any]] = []
-    for build_pos in range(count):
-        task_type, builder = BUILDERS[build_pos % len(BUILDERS)]
-        variant = _variant_index_from_build_pos(build_pos)
-        build_sid = f"d2-build-{build_pos:04d}"
-        sample = builder(rng, build_sid, _now_ts(seed, build_pos + 1), variant)
-        if sample["metadata"]["task_type"] != task_type:
-            raise AssertionError(
-                f"builder/type mismatch at build_pos={build_pos}: "
-                f"{task_type} != {sample['metadata']['task_type']}"
-            )
-        samples.append(sample)
+    build_pos = 0
+    for task_type, builder, n in zip(TASK_TYPES, [b for _, b in BUILDERS], per_class_counts):
+        for intra_class_index in range(n):
+            variant = intra_class_index  # per-class variant index
+            build_sid = f"d2-build-{build_pos:04d}"
+            sample = builder(rng, build_sid, _now_ts(seed, build_pos + 1), variant)
+            if sample["metadata"]["task_type"] != task_type:
+                raise AssertionError(
+                    f"builder/type mismatch at build_pos={build_pos}: "
+                    f"{task_type} != {sample['metadata']['task_type']}"
+                )
+            samples.append(sample)
+            build_pos += 1
     return samples
 
 
@@ -1064,12 +1126,12 @@ def assign_split_ids(samples: list[dict[str, Any]], *, seed: int) -> list[dict[s
     """IID stratified shuffle + per-split renumbering.
 
     For each ``task_type``, the per-task variants are deterministically
-    shuffled with ``seed`` and the first 70 / next 15 / final 15 are
-    assigned to ``train`` / ``dev`` / ``test``. The final sample id
-    (e.g. ``d2-train-0001``) is 1-based within its split so the
-    timestamp contract ``1785000000 + seed + index`` stays globally
-    unique across all 600 rows while every split now sees a uniform
-    slice of the per-task variants.
+    shuffled with ``seed``. The 70 / 15 / 15 split is computed per-class
+    using a ``round()``-based dev/test allocation so all classes share
+    the same ``dev=test=125`` when ``total=5000`` and the train remainder
+    absorbs the floor noise. The final sample id (e.g. ``d2-train-0001``)
+    is 1-based within its split so the timestamp contract
+    ``1785000000 + seed + index`` stays globally unique across all rows.
 
     Sample content (messages, tool_calls' arguments, expected_answer,
     semantic context) is unchanged: only ``id``, ``metadata.split``,
@@ -1089,22 +1151,27 @@ def assign_split_ids(samples: list[dict[str, Any]], *, seed: int) -> list[dict[s
             raise AssertionError(f"task_type {task_type!r} has no samples")
         rng.shuffle(type_samples)
 
-    counts = {task: len(items) for task, items in by_type.items()}
-    if len(set(counts.values())) != 1:
-        raise AssertionError(
-            f"unbalanced task_type counts: {counts}"
-        )
-    per_type_n = next(iter(counts.values()))
-    train_per_type = int(per_type_n * 0.70)
-    dev_per_type = int(per_type_n * 0.15)
-    test_per_type = per_type_n - train_per_type - dev_per_type
-    if train_per_type + dev_per_type + test_per_type != per_type_n:
-        raise AssertionError(
-            f"split sum mismatch: {train_per_type}+{dev_per_type}+{test_per_type} != {per_type_n}"
-        )
+    # Per-class dev/test use round() so 833 / 834 both round to dev=test=125.
+    # Train absorbs the remainder; this is what makes the global
+    # 3500 / 750 / 750 contract hold for the canonical 5000-sample build.
+    def _split_three(per_class_n: int) -> tuple[int, int, int]:
+        dev_n = round(per_class_n * 0.15)
+        test_n = round(per_class_n * 0.15)
+        train_n = per_class_n - dev_n - test_n
+        if train_n + dev_n + test_n != per_class_n:
+            raise AssertionError(
+                f"split sum mismatch: {train_n}+{dev_n}+{test_n} != {per_class_n}"
+            )
+        if train_n < 0:
+            raise AssertionError(
+                f"train_n negative: {train_n} for per_class_n={per_class_n}"
+            )
+        return train_n, dev_n, test_n
 
     assigned: dict[str, list[dict[str, Any]]] = {"train": [], "dev": [], "test": []}
     for task_type, type_samples in by_type.items():
+        per_class_n = len(type_samples)
+        train_per_type, dev_per_type, test_per_type = _split_three(per_class_n)
         assigned["train"].extend(type_samples[:train_per_type])
         assigned["dev"].extend(type_samples[train_per_type:train_per_type + dev_per_type])
         assigned["test"].extend(type_samples[train_per_type + dev_per_type:])

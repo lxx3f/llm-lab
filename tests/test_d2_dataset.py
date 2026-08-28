@@ -641,13 +641,29 @@ class D2SplitDisjointnessTests(unittest.TestCase):
         self.assertEqual(set(), signatures["train"] & signatures["dev"])
         self.assertEqual(set(), signatures["train"] & signatures["test"])
         self.assertEqual(set(), signatures["dev"] & signatures["test"])
+        # Exact 5000 / 3500 / 750 / 750 contract (auditor round 14).
         expected_total = _expected_total_samples()
         self.assertEqual(
-            expected_total, len(set().union(*signatures.values())),
-            f"expected {expected_total} unique canonical signatures",
+            5000, expected_total,
+            f"expected exactly 5000 samples total, got {expected_total}",
         )
+        self.assertEqual(
+            5000, len(set().union(*signatures.values())),
+            f"expected 5000 unique canonical signatures",
+        )
+        # Per-split counts must hit the 3500 / 750 / 750 contract.
+        for split, expected in (("train", 3500), ("dev", 750), ("test", 750)):
+            manifest = json.loads(
+                (D2 / f"MANIFEST-{split}.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                expected, manifest["count"],
+                f"{split} manifest count {manifest['count']} != {expected}",
+            )
         all_samples = self.train + self.dev + self.test
-        expected_per_task = _expected_per_task_samples()
+        # Each task_type must have at least 833 unique canonical variants.
+        # The on-disk distribution may differ per-class (some classes at
+        # 833, others at 834, depending on the per_class_counts plan) so
+        # we assert the minimum, not equality.
         for task_type in EXPECTED_TASK_TYPES:
             task_signatures = {
                 module.canonical_content_signature(sample)
@@ -655,9 +671,9 @@ class D2SplitDisjointnessTests(unittest.TestCase):
                 if sample["metadata"]["task_type"] == task_type
             }
             self.assertGreaterEqual(
-                len(task_signatures), expected_per_task,
-                f"{task_type} must contain >= {expected_per_task} unique "
-                f"semantic instances (got {len(task_signatures)})",
+                len(task_signatures), 833,
+                f"{task_type} must contain >= 833 unique semantic instances "
+                f"(got {len(task_signatures)})",
             )
 
     def test_d2_canonical_content_is_disjoint_from_d1_d1llm_train(self) -> None:
@@ -838,14 +854,23 @@ class D2SplitDisjointnessTests(unittest.TestCase):
         }
         for s in samples:
             per_type[s["metadata"]["task_type"]][s["metadata"]["split"]] += 1
-        per_class = _build_count() // len(EXPECTED_TASK_TYPES)
-        train_n = int(per_class * 0.70)
-        dev_n = int(per_class * 0.15)
-        test_n = per_class - train_n - dev_n
-        expected = {"train": train_n, "dev": dev_n, "test": test_n}
+        # Round 14: with 5000 total + round()-based dev/test allocation,
+        # all 6 classes hit dev = test = 125, and train = per_class - 250.
+        # Per-class totals are 833 or 834 depending on the per_class_counts
+        # plan; expected per-task is therefore {833: 583 train}, {834: 584 train}.
+        expected_per_task = {
+            833: {"train": 583, "dev": 125, "test": 125},
+            834: {"train": 584, "dev": 125, "test": 125},
+        }
         for task, splits in per_type.items():
+            # Find the per-class total by summing splits.
+            per_class_n = sum(splits.values())
+            self.assertIn(
+                per_class_n, expected_per_task,
+                f"{task} unexpected per-class total {per_class_n}: {splits}",
+            )
             self.assertEqual(
-                expected, splits,
+                expected_per_task[per_class_n], splits,
                 f"{task} split distribution not 70/15/15: {splits}",
             )
 

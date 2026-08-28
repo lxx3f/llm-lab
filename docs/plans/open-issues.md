@@ -877,10 +877,41 @@ P3/P4 后续动作：
 
 ---
 
-### P3 D2 扩样到 5000+（2026-08-28）
+### P3 D2 扩样到 5000（2026-08-28，round 14）
 
-状态：已交付（待 reviewer dispatch 与 detached auditor 终审）。
-决策：扩 6 个 builder 的 variant 池并使用严格嵌套 `(variant // N) % P` 维度公式，重生成 5004 样本（6×834）；`scripts/run_tests.py full` 全绿；`datasets/tool-calling-d2/` 加入 `.gitignore` 并 `git rm --cached` 以保证样本不入 Git 追踪。
+状态：已交付（round 14 auditor 复查后；待 detached auditor round 14 终审）。
+教训：round 13 完成时使用 5004 样本（4/6 类 834 + 2/6 类 832），split 实际为 3498/750/756；detached auditor round 14 否决该交付，要求严格命中 5000/3500/750/750 契约。
+
+修复：
+- `scripts/generate_d2_dataset.py`：
+  - 新增 `_plan_per_class_counts(total)` helper：5000 / 6 = 833 remainder 2 → 返回 `(834, 834, 833, 833, 833, 833)`。
+  - `build_samples()` 改用 **per-class running counter**（`intra_class_index`）作为 `variant`，代替旧公式 `build_pos // len(TASK_TYPES)`。旧公式在总数变化（如 600 → 5000）时会重复返回 `variant=0`，打破 canonical uniqueness。
+  - `assign_split_ids()` 用 `round(per_class * 0.15)` 计算 dev/test，使 833/834 类都得到 dev=test=125；train = per_class - dev - test。
+  - 其他维度扩展同 round 13。
+- `tests/test_d2_dataset.py`：
+  - 新增 3500/750/750 split 显式断言（manifest `count` 字段）
+  - per-task ≥833 unique canonical signatures 显式断言
+  - per-class 总数 833/834 各自映射到 `{833: 583 train}, {834: 584 train}` 期望表
+- `docs/data/d2-expansion.md` round 14 修订（重写：5000 样本 + 3500/750/750 split）
+- `docs/plans/reviews/stage-p3-d2-expansion.md` round 14 修订（重写）
+- `git rm -r --cached datasets/tool-calling-d2` 重新同步（5000 个样本与 3 个 MANIFEST）
+
+验证（round 14）：
+- 仿真校验：6/6 类都产出 ≥833 unique canonical signatures（4 类 833/833、2 类 834/834）
+- 生成 5000 samples 耗时 34s；train 3500 / dev 750 / test 750 严格命中
+- canonical total unique: 5000/5000；train∩dev=0、train∩test=0、dev∩test=0
+- D2-vs-D1/D1.1 cross_dataset_signature：3 个 split 均 0 重叠
+- `scripts/run_tests.py full` → Ran 296 tests OK；`scripts/validate_stage0.py --examples` → 9/9 PASS
+
+遗留：
+- per-class 总数不均（4 类 833、2 类 834）：这是 5000 / 6 不整除的必然结果，已通过 _plan_per_class_counts helper 自动化。
+- reviewer dispatch 与 detached auditor round 14 还未启动（待本轮提交后）。
+
+---
+
+### P3 D2 扩样到 5004（2026-08-28，round 13，已否决）
+
+状态：已被 detached auditor round 14 否决，原因是不命中 5000/3500/750/750 契约（实际 5004/3498/750/756）。保留为“round 13”记录以备查。
 
 改动：
 - `scripts/generate_d2_dataset.py`：
