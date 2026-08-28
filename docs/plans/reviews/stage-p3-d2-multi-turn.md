@@ -12,11 +12,11 @@ commit 候选变更：见下方“完成范围”节。
 ### 完成范围
 
 - **独立 D2 schema**：新增 `schemas/d2_multi_turn_sample.schema.json`，D2 task_type 使用 6 个规范名称：`tool_not_available` / `tool_error_response` / `insufficient_result_search` / `req_change_city` / `multi_tool_sequential` / `error_recovery`；D1/D1.1 继续使用通用 schema，向后兼容。
-- **独立语义互斥**：生成器和测试均计算 `canonical_content_signature()`；去除 `id` / `call_id` / `tool_call_id` / `depends_on`、`metadata.created_at` 和 `metadata.split` 后，仍保留 task_type、tools、消息内容、工具参数/结果和 expected_answer。最终 600/600 签名唯一，每类 100/100 唯一，train/dev/test 三组 canonical signature 交集均为空。
+- **独立语义互斥**：生成器和测试均计算 `canonical_content_signature()`；去除 `id` / `call_id` / `tool_call_id` / `depends_on`、`metadata.created_at` 和 `metadata.split` 后，仍保留 task_type、tools、消息内容、工具参数/结果和 expected_answer。**当前契约（round 14，HEAD `fdfc519`）**：5000/5000 签名唯一；6 类 ≥833 unique（实际 834/834/833/833/833/833）；train/dev/test 三组 canonical signature 交集均为空。MVP 600/600 唯一为历史记录。
 - **D2 生成器** `scripts/generate_d2_dataset.py`：
-  - 默认生成 600 样本（6 类各 100），train/dev/test = 420/90/90 IID split；
+  - **当前契约（round 14，HEAD `fdfc519`）**：默认生成 5000 样本（4 类 833 + 2 类 834），train/dev/test = 3500/750/750 IID split，per-class split 通过 `round(per_class × 0.15)` 化 dev/test 使 dev=test=125、train=per_class-250；MVP 600 样本版本（6 类各 100，train/dev/test = 420/90/90）是历史记录，已被 `c6eac20` 取代；
   - 确定性 `--seed 2026`、确定性时间戳、id/call_id 命名空间前缀（`d2-{train,dev,test}-...`）；
-  - 六类 builder 使用确定性 `variant_index` 与多维语义组合；`canonical_content_signature()` 去除 ID、时间戳、split 和依赖 bookkeeping 后执行全局去重；
+  - 六类 builder 使用确定性 `variant_index` 与多维语义组合；严格嵌套 `(variant // N) % P` 维度公式消除 aliasing；`canonical_content_signature()` 去除 ID、时间戳、split 和依赖 bookkeeping 后执行全局去重；当前扩样版 5000/5000 unique、每类 833/834 unique；
   - per-split `aggregate_sha256` + per-file sha256；
   - MANIFEST-{train,dev,test}.json：count + sha256 + task_type 分布 + aggregate_sha256。
 - **单测** `tests/test_d2_dataset.py`：**33** 单测分 7 组：
@@ -31,15 +31,16 @@ commit 候选变更：见下方“完成范围”节。
 - **`docs/plans/roadmap.md`**：P3 加入已完成阶段表；下一阶段候选保持 P5 + P4 + D2 扩样。
 - **`docs/plans/open-issues.md`**：P2-05 状态升级 + 新增 P3-01 已解决项。
 
-### reward offline 验证
+### reward offline 验证（MVP 600 样本版历史）
 
-- `artifacts/d2-mock-reward-d2dev.json`：D2 dev 90 样本的 mock transcript 兼容性验证（90/90 reward_binary=1.0、reward_layered=1.0），用于证明 evaluator 能正确消费多轮 transcript；
-- 5 个 checkpoint 的真实模型推理结果和 reward_offline 输出见 `docs/experiments/p2-evaluator/README.md` 第 6 节及对应 `artifacts/sft-*-eval-d2dev-reward.json`；最终多样化数据上共 450 signals，全部 `reward_binary=0.0`；round 9 数字（large-v1 / d256-20k `reward_layered` 0.0162 / 0.0042）是 round 10 之前的状态，已被 IID stratified shuffle 后的 0.0099 / 0.0000 取代（详细变化说明见 README §6.2）。
+- `artifacts/d2-mock-reward-d2dev.json`：MVP 600 样本版 D2 dev 90 样本的 mock transcript 兼容性验证（90/90 reward_binary=1.0、reward_layered=1.0），用于证明 evaluator 能正确消费多轮 transcript；
+- 5 个 checkpoint 的真实模型推理结果和 reward_offline 输出见 `docs/experiments/p2-evaluator/README.md` 第 6 节及对应 `artifacts/sft-*-eval-d2dev-reward.json`；**MVP 600 样本版历史**共 450 signals，全部 `reward_binary=0.0`；round 9 数字（large-v1 / d256-20k `reward_layered` 0.0162 / 0.0042）是 round 10 之前的状态，已被 IID stratified shuffle 后的 0.0099 / 0.0000 取代（详细变化说明见 README §6.2）。
 
-### 测试统计
+### 测试统计（MVP 600 样本版历史）
 
 - `scripts/run_tests.py full` → Ran **255** tests OK。
 - `scripts/validate_stage0.py --examples` → 9/9 PASS（2 个 D2 正例使用独立 D2 schema）。
+- 当前扩样版额外验证：5000/5000 样本 schema 合法，train/dev/test = 3500/750/750，详见 `docs/protocols/d2-multi-turn.md` §4 与 `docs/data/d2-expansion.md`。
 - 600 D2 样本 × 3 splits × per-file sha256 + aggregate_sha256 校验全部通过；canonical semantic signature 600/600 唯一、每类 100/100 唯一、三 split 交集均为空。
 
 ### 已知边界
@@ -51,8 +52,8 @@ commit 候选变更：见下方“完成范围”节。
 ### 下一步
 
 1. ~~P5-02 Transformers backend + 公开 instruction-tuned 模型~~ ✅（见 `docs/plans/reviews/stage-p5-02-transformers-backend.md`，HEAD `63cbd83` / `b4fd879`）；
-2. ~~P4 GRPO MVP：基于 D2 train (420) + reward_signal~~ ⏸ （list queue item #3，待 D2 扩样完成后启动）；
-3. ~~D2 数据集扩样到 5000+~~ ✅（见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14，HEAD `c6eac20`：5000 samples 严格 3500/750/750 命中、6 类 ≥833 unique canonical signatures、cross-split disjoint、D2-vs-D1/D1.1 disjoint）；
+2. ~~P4 GRPO MVP：基于 D2 train (420) + reward_signal~~ ⏸（list queue item #3，待 D2 扩样完成后启动）；当前以扩样后的 D2 train (3500) 为 GRPO rollout 池，详见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14（HEAD `fdfc519`）。
+3. ~~D2 数据集扩样到 5000+~~ ✅（见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14，HEAD `fdfc519`：5000 samples 严格 3500/750/750 命中、6 类 ≥833 unique canonical signatures、cross-split disjoint、D2-vs-D1/D1.1 disjoint；MANIFEST 含 `build_count` 字段；`datasets/tool-calling-d2/` 加入 .gitignore 并 `git rm --cached` 隔离）；
 4. 自研模型加 multi-turn training（messages 含 assistant + tool）后，回填多轮 SFT checkpoint 评测。
 
 ### durable 证据

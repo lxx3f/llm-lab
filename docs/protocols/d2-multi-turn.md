@@ -29,7 +29,7 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 | — | `tool_not_available` | 用户要求的工具不在列表中，模型不调用 |
 | — | `error_recovery` | 工具结果不足/失败，模型调整参数后重试 |
 
-**当前契约（round 14，HEAD `c6eac20`）**：每类 ≥833 unique canonical variants；总规模 **5000 样本**（4 类 833 + 2 类 834），默认 `--count 5000`。Variant pool 扩展与严格嵌套维度公式见 `docs/data/d2-expansion.md`。
+**当前契约（round 14，HEAD `fdfc519`）**：每类 ≥833 unique canonical variants；总规模 **5000 样本**（4 类 833 + 2 类 834），默认 `--count 5000`。Variant pool 扩展与严格嵌套维度公式见 `docs/data/d2-expansion.md`。
 
 > **历史**：MVP 600 样本版本（每类 100）曾在 `21d1d7e`（round 13）交付；该版本已被 5000 样本取代，详见 `docs/plans/reviews/stage-p3-d2-multi-turn.md` 与 `docs/data/d2-expansion.md`。
 
@@ -80,7 +80,7 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 - train 与 D1/D1.1 train id 集合无交集；
 - 每个 `MANIFEST-{split}.json` 的 `count` / `build_count` / 每文件 sha256 与磁盘一致。
 
-> **历史**：MVP 600 样本版本下每类 100 个变体、`train/dev/test = 420/90/90`；该版本已被 5000 样本取代（round 14，HEAD `c6eac20`）。
+> **历史**：MVP 600 样本版本下每类 100 个变体、`train/dev/test = 420/90/90`；该版本已被 5000 样本取代（round 14，HEAD `fdfc519`）。
 
 ## 5. MANIFEST 结构
 
@@ -181,7 +181,7 @@ D1 dev 13 样本保留作为早期 dev 探针；D2 dev 750 样本是首个有统
 - P4 GRPO：以 D2 train (**3500** 样本) 作为 GRPO rollouts 的 prompt 池；D2 dev / test 作为 advantage 估计的对照基线；
 - P5-02 Transformers backend：同一 `--samples-dir` 路径可在公开 instruction-tuned 模型上跑同一 reward offline 链路，与自研模型做公平对比。
 
-> **历史**：P3 阶段 MVP 600 样本版本下 P4 GRPO 计划使用 D2 train (420 样本)；该规模已被扩样至 3500 样本（round 14，HEAD `c6eac20`）。
+> **历史**：P3 阶段 MVP 600 样本版本下 P4 GRPO 计划使用 D2 train (420 样本)；该规模已被扩样至 3500 样本（round 14，HEAD `fdfc519`）。
 
 ## 9. 与 D1 / D1.1 的差异
 

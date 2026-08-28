@@ -4,7 +4,7 @@
 >
 > **历史记录**：本实验在 **D1 dev 13 样本** 与 **D2 dev 90 样本（MVP 600 样本版）**两个 split 上对 SFT MVP 的 5 个 checkpoint 跑 `scripts/reward_offline.py`，把 P1-05 八级分类器的结果映射为可训练 reward 信号（含 reward_type 主导通道 + reward_binary + reward_layered）。P5-02 阶段在扩样后的 D2 dev（750 样本）上重跑 5 公开模型，详见 `docs/protocols/transformers-backend.md` §7-8 与 `docs/experiments/p2-evaluator/README.md` §7。结果用于：(a) 验证 P2 协议的语义一致性；(b) 量化每个 checkpoint 在 held-out split 上的 reward 分布；(c) 作为 P4 GRPO 的前置信号校验；(d) 验证 reward_offline 在多轮 transcript pipeline 上的可移植性。
 >
-> 当前 D2 契约（round 14，HEAD `c6eac20`）：5000 样本 / train 3500 / dev 750 / test 750；本 README §1-§6 描述的 MVP 600 样本版结果仅为 P2 阶段历史交付，后续 P5-02 / P4 / P5-03 均以 5000 样本版为准。
+> 当前 D2 契约（round 14，HEAD `fdfc519`）：5000 样本 / train 3500 / dev 750 / test 750；本 README §1-§6 描述的 MVP 600 样本版结果仅为 P2 阶段历史交付，后续 P5-02 / P4 / P5-03 均以 5000 样本版为准。
 
 ## 1. 评测对象（5 × 13 = 65 个 reward_signal）
 
@@ -60,7 +60,7 @@
 ### 2.4 已知边界
 
 - **D1 dev 仅 13 样本，5 checkpoint × 13 = 65 signals 不是一个有统计意义的 reward benchmark**；
-- **D2 dev 90 样本** 是首个有统计意义的 held-out reward split（详见 `docs/protocols/d2-multi-turn.md`）。本节第 6 节已用 round 10 IID stratified shuffle 后的最终多样化数据和真实模型推理完成 5 ckpt × 90 = 450 reward_signal：全部 `reward_binary=0.0`，但 large-v1 有 3 个样本越过解析层，`reward_layered=0.0099`；d256-20k / large-night / d256-5k / moe-v1 均为 0.0000。该结果仍是诚实负结果，且 600 个 canonical semantic content 全局唯一、三 split 无语义重叠，说明：(a) D2 dev 评测管线可跑通；(b) 单轮模型基本不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。
+- **MVP 600 样本版历史 D2 dev 90 样本** 是首个有统计意义的 held-out reward split（详见 `docs/protocols/d2-multi-turn.md`）。本节第 6 节已用 round 10 IID stratified shuffle 后的最终多样化数据（**MVP 600 样本版**，不是扩样后的 5000 样本）和真实模型推理完成 5 ckpt × 90 = 450 reward_signal：全部 `reward_binary=0.0`，但 large-v1 有 3 个样本越过解析层，`reward_layered=0.0099`；d256-20k / large-night / d256-5k / moe-v1 均为 0.0000。该结果仍是诚实负结果，且 **600** 个 canonical semantic content 全局唯一、三 split 无语义重叠，说明：(a) D2 dev 评测管线可跑通；(b) 单轮模型基本不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。当前 D2 契约为扩样后的 5000 样本 / dev 750 样本（round 14，HEAD `fdfc519`），P5-02 在扩样后的 dev 子集 90 上重跑 5 公开模型（详见 §7 与 `docs/protocols/transformers-backend.md`）。
 - `artifacts/d2-mock-reward-d2dev.json`（mock transcript 90/90 reward_binary=1.0）仅验证 reward_offline 能消费 D2 dev 多轮 transcript 的**管线兼容性**，不等同于模型推理 reward 评测；
 - D1.1 train 50-sample 聚合不是 held-out split，不能用于正式 reward 分布对比；
 - 5 ckpt 之外的多 seed 聚合（d256 5k × 3 seeds）属 SFT MVP 阶段的多 seed 协议（P1-03）产出，本表不重复列举；
@@ -80,8 +80,8 @@
 | `docs/protocols/p2-evaluator.md` | P2 协议文档 |
 | `docs/experiments/p2-evaluator/README.md` | 本文件 |
 | `artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d1dev-reward.json` | 5 ckpt × D1 dev 13 = **65** reward_signal + aggregate（gitignored）|
-| `artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d2dev-reward.json` | 5 ckpt × D2 dev 90 = **450** reward_signal + aggregate（gitignored）|
-| `artifacts/d2-mock-reward-d2dev.json` | mock transcript pipeline 验证：reward_offline 在 D2 dev 90 多轮 transcript 上输出 90/90 reward_binary=1.0（gitignored）|
+| `artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d2dev-reward.json` | **MVP 600 样本版历史**：5 ckpt × D2 dev 90 = **450** reward_signal + aggregate（gitignored）|
+| `artifacts/d2-mock-reward-d2dev.json` | **MVP 600 样本版历史**：mock transcript pipeline 验证：reward_offline 在 D2 dev 90 多轮 transcript 上输出 90/90 reward_binary=1.0（gitignored）|
 
 ## 4. 复现
 
@@ -108,7 +108,7 @@
 
 ## 6. D2 dev 90 样本（MVP 600 样本版）：5 ckpt 真实推理 reward 评测（2026-08-28，round 10 IID 后）
 
-> **历史记录**：本节是 P2 阶段在 **MVP 600 样本版 D2 dev (90 样本)** 上对自研 5 ckpt 跑真实推理 reward 评测的结果。P5-02 阶段在扩样后的 D2 dev（750 样本）上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8 与 `docs/experiments/p2-evaluator/README.md` §7。当前 D2 契约以 5000 样本版为准（round 14，HEAD `c6eac20`）。
+> **历史记录**：本节是 P2 阶段在 **MVP 600 样本版 D2 dev (90 样本)** 上对自研 5 ckpt 跑真实推理 reward 评测的结果。P5-02 阶段在扩样后的 D2 dev（750 样本）上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8 与 `docs/experiments/p2-evaluator/README.md` §7。当前 D2 契约以 5000 样本版为准（round 14，HEAD `fdfc519`）。
 
 P3 阶段交付 D2 dev（90 多轮样本，独立 IID held-out split，与 D1.1 train 不重叠）后，按目标第 5 项对 SFT MVP 的 5 个 checkpoint 在 D2 dev 上跑真实模型推理 + reward_offline。
 
@@ -117,8 +117,8 @@ P3 阶段交付 D2 dev（90 多轮样本，独立 IID held-out split，与 D1.1 
 ### 6.1 方法
 
 - 推理入口：`scripts/eval_sft_tool.py --prompt-mode multi_turn`。多轮提示把 D2 样本的完整 `messages` 历史按 SFT 模板序列化为 `### User` / `### Assistant` / `### Result` 轮次，末尾追加 `### Assistant\n`，贪婪生成续写；
-- 每个 checkpoint 对 D2 dev 90 样本生成 1 个 eval JSON（`artifacts/sft-<name>-eval-d2dev.json`）；
-- 再用 `scripts/reward_offline.py` 计算 90 个 reward_signal（`artifacts/sft-<name>-eval-d2dev-reward.json`）；
+- 每个 checkpoint 对 **MVP 600 样本版** D2 dev 90 样本生成 1 个 eval JSON（`artifacts/sft-<name>-eval-d2dev.json`）；
+- 再用 `scripts/reward_offline.py` 计算 90 个 reward_signal（`artifacts/sft-<name>-eval-d2dev-reward.json`，**MVP 600 样本版历史**）；
 - `schemas/reward_signal.schema.json` 的 task_type enum 已扩展 D2 六类，450 个新 signal 全部通过 Draft202012 校验。
 
 ### 6.2 结果（5 ckpt × 90 = 450 reward_signal，round 10 IID 重生成后）

@@ -49,7 +49,7 @@
 - `expected_tool_calls`：可选；不存在时表示该样本不期望工具调用（`tool_not_available` task_type）；
 - `expected_answer`：可选；与 transcript 终态 assistant content 字节相同（见 `docs/protocols/d2-multi-turn.md` §3）。
 
-`--samples-dir` 默认指向 D2 dev（90 样本）；其他 split（train / test）可通过修改 flag 切换。
+`--samples-dir` 默认指向当前扩样版 D2 dev（750 样本）；其他 split（train / test）可通过修改 flag 切换。P5-02 的已交付横向评测使用该 dev split 中的固定 90 样本子集；MVP 600 样本版历史也使用过 90 样本。
 
 ## 4. Chat template 与 prompt 渲染
 

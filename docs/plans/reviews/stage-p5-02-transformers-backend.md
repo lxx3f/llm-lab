@@ -71,5 +71,5 @@ Done when：
 ### 遗留风险
 
 - P5-03 vLLM backend 未启动；硬件 / 环境需求超出当前阶段，待 P5-02 终审通过后启动。
-- D2 数据集扩样到 5000+ **已完成**（HEAD `c6eac20`，见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14）：5000 samples（4×833 + 2×834）、train 3500 / dev 750 / test 750 严格命中、6 类 ≥833 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、datasets/ 已加入 `.gitignore` 并 `git rm --cached` 隔离。
+- D2 数据集扩样到 5000+ **已完成**（HEAD `fdfc519`，见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14）：5000 samples（4×833 + 2×834）、train 3500 / dev 750 / test 750 严格命中、6 类 ≥833 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、datasets/ 已加入 `.gitignore` 并 `git rm --cached` 隔离。
 - 5 个公开模型 `reward_binary=0` 为诚实负结果：D2 expected_answer 与公开模型生成的 final_answer 字面不一致；如需严格一致，可加后处理归一化或引入轻量 evaluator prompt。这是 D2 eval 设计（`expected_answer == final assistant content`）的固有约束，不应在 P5-02 范围修改。
