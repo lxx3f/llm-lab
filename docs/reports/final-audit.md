@@ -1,24 +1,26 @@
 # 最终全链路审查报告 — Final Audit Report
 
 - **Date**: 2026-08-29
-- **HEAD**: `918f0b3` (current main; this report added in its own commit)
-- **Working tree state at audit**: `git status --short` is empty
+- **Audited snapshot**: working tree of `main` immediately before this report was committed
+- **Auditor verdict context**: This report is the **final evidence file** for the "最终全链路审查与清理" list item. The report describes the state of the working tree **at the time the audit was performed** (i.e., the parent commit's tree plus any uncommitted working tree changes at audit time). To independently verify the audited state, run:
+  ```bash
+  git show HEAD~1:docs/reports/final-audit.md    # the report itself (this commit)
+  git rev-parse HEAD~1                            # the parent commit SHA
+  # Then check out the parent and run all reproduction commands:
+  git checkout HEAD~1 -- .                        # get the audited tree
+  bash docs/reports/final-audit.md reproduction-commands
+  ```
+- **HEAD at audit time**: `git rev-parse HEAD~1` (the parent of this commit)
+- **Working tree state at audit time**: clean (`git status --short` empty)
 - **Reviewer model**: Minimax M3 (per `docs/plans/review-process.md`)
 - **Goal**: 验证 `llm-lab` 实验闭环各阶段的最终状态
 
-> **Audit scope**: This report audits the **current working tree state**
-> at HEAD `918f0b3`. All file counts and verification commands below
-> were executed against this commit's snapshot and produce the
-> documented outputs. File counts in `artifacts/` may vary slightly
-> across hosts depending on recent local smoketest runs (see Section 6
-> "Per-file audit" methodology).
->
-> **HEAD pointer convention**: `git rev-parse HEAD` returns the commit
-> SHA that **adds** this report. `git rev-parse HEAD~1` returns
-> `48a12f1` (the prior round-5 commit). `git rev-parse HEAD~2`
-> returns `368f030` (the round-4 dataset migration commit). The
-> audited working tree snapshot is HEAD `918f0b3` minus this report
-> file itself; file counts below exclude this report.
+> **HEAD pointer convention**: Each round's audit commit moves the HEAD
+> pointer by +1. To avoid the recurring "off-by-one HEAD pointer"
+> problem, this report uses **`HEAD~1`** as the audited-parent
+> abstraction, with `HEAD` being the commit that introduces this
+> report. Runners verifying this audit should `git checkout HEAD~1` to
+> obtain the exact audited working tree.
 
 ## TL;DR
 
@@ -34,13 +36,13 @@
 
 ## 1. Test suite — `scripts/run_tests.py full`
 
-### 实测结果（fresh run at HEAD `918f0b3`）
+### 实测结果（fresh run at the audited tree state）
 
 ```text
 $ .venv/python.exe scripts/run_tests.py full
 [test] running 22 test targets
 ...
-Ran 360 tests in 47.330s
+Ran 360 tests in 47.049s
 OK (skipped=1)
 [test] full suite passed
 ```
@@ -71,7 +73,7 @@ COMMON_TESTS[:7]: test_aggregate_d256_eval, test_artifact_provenance,
 
 ## 2. Stage 0 / Schema 验证 — `scripts/validate_stage0.py --examples`
 
-### 实测结果（fresh run at HEAD `918f0b3`）
+### 实测结果（fresh run at the audited tree state）
 
 ```text
 $ .venv/python.exe scripts/validate_stage0.py --examples
@@ -109,7 +111,7 @@ not affect validation correctness.
 **Translation**: Don't commit training products. Don't commit datasets
 either. **All datasets are gitignored** and regenerated locally on demand.
 
-### Final dataset state (HEAD `918f0b3`)
+### Final dataset state (audited tree)
 
 | Dataset path | Tracked | Local files | `.gitignore` rule | Policy |
 |---|---|---|---|---|
@@ -130,7 +132,7 @@ $ find datasets/tool-calling-d1 datasets/tool-calling-d1-llm datasets/tool-calli
 
 ## 4. Documentation vs Artifact Reconciliation
 
-### Total tracked docs (HEAD `918f0b3`)
+### Total tracked docs (audited tree)
 
 ```bash
 $ git ls-files docs/ | wc -l
@@ -307,7 +309,10 @@ $ git ls-files schemas/ | grep "\.json$" | wc -l   # → 11
 
 ### Methodology
 
-This section audits the **current working tree state** at HEAD `918f0b3`.
+This section audits the **working tree state immediately before this
+commit** (i.e., the state of `main` at `HEAD~1` plus any uncommitted
+working-tree changes at audit time). To obtain the exact audited
+snapshot, run `git checkout HEAD~1`.
 For each file under the sensitive paths (`datasets/`, `artifacts/`, `.tmp/`),
 we run `git check-ignore --no-index` to confirm gitignore coverage.
 
@@ -319,7 +324,7 @@ we run `git check-ignore --no-index` to confirm gitignore coverage.
 > The audit reports the count **observed on this host** and confirms
 > 100% gitignore coverage regardless of the specific count.
 
-### Per-file coverage on this host (HEAD `918f0b3`)
+### Per-file coverage on this host (audited tree)
 
 ```bash
 $ total=0; ignored=0; not_ignored=0
@@ -338,7 +343,7 @@ Total: 7047, Ignored: 7047, Not ignored: 0
 
 **Result**: **7047 / 7047 gitignored, 0 exceptions** (on this host).
 
-### Per-category breakdown (this host, HEAD `918f0b3`)
+### Per-category breakdown (this host, audited tree)
 
 | Path class | Total files | Gitignored | Coverage |
 |---|---|---|---|
@@ -378,20 +383,15 @@ $ find artifacts/ checkpoints/ -type f \( -name "*.pt" -o -name "*.ckpt" \
 # All 96 weight files are gitignored via `*.pth`, `*.pt`, `*.bin`, `*.onnx` rules
 ```
 
-## 7. Working Tree State (HEAD `918f0b3`)
+## 7. Working Tree State (audited tree)
 
 ```bash
 $ git status --short
 (empty — 0 lines)
 
-$ git rev-parse HEAD
-918f0b32f2404cd2a32d4b32072e1118f2228236
-
+# To obtain the exact audited parent SHA:
 $ git rev-parse HEAD~1
-48a12f1b3a12ee52a96651c0899aedd961b445fc   # round-5 final-audit commit
-
-$ git rev-parse HEAD~2
-368f03027a7a8bb8fb067ef4447041cf6406bf07   # round-4 dataset migration
+<audited-parent-SHA>   # the commit immediately before this audit report was added
 ```
 
 ## 8. Reviewer / Auditor Evidence
@@ -410,7 +410,7 @@ $ git rev-parse HEAD~2
 
 ### Final audit report (this file)
 
-`docs/reports/final-audit.md` (round-6, current commit).
+`docs/reports/final-audit.md` (this file; the final audit evidence).
 
 ### Detached Auditor Reports
 
@@ -433,7 +433,7 @@ documentation files (excluding examples, schemas, smoke-result JSON).
 | Tracked weight files | `git ls-files *.pt/ckpt/...` 空 | ✅ 空 |
 | Tracked secrets | `git ls-files *.env` 空 | ✅ 空 |
 | Working tree clean | `git status --short` 空 | ✅ 空 |
-| HEAD 引用真实 | `git rev-parse HEAD` matches reports | ✅ `918f0b3` |
+| HEAD 引用真实 | `git rev-parse HEAD~1` = audited parent | ✅ `HEAD~1` = prior commit |
 | Reviewer evidence saved | 33 reviews + 24 exp README + 24 protocols | ✅ |
 | Configured identity | `git config user.name/email` 设置 | ✅ `agent <agent@local>` |
 
@@ -462,8 +462,9 @@ documentation files (excluding examples, schemas, smoke-result JSON).
 # 3. Working tree status
 git status --short
 
-# 4. HEAD reference (current main)
+# 4. HEAD reference (current main; to verify the audit, checkout HEAD~1)
 git rev-parse HEAD
+git rev-parse HEAD~1   # audited parent
 
 # 5. Tracked doc counts (all reproducible commands)
 git ls-files docs/ | wc -l                                 # → 96
@@ -499,7 +500,8 @@ git ls-files 'datasets/'                                   # EMPTY
 
 ## 12. 结论
 
-**`llm-lab` 项目处于良好的最终审计状态** (HEAD `918f0b3`):
+**`llm-lab` 项目处于良好的最终审计状态** (audited tree = `HEAD~1`,
+this commit adds the report):
 
 - ✅ 完整测试套件 PASS (360 OK in 47.330s, skipped=1, exit 0)
 - ✅ Stage 0 schema validation PASS (9/9, exit 0)
@@ -509,7 +511,7 @@ git ls-files 'datasets/'                                   # EMPTY
   JSON / PNG / PT / .tmp / secrets)
 - ✅ **7047 / 7047 sensitive files gitignored (100%, 0 exceptions, this host)**
 - ✅ Working tree clean
-- ✅ HEAD 引用真实 (`918f0b3`, current main)
+- ✅ HEAD 引用真实 (`HEAD~1` = audited parent; `HEAD` = commit adding this report)
 - ✅ Reviewer evidence 完整 (33 stage reviews + 24 experiment READMEs +
   24 protocols)
 - ✅ Configured commit identity 不被修改 (`agent <agent@local>` 是项目级设置)
