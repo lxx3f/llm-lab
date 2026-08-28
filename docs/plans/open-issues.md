@@ -872,7 +872,7 @@ P3/P4 后续动作：
 遗留：
 - **reviewer dispatch（minimax-M3）**：将在下一轮 audit 时由 detached auditor 联动 minimax-M3 subagent reviewer 联合复审；持续证据入 `docs/plans/reviews/stage-p5-02-transformers-backend.md`。
 - P5-03 vLLM backend 未启动（硬件 / 环境需求超出当前阶段）；待 P5-02 audit 通过后启动。
-- D2 数据集扩样到 5000+ 未启动（list queue item #1，待 P5-02 后）。
+- D2 数据集扩样到 5000+ **已完成**（见下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 段，HEAD `c6eac20`）：5000 samples（4×833 + 2×834）、train 3500 / dev 750 / test 750 严格命中、6 类 ≥833 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、datasets/ 已加入 `.gitignore` 并 `git rm --cached` 隔离。
 - 全部 5 模型 reward_binary=0 为诚实负结果：D2 expected_answer 与公开模型生成的 final_answer 字面不一致；如需严格一致，可加后处理归一化或引入轻量 evaluator prompt。
 
 ---

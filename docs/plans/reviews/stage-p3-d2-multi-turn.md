@@ -50,9 +50,9 @@ commit 候选变更：见下方“完成范围”节。
 
 ### 下一步
 
-1. P5-02 Transformers backend + 公开 instruction-tuned 模型 → 在 D2 dev 上跑可比较的真实推理 reward 评测；
-2. P4 GRPO MVP：基于 D2 train (420) + reward_signal；
-3. D2 数据集扩样到 5000+；
+1. ~~P5-02 Transformers backend + 公开 instruction-tuned 模型~~ ✅（见 `docs/plans/reviews/stage-p5-02-transformers-backend.md`，HEAD `63cbd83` / `b4fd879`）；
+2. ~~P4 GRPO MVP：基于 D2 train (420) + reward_signal~~ ⏸ （list queue item #3，待 D2 扩样完成后启动）；
+3. ~~D2 数据集扩样到 5000+~~ ✅（见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14，HEAD `c6eac20`：5000 samples 严格 3500/750/750 命中、6 类 ≥833 unique canonical signatures、cross-split disjoint、D2-vs-D1/D1.1 disjoint）；
 4. 自研模型加 multi-turn training（messages 含 assistant + tool）后，回填多轮 SFT checkpoint 评测。
 
 ### durable 证据
