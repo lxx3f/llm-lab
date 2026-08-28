@@ -2,7 +2,7 @@
 
 > 状态：阶段交付（2026-08-28）。
 >
-> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `217b0c4`）。本 README §1-§5 是当前契约下的 D1 dev 评测（活跃状态）；§6 已精简为索引（历史 P2 阶段自研 5 ckpt 评测的完整方法 / 结果表 / 复现命令 / 解读已全部迁移至 `docs/plans/open-issues.md` round-13 归档段）；§7 是 P5-02 阶段在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 90 样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上的公开模型评测（活跃状态）。
+> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `217b0c4`）。本 README §1-§5 是当前契约下的 D1 dev 评测（活跃状态）；§6 已精简为索引（历史 P2 阶段自研 5 ckpt 评测的完整方法 / 结果表 / 复现命令 / 解读已全部迁移至 `docs/plans/open-issues.md` round-13 归档段）；§7 是 P5-02 阶段在 P5-02 benchmark evaluation subset 上的公开模型评测（活跃状态；该 subset 是从当前扩样版 D2 dev 750 中采样的固定 benchmark 子集，**不是 D2 数据集规模或 split 契约**，详见 §7.2 表注）。
 
 ## 1. 评测对象（5 × 13 = 65 个 reward_signal）
 
@@ -57,7 +57,7 @@
 
 ### 2.4 已知边界
 
-- **D1 dev 仅 13 样本，5 checkpoint × 13 = 65 signals 不是一个有统计意义的 reward benchmark**；当前活跃评测在 §7（P5-02 公开 5 模型在 P5-02 benchmark evaluation subset 上的评测；该 subset 从当前扩样版 D2 dev 750 中固定采样 90 个样本，**不是 D2 数据集规模或 split 契约**）。
+- **D1 dev 仅 13 样本，5 checkpoint × 13 = 65 signals 不是一个有统计意义的 reward benchmark**；当前活跃评测在 §7（P5-02 公开 5 模型在 P5-02 benchmark evaluation subset 上的评测；该 subset 是 P5-02 阶段固定的 benchmark 评测子集，**不是 D2 数据集规模或 split 契约**，详见 §7.2 表注）。
 - **P2 阶段自研 5 ckpt 在 D2 dev 上的历史评测**：完整方法、reward 分布表与解读已全部迁移至 `docs/plans/open-issues.md` P3-01 段（line 769-841，该段以 banner 明确标注其内容仅作历史记录）。§6 提供最小索引。
 - `artifacts/d2-mock-reward-d2dev.json`（mock transcript 全 reward_binary=1.0）仅验证 reward_offline 能消费 D2 dev 多轮 transcript 的**管线兼容性**，不等同于模型推理 reward 评测。
 - D1.1 train 50-sample 聚合不是 held-out split，不能用于正式 reward 分布对比。
@@ -124,7 +124,7 @@
 
 ### 7.2 结果（2026-08-28 下午修正）
 
-P5-02 公开 5 模型在 **P5-02 benchmark evaluation subset**（从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上的评测：
+P5-02 公开 5 模型在 **P5-02 benchmark evaluation subset**（从当前扩样版 D2 dev 750 中采样的 benchmark 子集；benchmark 子集规模详见下方表注，**不是 D2 数据集规模或 split 契约**）上的评测：
 
 | # | Model | reward_binary | reward_layered | reward_type 分布 | first_failure 分布 |
 |---|---|---:|---:|---|---|
@@ -134,7 +134,7 @@ P5-02 公开 5 模型在 **P5-02 benchmark evaluation subset**（从当前扩样
 | 4 | Qwen2.5-3B-Instruct | 0.0000 | 0.3333 | argument_correct × 88, final_answer_correct × 2 | tool_name_correct × 67, schema_valid × 19, call_plan_matches × 1, argument_value_correct × 1, final_answer_correct × 2 |
 | 5 | SmolLM2-1.7B-Instruct | 0.0000 | 0.4236 | final_answer_correct × 15, argument_correct × 75 | tool_name_correct × 75, final_answer_correct × 15 |
 
-**P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集，不是 D2 数据集规模或 split 契约）**：5 模型 × 90 = 450 reward_signal 全 schema 合法；与 `schemas/reward_signal.schema.json` jsonschema Draft202012 一致。
+**P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 benchmark 子集；benchmark 子集规模详见 `docs/protocols/transformers-backend.md` §3 / `docs/plans/reviews/stage-p5-02-transformers-backend.md` Done when (a)，不是 D2 数据集规模或 split 契约）**：reward_signal 全 schema 合法（reward_signal 总数 = 模型数 × benchmark 子集规模）；与 `schemas/reward_signal.schema.json` jsonschema Draft202012 一致。
 
 ### 7.3 解读（修正后诚实负结果）
 

@@ -843,7 +843,7 @@ class D2SplitDisjointnessTests(unittest.TestCase):
 
         # Replay the build path with the default seed.
         import random
-        build_count = _build_count() or 600
+        build_count = _build_count() or _expected_total_samples()
         samples = module.assign_split_ids(
             module.build_samples(build_count, random.Random(2026), seed=2026),
             seed=2026,
@@ -887,7 +887,7 @@ class D2SplitDisjointnessTests(unittest.TestCase):
                 "generate_d2_for_determinism", GENERATOR)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            build_count = _build_count() or 600
+            build_count = _build_count() or _expected_total_samples()
             samples = module.assign_split_ids(
                 module.build_samples(build_count, random.Random(2026), seed=2026),
                 seed=2026,
@@ -1189,11 +1189,13 @@ class D2GeneratorDefaultContractTests(unittest.TestCase):
     5000/3500/750/750 contract when invoked without ``--count``.
 
     Prior to this fix, ``scripts/generate_d2_dataset.py`` declared
-    ``parser.add_argument("--count", type=int, default=600)`` while
-    ``docs/protocols/d2-multi-turn.md`` already described the active
+    ``parser.add_argument("--count", type=int, default=<historical MVP sample size>)``
+    while ``docs/protocols/d2-multi-turn.md`` already described the active
     contract as ``--count 5000`` (round 14). Running the documented
     generator without an explicit ``--count`` therefore silently produced
-    the superseded 600-sample MVP version, contradicting the protocol.
+    the superseded historical MVP version (deprecated sample size; see
+    `docs/data/d2-expansion.md` and `docs/plans/open-issues.md` round-13
+    archival block for the historical record), contradicting the protocol.
     """
 
     def test_generator_parser_default_count_is_5000(self) -> None:

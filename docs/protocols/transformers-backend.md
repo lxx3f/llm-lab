@@ -130,7 +130,7 @@
 
 > **2026-08-28 下午修正记录**：原版 5 模型评测存在 **target-answer 泄漏** bug —— `_apply_chat_template()` 把 D2 样本的整条 `messages`（含 gold terminal assistant `content` = `expected_answer`）透传给 `apply_chat_template(..., add_generation_prompt=True)`，模型在 prompt 中看到目标答案后才生成，导致 `SmolLM2-360M reward_binary=0.0111` 的"首个 D2 dev 非退化 reward"实为 prompt 复述伪结果。修复后重跑 5 模型：所有 5 个模型 `reward_binary=0`（诚实负结果），`reward_layered` 仍在 0.33–0.43，明显高于自研 5 ckpt 的 0.0；`reward_layered > 0.05` 仍远超达成。
 
-### 8.1 修复后结果（5 × 90 = 450 reward_signal；P5-02 benchmark evaluation subset；terminal assistant 已 strip）
+### 8.1 修复后结果（reward_signal 总数 = 模型数 × benchmark 子集规模；P5-02 benchmark evaluation subset；terminal assistant 已 strip）
 
 | Model | reward_binary | reward_layered | reward_type 分布 | first_failure 分布 |
 |---|---|---|---|---|
@@ -145,7 +145,7 @@
 - **`reward_binary` 全部为 0**：5 个模型没有任何一个完整过 P1-05 8 层分类器；这是诚实负结果。修复前 `SmolLM2-360M reward_binary=0.0111`（1 个 `execution_correct`）是因为 target-answer 泄漏，模型仅复述了 prompt 里出现的 expected_answer。
 - **`reward_layered` 仍在 0.33–0.43**：5 模型全部显著高于自研 5 ckpt 的 0.0；说明 instruction-tuned 模型在多轮工具调用结构化生成上仍优于自研 SFT 模型。
 - **`tool_name_correct` 仍是主要失败层**：D2 使用 `d1_*` 工具名，公开 instruction-tuned 模型未在 D2 数据集上微调，这是诚实预期的行为。
-- **与自研 5 ckpt 横向对比**（自研 ckpt 在 P5-02 benchmark evaluation subset，即从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集上的评测，**不是 D2 数据集规模或 split 契约**；与本 P5-02 评测同 split 同 benchmark 子集，由 `scripts/eval_sft_tool.py --prompt-mode multi_turn` + `scripts/reward_offline.py` 产出；详见 `docs/experiments/p2-evaluator/README.md` §6）：自研 5 ckpt 全部 90/90 `parse_success` 失败、`reward_layered=0`；公开模型即使不做 D2 微调，仍能在多层分类器上获得非退化 reward 分。
+- **与自研 5 ckpt 横向对比**（自研 ckpt 在 P5-02 benchmark evaluation subset 上的评测，与本 P5-02 评测同 split 同 benchmark 子集，由 `scripts/eval_sft_tool.py --prompt-mode multi_turn` + `scripts/reward_offline.py` 产出；详见 `docs/experiments/p2-evaluator/README.md` §6）：自研 5 ckpt 在 benchmark 子集上全部 `parse_success` 失败、`reward_layered=0`；公开模型即使不做 D2 微调，仍能在多层分类器上获得非退化 reward 分。
 
 复现命令（任选模型）：
 

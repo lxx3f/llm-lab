@@ -7,10 +7,10 @@
 
 ## 阶段目标
 
-实现 `scripts/eval_transformers.py` Transformers 推理后端，在当前扩样版 D2 dev (750 样本) 的固定 90 样本子集上对 5 个公开 instruction-tuned 模型跑真实推理 + reward_offline，产出 5×90=450 reward_signal；与自研 5 ckpt 在同一 reward pipeline 上做公平对比。
+实现 `scripts/eval_transformers.py` Transformers 推理后端，在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的固定 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上对 5 个公开 instruction-tuned 模型跑真实推理 + reward_offline，产出 reward_signal；与自研 5 ckpt 在同一 reward pipeline 上做公平对比。
 
 Done when：
-- (a) 5 个公开模型 × P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中固定采样的 90 个样本 benchmark 子集，**不是 D2 数据集规模或 split 契约**）signals schema 合法（5 × 90 = 450/450）；
+- (a) 5 个公开模型 × P5-02 benchmark evaluation subset signals schema 合法（reward_signal 总数 = 模型数 × benchmark 子集规模）；
 - (b) ≥1 模型 reward_binary > 0 或 reward_layered > 0.05；
 - (c) `docs/experiments/p2-evaluator/README.md` §7 公开模型 reward 表 + 与自研 ckpt 对比；
 - (d) `tests/test_transformers_backend.py` ≥10 单测全绿；
@@ -53,7 +53,7 @@ Done when：
 
 - `scripts/run_tests.py fast` → Ran **270** tests OK（含 P5-02 25 个新增单测）。
 - `scripts/validate_stage0.py --examples` → 9/9 PASS。
-- 5 个 reward JSON 全部 schema 合法（公开 5 模型 × 当前扩样版 D2 dev 750 子集 90 = 450 signals 已落盘；自研 5 ckpt 在该子集上的等量评测见 `docs/plans/open-issues.md` P3-01 段 line 769-841）。
+- 5 个 reward JSON 全部 schema 合法（公开 5 模型 × P5-02 benchmark evaluation subset reward_signal 已落盘；自研 5 ckpt 在同 benchmark 子集上的等量评测归档于 `docs/plans/open-issues.md` round-13 归档段）。
 - 5 个 `no_failure` 全部 = 0（修复前 SmolLM2-360M 为 1）。
 - 修复后文档 reward_layered 数值与 artifact 字节对齐（5/5 模型）。
 - 修复后文档 reward_type + first_failure 分布与 `Counter()` 计算字节对齐（25 对全部命中）。
@@ -62,7 +62,7 @@ Done when：
 
 ### 验收
 
-- (a) 5 × 90 = 450 reward_signal schema 合法 ✅（P5-02 benchmark evaluation subset）
+- (a) reward_signal schema 合法 ✅（P5-02 benchmark evaluation subset，规模详见协议 §3）
 - (b) reward_layered > 0.05 ✅（5 模型全部 ≥ 0.33；reward_binary 全部 = 0 是诚实负结果）
 - (c) `docs/experiments/p2-evaluator/README.md` §7 公开模型 reward 表 + 与自研 ckpt 对比 ✅
 - (d) `tests/test_transformers_backend.py` **25** 单测全绿 ✅

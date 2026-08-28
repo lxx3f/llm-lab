@@ -136,10 +136,6 @@ fmt  = datetime.fromtimestamp(ts, tz=UTC).isoformat().replace("+00:00", "Z")
 .venv/python.exe scripts/generate_d2_dataset.py --count 5000 --seed 2026 \
     --out datasets/tool-calling-d2
 
-# 自定义规模（每类至少 1 个，≥ 6；建议 ≥6×833=4998 以保持每类 ≥833 unique variants）
-.venv/python.exe scripts/generate_d2_dataset.py --count 6000 --seed 2026 \
-    --out datasets/tool-calling-d2
-
 # 自定义 seed（默认 2026）
 .venv/python.exe scripts/generate_d2_dataset.py --count 5000 --seed 2027 \
     --out datasets/tool-calling-d2
