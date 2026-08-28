@@ -16,7 +16,7 @@
 | 4 | `sft-tool-d256-20k-seed42` | `artifacts/sft-d256-20k-seed42-eval-d1dev-reward.json` | Dense d256 12.0M | OWT d256 init + 1500 × 20k steps seed42 | 0.0000 | 0.0769 | parse_success × 13 |
 | 5 | `sft-moe-v1` | `artifacts/sft-moe-v1-eval-d1dev-reward.json` | MoE 4-expert (~2M active) | OWT long init + 1500 × 2k steps | 0.0000 | 0.0000 | parse_success × 13 |
 
-> **reward_type 映射契约**：见 `scripts/reward_offline.py::_dominant_reward()`。`execution_correct` 仅在所有适用层通过（`first_failure is None`）时返回；`execution_success` / `result_grounded` 失败映射为 `argument_correct`（因为 argument chain 通过了，但 execution / grounding 失败）。本轮 5 ckpt 没有样本进入 execution / grounding failure 分支（所有 13 个 first_failure 都是 `parse_success`），所以表格里只出现 `parse_success` + 1 个 `argument_correct`（来自 sft-tool-large-v1，其 first_failure = `argument_value_correct`）。
+> **reward_type 映射契约**：见 `scripts/reward_offline.py::_dominant_reward()`。`execution_correct` 仅在所有适用层通过（`first_failure is None`）时返回；`execution_success` / `result_grounded` / `tool_name_correct` / `argument_value_correct` / `call_plan_matches` 失败映射为 `argument_correct`（因为 parse + schema + argument chain 的下一步受阳）。本轮 5 ckpt 中 `reward_type` 分布 = **64 parse_success + 1 argument_correct**（`sft-tool-large-v1`，其 `first_failure = argument_value_correct`）；零样本进入 execution / grounding failure 分支与 final_answer_correct 分支。
 
 > **Checkpoint 名与产物名**：表头使用 SFT MVP README 的 `sft-tool-*` 命名（说明模型身份）；实际产物文件名省略 `tool-`（如 `sft-large-v1-eval-d1dev-reward.json`）是 orchestrator 原始命名习惯。两者一一对应。
 
@@ -49,11 +49,11 @@
 | reward_type | ckpt × 样本 = signals | 含义 |
 |---|---|---|
 | `parse_success` | 5 × 13 几乎全占（64/65） | transcript 不是合法 list-of-dicts；模型输出 JSON 损坏 |
-| `argument_correct` | 1 × 1 = 1（sft-tool-large-v1） | 解析后 tool name + args 通过，但 execution/result grounding 不通过 |
+| `argument_correct` | 1 × 1 = 1（sft-tool-large-v1） | tool name 通过但 argument_value 不匹配；first_failure = `argument_value_correct` |
 | `final_answer_correct` | 0 | 当前 5 ckpt 没有样本在该层首失败 |
 | `execution_correct` | 0 | 当前 5 ckpt 没有样本最终全部 8 层通过 |
 
-`argument_correct` 主导（仅 1 个样本）出现在 sft-tool-large-v1，意味着该模型曾经解析出可识别的 JSON call（结构 + 名字 + 参数都通过），但 MockExecutor 未能给出 grounded 结果——比"输出乱码"略进一步，但仍非完整工具调用。
+`argument_correct` 主导（仅 1 个样本）出现在 sft-tool-large-v1，其 `first_failure = argument_value_correct`（参数 `city` 不匹配）：模型输出了 JSON call 且能识别工具名，但 `arguments` 与样本期望值不同。比“输出乱码”略进一步，但仍非完整工具调用。本轮 5 ckpt 没有样本的 `first_failure` 处于 `execution_success` / `result_grounded` 分支（表明模型尚未跨过“参数对”门坎），说明该主导通道今后可能还会出现更多样本。
 
 ### 2.4 已知边界
 
@@ -87,7 +87,7 @@
     --output artifacts/<ckpt>-eval-d1dev-reward.json \
     --checkpoint <ckpt-name>
 
-# 单测（30 个 reward_offline + 5 个 stage0 reward case = 35 个）
+# 单测（35 个 reward_offline + 5 个 stage0 reward case = 40 个 P2 阶段新增）
 .venv/python.exe -m unittest tests.test_reward_offline tests.test_stage0_schemas
 
 # stage0 schema 验证（含 reward_signal 校验）

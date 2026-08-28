@@ -68,7 +68,7 @@ reward signal 输出 `schemas/reward_signal.schema.json` 规定的对象，必�
 | 检查 | 命令 / 检查项 |
 |---|---|
 | **Schema 校验** | `jsonschema` Draft202012 校验 `schemas/reward_signal.schema.json`；测试 `tests/test_reward_offline.py::test_cli_aggregate_writes_json_and_aggregate` 隐含校验 |
-| **单元测试** | 30 个测试覆盖：8 层各 ≥ 3 例（positive / negative / boundary；parse_success 4 例、其余 7 层各 3 例） + 与 P1-05 classify 一致性（4 例） + CLI 聚合（1 例）；详见 `tests/test_reward_offline.py` |
+| **单元测试** | 35 个测试覆盖：8 层各 ≥ 3 例（共 25；parse_success 4 例、其余 7 层各 3 例） + 与 P1-05 classify 一致性（4 例） + reward_type 映射（5 例） + CLI 聚合（1 例）；详见 `tests/test_reward_offline.py` |
 | **确定性** | 同 `(sample, transcript)` 重复运行 `compute_reward` 应输出完全一致（`compute_reward` 不调用随机源或全局状态）|
 | **与 P1-05 一致性** | `compute_reward` 内置 `classify()` 调用，输出 `first_failure` 与 `layers` 必须与直接调用 `scripts/classify_tool_failure.py::classify` 一致；测试覆盖该路径 |
 

@@ -53,31 +53,34 @@ Auditor 在 detached audit 中提出 4 项具体修复：
 
 ## 阶段 p2-evaluator 审查
 
-- 完成范围：
-  - **reward schema v1.0**：`schemas/reward_signal.schema.json` 定义 reward_signal 结构（reward_binary、reward_layered、layers、first_failure 等）；jsonschema Draft202012 校验通过；
+- 完成范围（round 3 final，**已修正round 1 8 checkpoint / 104 signal 的 stale 描述**）：
+  - **reward schema v1.0 + reward_type enum**：`schemas/reward_signal.schema.json` 定义 reward_signal 结构（reward_binary、reward_layered、reward_type、layers、first_failure 等）；reward_type enum = {parse_success, argument_correct, final_answer_correct, execution_correct}；jsonschema Draft202012 校验严格；
   - **离线 reward 计算器** `scripts/reward_offline.py`：
     - `compute_reward(sample, transcript_row, ...)` 复用 `scripts/classify_tool_failure.py::classify`，按 P1-05 八级（排除 task_success 别名）映射；
-    - `aggregate(signals)` 输出 mean ± pop_std（P1-03 协议）+ first_failure 分布 + task_type 分布；
+    - `_dominant_reward()` 选择 reward_type 主导通道：仅在 `first_failure is None` 时返回 `execution_correct`；`execution_success`/`result_grounded`/`tool_name_correct`/`argument_value_correct`/`call_plan_matches` 全部 → `argument_correct`；round 3 已修正 execution/grounding 失败误标为 execution_correct 的语义错误；
+    - `aggregate(signals)` 输出 mean ± pop_std（P1-03 协议）+ first_failure 分布 + reward_type 分布 + task_type 分布；
     - CLI 支持 `--samples-dir / --transcripts / --output / --checkpoint / --transcript-kind`；
-  - **单测** `tests/test_reward_offline.py`：5 个测试覆盖 full-pass / parse-fail / no_tool / partial-pass / CLI 聚合；注册到 `scripts/run_tests.py` 的 fast + module data + full 三档入口；
-  - **协议文档** `docs/protocols/p2-evaluator.md`：reward 定义、语义边界、与 P1-05 关系、与 P4 GRPO 衔接；
-  - **跨 checkpoint reward 评测**：`docs/experiments/p2-evaluator/README.md` 记录 8 个 SFT checkpoint × D1 dev 13 样本 = 104 个 reward_signal 全部 reward_binary=0，reward_layered 0.0000~0.0769；
-  - **路线图同步**：`docs/plans/roadmap.md` 将 P2 加入已完成阶段；明确 P5-02/04 范围限定为公开模型 + 与 P2 reward offline 对比。
+  - **单测** `tests/test_reward_offline.py`：**35** 个测试 = 8 层各 ≥ 3 例（25） + classifier 一致性（4） + reward_type 映射（5） + CLI 聚合（1）；注册到 `scripts/run_tests.py` 三档入口（fast / module training / full）；
+  - **stage0 集成**：`scripts/validate_stage0.py` 注册 reward_signal schema + 2 个 examples；`tests/test_stage0_schemas.py` 新增 5 个 reward schema case（full pass / parse fail / 缺 reward_type / 未知 reward_type / reward_binary 越界）；
+  - **协议文档** `docs/protocols/p2-evaluator.md`：reward 定义、语义边界、与 P1-05 关系（含 task_success 别名排除）、与 P4 GRPO 衔接 5 项前置、已知边界（不含 trajectory shaping、D1 dev 非 held-out split）；
+  - **跨 checkpoint reward 评测**：`docs/experiments/p2-evaluator/README.md` 记录 **5 个 SFT MVP checkpoint** × D1 dev 13 样本 = **65 个 reward_signal** 全部 reward_binary=0，reward_layered 0.0000~0.0769；reward_type 64 个 parse_success + 1 个 argument_correct（first_failure = argument_value_correct）；
+  - **路线图同步**：`docs/plans/roadmap.md` 将 P2 加入已完成阶段表（描述含 5 ckpt + 35 单测 + reward_type 4 值 enum）；“下一阶段”表删除 P2 行，只保留 P3 D2 多轮 / P4 GRPO / P5-01 开源模型。
 
 - 未完成范围：
   - P3 数据版本 D2 多轮对话 + IID held-out split
   - P5-01/02/03/04（开源 instruction-tuned 模型 + Transformers/vLLM backend）
   - P4 GRPO（依赖 P3 + P5-02）
 
-- 测试结果：
-  - `scripts/run_tests.py full` → Ran 190 tests OK（含 2 skipped）
-  - 包含新增 5 个 reward_offline 单测；
-  - 104 个 reward signal 全部通过 jsonschema Draft202012 校验（8 checkpoint × 13 样本）。
+- 测试结果（round 3）：
+  - `scripts/run_tests.py full` → Ran **225** tests OK（skipped=2）
+  - 包含新增 35 个 reward_offline 单测 + 5 个 stage0 reward schema 测试 = **40** 个 P2 阶段新增测试；
+  - **65** 个 reward signal（5 ckpt × 13 样本）全部通过 jsonschema Draft202012 校验。
 
-- 实验结果（`docs/experiments/p2-evaluator/README.md`）：
-  - 8 个 checkpoint × 13 样本 = 104 reward_signal，reward_binary 全 0；
-  - reward_layered 分布区分 dense large / d256 20k（0.03~0.08）vs d256 5k / MoE（0.00）；
-  - first_failure 全部为 parse_success；
+- 实验结果（`docs/experiments/p2-evaluator/README.md`，round 3）：
+  - **5** 个 SFT MVP checkpoint × 13 样本 = **65** reward_signal，reward_binary 全 0；
+  - reward_layered 分布区分 dense large v1（0.029） / d256 20k（0.077） vs d256 5k / MoE（0.00）；
+  - first_failure 分布：64 个 parse_success + 1 个 argument_value_correct；
+  - reward_type 分布：64 个 parse_success + 1 个 argument_correct（来自 sft-tool-large-v1；first_failure = argument_value_correct，与 README 描述一致）；
   - **D1 dev 13 样本不是独立 held-out split**，不能作为正式 reward 分布结论。
 
 - 新发现问题：
