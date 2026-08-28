@@ -847,7 +847,7 @@ P3/P4 后续动作：
 ### P5-02 Transformers backend + 5 个公开 instruction-tuned 模型 × D2 dev reward 评测（2026-08-28）
 
 状态：已交付（2026-08-28 下午修正 target-answer 泄漏 bug 后重新验证；待 detached auditor + minimax-M3 subagent reviewer 联合复审）。
-决策：实现 `scripts/eval_transformers.py` Transformers 推理后端，在 D2 dev 90 样本上对 5 个公开 instruction-tuned 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）跑真实推理 + reward_offline；修正后 5 模型 reward_binary 全部 = 0（诚实负结果），reward_layered 在 0.33–0.42 区间，仍显著高于自研 5 ckpt 的 0.0。
+决策：实现 `scripts/eval_transformers.py` Transformers 推理后端，在当前扩样版 D2 dev（750 样本）子集 90 上对 5 个公开 instruction-tuned 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）跑真实推理 + reward_offline；修正后 5 模型 reward_binary 全部 = 0（诚实负结果），reward_layered 在 0.33–0.42 区间，仍显著高于自研 5 ckpt 的 0.0（自研评测在 **MVP 600 样本版** dev 90 上完成，见 `docs/experiments/p2-evaluator/README.md` §6）。
 
 改动（含 2026-08-28 下午修正）：
 - `scripts/eval_transformers.py`（9066 → ~11300 bytes）：AutoModelForCausalLM + AutoTokenizer + 官方 chat_template + greedy + bf16；保留 `extract_tool_calls` 与 `classify_tool_failure` 复用，输出与 `eval_sft_tool.py` 完全一致的 `{summary, rows}` schema 以便 `reward_offline.py` 直接消费；CPU 强制 fp32；CUDA bf16；output 增加 `generated_preview` + 完整 `generated`；`first_failure_distribution` / `parse_success_count` / `parse_success_rate` / 5 个 backend 元数据 (backend/revision/device/dtype/transformers_version/torch_version)；**新增 `_strip_terminal_assistant()` 在 `_apply_chat_template()` 中去除 D2 样本的 gold terminal assistant content message 避免 target-answer 泄漏**。

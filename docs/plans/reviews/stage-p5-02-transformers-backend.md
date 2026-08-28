@@ -6,10 +6,10 @@
 
 ## 阶段目标
 
-实现 `scripts/eval_transformers.py` Transformers 推理后端，在 D2 dev 90 样本上对 5 个公开 instruction-tuned 模型跑真实推理 + reward_offline，产出 5×90=450 reward_signal；与自研 5 ckpt 在同一 reward pipeline 上做横向对比。
+实现 `scripts/eval_transformers.py` Transformers 推理后端，在**当前扩样版 D2 dev (750 样本) 子集 90** 上对 5 个公开 instruction-tuned 模型跑真实推理 + reward_offline，产出 5×90=450 reward_signal；与自研 5 ckpt 在同一 reward pipeline 上做横向对比（自研 5 ckpt 评测历史在 **MVP 600 样本版** D2 dev 90 样本上完成，见 `docs/experiments/p2-evaluator/README.md` §6）。
 
 Done when：
-- (a) 5 个公开模型 × D2 dev 90 signals schema 合法（450/450）；
+- (a) 5 个公开模型 × 当前扩样版 D2 dev (750 样本) 子集 90 signals schema 合法（450/450）；
 - (b) ≥1 模型 reward_binary > 0 或 reward_layered > 0.05；
 - (c) `docs/experiments/p2-evaluator/README.md` §7 公开模型 reward 表 + 与自研 ckpt 对比；
 - (d) `tests/test_transformers_backend.py` ≥10 单测全绿；
@@ -52,7 +52,7 @@ Done when：
 
 - `scripts/run_tests.py fast` → Ran **270** tests OK（含 P5-02 25 个新增单测）。
 - `scripts/validate_stage0.py --examples` → 9/9 PASS。
-- 5 个 reward JSON 全部 schema 合法（450 signals）。
+- 5 个 reward JSON 全部 schema 合法（**MVP 600 样本版历史**：自研 5 ckpt × 当前扩样版 D2 dev (750 样本) 子集 90 = 450 signals；公开 5 模型 × 当前扩样版 D2 dev (750 样本) 子集 90 = 450 signals；总 900 signals 已落盘）。
 - 5 个 `no_failure` 全部 = 0（修复前 SmolLM2-360M 为 1）。
 - 修复后文档 reward_layered 数值与 artifact 字节对齐（5/5 模型）。
 - 修复后文档 reward_type + first_failure 分布与 `Counter()` 计算字节对齐（25 对全部命中）。
