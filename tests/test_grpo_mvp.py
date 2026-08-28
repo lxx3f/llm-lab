@@ -1042,10 +1042,141 @@ class TestValidateStepArtifact(unittest.TestCase):
         with self.assertRaises(jsonschema.ValidationError):
             _validate_step_artifact(artifact)
 
+    def test_missing_jsonschema_is_hard_failure(self):
+        """Round-8 invariant: missing ``jsonschema`` must be a HARD
+        failure (``RuntimeError``), not a silent skip. The previous
+        ``try / except ImportError / warn / return`` behavior
+        violated this contract.
+        """
+        import sys
+
+        # Simulate jsonschema being absent by removing it from
+        # sys.modules; force a re-import of grpo_train so the
+        # ``import jsonschema`` line inside _validate_step_artifact
+        # raises ImportError → RuntimeError.
+        with unittest.mock.patch.dict(sys.modules,
+                                       {"jsonschema": None}):
+            for mod_name in list(sys.modules.keys()):
+                if mod_name.startswith("scripts.grpo_train"):
+                    del sys.modules[mod_name]
+            with self.assertRaises(RuntimeError) as ctx:
+                from scripts.grpo_train import _validate_step_artifact
+                _validate_step_artifact({"schema_version": "1.0"})
+            self.assertIn("jsonschema", str(ctx.exception).lower())
+            self.assertIn("required", str(ctx.exception).lower())
+
 
 # ---------------------------------------------------------------------------
-# Continuation of TestRunLoopEndToEnd (test_run_loop_state_pt_written_every_step)
+# Round-8: BPE-boundary policy update regression test
 # ---------------------------------------------------------------------------
+
+class TestPolicyUpdateBPEBoundary(unittest.TestCase):
+    """Round-8 invariant: ``_policy_update`` must tokenize the prompt
+    and continuation INDEPENDENTLY and concatenate the token-id lists.
+    The prior implementation tokenized ``prompt_text`` and
+    ``prompt_text + generated`` separately and used the first
+    tokenization's length to mask the second; this works for
+    whitespace tokenizers but breaks for real BPE tokenizers because
+    concatenation changes the boundary tokenization.
+    """
+
+    def _make_spy_tokenizer(self):
+        """A spy tokenizer that records ``encode()`` call args."""
+        class _Spy:
+            pad_token_id = 0
+            eos_token_id = 99
+
+            def __init__(self):
+                self.encode_calls: list[tuple[str, bool]] = []
+
+            def encode(self, text: str, *, add_special_tokens: bool = True) -> list[int]:
+                self.encode_calls.append((text, add_special_tokens))
+                words = text.split()
+                return [abs(hash(w)) % 100 + 10 for w in words]
+
+            def decode(self, ids):
+                return " ".join(str(i) for i in ids)
+        return _Spy()
+
+    def _make_tiny_model(self):
+        import torch as _torch
+
+        class _Tiny(_torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.embedding = _torch.nn.Embedding(256, 8)
+                self.head = _torch.nn.Linear(8, 256, bias=False)
+
+            def forward(self, input_ids, labels=None, **_):
+                h = self.embedding(input_ids)
+                logits = self.head(h)
+                return type("O", (), {"logits": logits, "loss": None})()
+        return _Tiny()
+
+    def test_independent_tokenization_runs_policy_update(self):
+        """The fix tokenizes prompt and continuation independently;
+        the policy update must run end-to-end without crashing.
+        """
+        from scripts.grpo_train import _policy_update
+        sample = {"messages": [{"role": "user", "content": "hi"}],
+                  "tools": [], "expected_answer": "",
+                  "expected_tool_calls": [],
+                  "metadata": {"task_type": "tool_not_available"},
+                  "schema_version": "1.0", "id": "x"}
+        tok = self._make_spy_tokenizer()
+        model = self._make_tiny_model()
+        rollouts = [{"generated": "alpha beta gamma",
+                     "extracted_calls": []}]
+        adv = [1.0]
+        update, _opt = _policy_update(
+            model, tok, sample, rollouts, adv,
+            learning_rate=1e-3, max_grad_norm=1.0, device="cpu",
+            optimizer=None,
+        )
+        self.assertGreater(update["tokens_seen"], 0)
+        self.assertFalse(update["skipped"])
+
+    def test_prompt_and_continuation_tokenized_independently(self):
+        """Direct regression for the round-8 boundary bug: verify
+        that ``_policy_update`` tokenizes the prompt with
+        ``add_special_tokens=True`` and the continuation with
+        ``add_special_tokens=False`` rather than tokenizing the
+        concatenation. The OLD implementation tokenized
+        ``prompt + continuation`` as a single string and used the
+        separately-tokenized prompt's length to mask; that fails
+        on real BPE because concatenation shifts boundaries.
+        """
+        from scripts.grpo_train import _policy_update
+        tok = self._make_spy_tokenizer()
+        model = self._make_tiny_model()
+        sample = {"messages": [{"role": "user", "content": "hi"}],
+                  "tools": [], "expected_answer": "",
+                  "expected_tool_calls": [],
+                  "metadata": {"task_type": "tool_not_available"},
+                  "schema_version": "1.0", "id": "x"}
+        rollouts = [{"generated": "alpha", "extracted_calls": []}]
+        adv = [1.0]
+        _policy_update(
+            model, tok, sample, rollouts, adv,
+            learning_rate=1e-3, max_grad_norm=1.0, device="cpu",
+            optimizer=None,
+        )
+        # The spy must record at least two distinct encode() calls:
+        # one for the prompt (with special tokens) and one for the
+        # continuation (without). The OLD implementation would have
+        # encoded a concatenated ``full_text`` instead — which would
+        # be a single encode() call with the full text.
+        encode_calls = tok.encode_calls
+        self.assertGreaterEqual(len(encode_calls), 2,
+                                msg=f"expected ≥2 encode() calls, got {encode_calls}")
+        # The continuation call must have add_special_tokens=False
+        cont_calls = [c for c in encode_calls if not c[1]]
+        self.assertGreaterEqual(len(cont_calls), 1,
+                                msg=f"expected a continuation call with add_special_tokens=False, got {encode_calls}")
+        # The prompt call must have add_special_tokens=True
+        prompt_calls = [c for c in encode_calls if c[1]]
+        self.assertGreaterEqual(len(prompt_calls), 1,
+                                msg=f"expected a prompt call with add_special_tokens=True, got {encode_calls}")
 
 class TestRunLoopStatePtInvariant(unittest.TestCase):
     """Round-6 invariant: state.pt is ALWAYS written on every step.

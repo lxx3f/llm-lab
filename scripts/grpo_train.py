@@ -486,8 +486,21 @@ def _policy_update(
     the caller can persist it next.
 
     Returns ``({policy_gradient_loss, learning_rate, tokens_seen,
-    grad_norm}, optimizer)``. When all advantages are zero (no
-    learning signal), the step is a no-op and ``skipped=True``.
+    grad_norm, skipped, skip_reason}, optimizer)``. When all
+    advantages are zero (no learning signal), the step is a no-op
+    and ``skipped=True``.
+
+    Round-8 invariant: prompt and continuation are tokenized
+    INDEPENDENTLY and concatenated as raw token-id lists. The prior
+    implementation tokenized the prompt and the full
+    ``prompt + continuation`` separately and used the first
+    tokenization's length to mask the second. With BPE tokenizers,
+    concatenating two texts changes the boundary tokenization, so
+    the mask could include/exclude the wrong tokens (the round-8
+    auditor's specific repro). The new approach is the standard
+    ``DataCollatorForCompletionOnlyLM`` pattern: prompt (with
+    special tokens) + continuation (without special tokens), then
+    mask ``[:len(prompt_ids)]``.
     """
     if not any(abs(a) > ADVANTAGE_EPS for a in advantages):
         return ({
@@ -505,23 +518,45 @@ def _policy_update(
         optimizer = _fresh_optimizer(model, learning_rate)
 
     prompt_text = _apply_chat_template(tokenizer, sample)
-    prompt_inputs = tokenizer(prompt_text, return_tensors="pt",
-                              truncation=True, max_length=2048)
-    prompt_len = prompt_inputs["input_ids"].shape[1]
+
+    # Tokenize the prompt and each continuation INDEPENDENTLY and
+    # concatenate the token IDs. This is the standard approach used
+    # in ``DataCollatorForCompletionOnlyLM`` (Hugging Face) — it
+    # avoids BPE-boundary drift between ``tokenizer(prompt_text)``
+    # and ``tokenizer(prompt_text + continuation)`` that would
+    # otherwise misalign the mask (round-8 auditor's specific
+    # objection: the prior implementation tokenized each separately
+    # and used the first ``prompt_len`` to mask the second, which
+    # only worked for whitespace-style tokenizers).
+    #
+    # Special tokens: the prompt is tokenized WITH special tokens
+    # (BOS/EOS that the chat template may add); the continuation is
+    # tokenized WITHOUT special tokens (so the concatenation is a
+    # clean boundary).
+    prompt_ids_list = tokenizer.encode(prompt_text, add_special_tokens=True)
+    prompt_len = len(prompt_ids_list)
+    # Truncate the prompt if it's too long (leave room for the
+    # continuation up to ``max_length - 1``).
+    max_total_len = 2048
 
     total_loss = 0.0
     total_tokens = 0
     for r, adv in zip(rollouts, advantages):
         if abs(adv) <= ADVANTAGE_EPS:
             continue
-        full_text = prompt_text + r["generated"]
-        full_inputs = tokenizer(full_text, return_tensors="pt",
-                                truncation=True, max_length=2048)
-        input_ids = full_inputs["input_ids"].to(device)
-        if input_ids.shape[1] <= prompt_len:
+        gen_text = r["generated"]
+        # Tokenize the continuation WITHOUT special tokens; we will
+        # concatenate to the (already-special-token-bounded) prompt.
+        gen_ids_list = tokenizer.encode(gen_text, add_special_tokens=False)
+        # Truncate to fit the total budget.
+        if prompt_len + len(gen_ids_list) > max_total_len:
+            gen_ids_list = gen_ids_list[:max_total_len - prompt_len]
+        if not gen_ids_list:
             continue
+        full_ids_list = prompt_ids_list + gen_ids_list
+        input_ids = torch.tensor([full_ids_list], dtype=torch.long).to(device)
+        # Mask: loss only on continuation positions.
         labels = input_ids.clone()
-        # Mask the prompt portion so the loss only applies to generated tokens
         labels[:, :prompt_len] = -100
 
         outputs = model(input_ids=input_ids, labels=labels)
@@ -795,22 +830,27 @@ def _validate_step_artifact(artifact: dict[str, Any]) -> None:
     ``tests/test_grpo_mvp.py::_validate_schema`` helper existed only
     in tests; the production code path had no validation hook.
 
-    Raises ``jsonschema.ValidationError`` on failure. The caller
-    (``run_loop``) catches this and aborts the run with a clear
-    error message.
+    Round-8 invariant: missing ``jsonschema`` is a HARD production
+    failure. Schema validity is a required production invariant;
+    silently skipping validation (the previous behavior) would let
+    malformed artifacts reach disk. We raise ``RuntimeError`` with
+    install instructions.
+
+    Raises ``jsonschema.ValidationError`` on schema failure; raises
+    ``RuntimeError`` if ``jsonschema`` is not importable. The
+    caller (``run_loop``) catches schema-validation errors and
+    aborts the run with rc=5.
     """
     try:
         import jsonschema  # type: ignore
-    except ImportError:
-        # jsonschema not installed — skip validation (dev env).
-        # CI installs jsonschema; production should fail loudly.
-        import warnings
-        warnings.warn(
-            "jsonschema not installed; skipping artifact schema "
-            "validation. Install with `pip install jsonschema` to "
-            "enforce the schema."
-        )
-        return
+    except ImportError as e:
+        raise RuntimeError(
+            "jsonschema is a required production dependency for "
+            "GRPO step-artifact validation; install with "
+            "`pip install jsonschema`. "
+            "Round-8 invariant: silent skip is not allowed "
+            "because schema validity is required."
+        ) from e
     schema = json.loads(_GRPO_STEP_SCHEMA_PATH.read_text(encoding="utf-8"))
     jsonschema.validate(artifact, schema)
 
@@ -943,12 +983,17 @@ def run_loop(args, *, model, tokenizer, device: str, samples: list,
         # the previous ``_validate_schema`` test helper existed only
         # in tests, not in production. We now fail-fast on schema
         # violations so emitted artifacts are guaranteed to conform.
+        # Round-8: missing jsonschema is a HARD failure (RuntimeError
+        # propagates out of run_loop, aborting the run).
         try:
+            import jsonschema as _jsonschema  # type: ignore
             _validate_step_artifact(artifact)
-        except Exception as e:
+        except _jsonschema.ValidationError as e:
             print(f"[grpo] schema validation FAILED for step "
                   f"{global_step}: {e}", flush=True)
             return 5
+        # Note: RuntimeError (missing jsonschema) propagates — this
+        # is a hard failure per round-8 invariant.
         step_path = checkpoint_dir / f"step-{step_id}.json"
         step_path.write_text(
             json.dumps(artifact, indent=2, ensure_ascii=False),

@@ -84,7 +84,16 @@ class MockTokenizer:
         attention_mask = torch.ones_like(input_ids)
         return {"input_ids": input_ids, "attention_mask": attention_mask}
 
-    def encode(self, text: str) -> list[int]:
+    def encode(self, text: str, *, add_special_tokens: bool = True) -> list[int]:
+        """Round-8 compatibility: accept ``add_special_tokens`` kwarg
+        so the same call signature works for real HF tokenizers AND
+        the mock. Real BPE tokenizers include BOS/EOS for the first
+        tokenization; the mock tokenizer does not produce BOS/EOS
+        so the kwarg is a no-op (only kept for API compatibility).
+        """
+        # Real BOS/EOS are not produced by the mock; we honor the
+        # kwarg only to keep call-site parity with HF tokenizers.
+        del add_special_tokens
         return [self._tok_id(t) for t in text.split()]
 
     def decode(self, token_ids: list[int], *, skip_special_tokens: bool = True) -> str:
