@@ -1,15 +1,19 @@
 # 最终全链路审查报告 — Final Audit Report
 
 - **Date**: 2026-08-29
-- **HEAD**: `368f030` (current main)
-- **Parent HEAD**: `afaada6`
+- **HEAD**: current main (this report added in its own commit; see "HEAD tracking" below)
+- **Parent HEAD**: `368f030` (the audited state; this commit adds the report)
 - **Working tree status**: clean (`git status --short` empty)
 - **Reviewer model**: Minimax M3 (per `docs/plans/review-process.md`)
 - **Goal**: 验证 `llm-lab` 实验闭环各阶段的最终状态
 
-> This report describes the state of the repository AT HEAD `368f030`.
-> All numbers and verification commands below were executed against
-> this commit and produce the documented outputs.
+> **HEAD tracking**: This report was added in the current commit (the
+> one introducing this line). The audit evidence (test runs, doc
+> counts, `.gitignore` coverage) was computed against the **parent
+> commit** `368f030` (current main before this report was added).
+> All numbers in this report correspond to that parent state. To
+> see the audited parent SHA, run `git rev-parse HEAD~1` from any
+> commit that has this report.
 
 ## TL;DR
 
@@ -25,7 +29,7 @@
 
 ## 1. Test suite — `scripts/run_tests.py full`
 
-### 实测结果（fresh run at HEAD `368f030`）
+### 实测结果（fresh run at HEAD `368f030` parent state）
 
 ```text
 $ .venv/python.exe scripts/run_tests.py full
@@ -62,7 +66,7 @@ COMMON_TESTS[:7]: test_aggregate_d256_eval, test_artifact_provenance,
 
 ## 2. Stage 0 / Schema 验证 — `scripts/validate_stage0.py --examples`
 
-### 实测结果（fresh run at HEAD `368f030`）
+### 实测结果（fresh run at HEAD `368f030` parent state）
 
 ```text
 $ .venv/python.exe scripts/validate_stage0.py --examples
@@ -85,7 +89,7 @@ not affect validation correctness.
 
 ## 3. Dataset Commit Policy
 
-### Current policy (per `AGENTS.md`, round-4 update)
+### Current policy (per `AGENTS.md`)
 
 ```text
 - 不提交训练产物（checkpoint/tokenizer artifact/中间产物 JSON），只提交
@@ -100,7 +104,7 @@ not affect validation correctness.
 **Translation**: Don't commit training products. Don't commit datasets
 either. **All datasets are gitignored** and regenerated locally on demand.
 
-### Final dataset state (HEAD `368f030`)
+### Final dataset state (audited at parent commit `368f030`)
 
 | Dataset path | Tracked | Local files | `.gitignore` rule | Policy |
 |---|---|---|---|---|
@@ -121,7 +125,7 @@ $ find datasets/tool-calling-d1 datasets/tool-calling-d1-llm datasets/tool-calli
 
 ## 4. Documentation vs Artifact Reconciliation
 
-### Total tracked docs (HEAD `368f030`)
+### Total tracked docs (audited at parent commit `368f030`)
 
 ```bash
 $ git ls-files docs/ | wc -l
@@ -358,13 +362,13 @@ $ find artifacts/ checkpoints/ -type f \( -name "*.pt" -o -name "*.ckpt" \
 # All 96 weight files are gitignored via `*.pth`, `*.pt`, `*.bin`, `*.onnx` rules
 ```
 
-## 7. Working Tree State
+## 7. Working Tree State (at parent commit `368f030`)
 
 ```bash
 $ git status --short
 (empty — 0 lines)
 
-$ git rev-parse HEAD
+$ git rev-parse HEAD~1
 368f03027a7a8bb8fb067ef4447041cf6406bf07
 ```
 
@@ -406,7 +410,7 @@ files (excluding examples, schemas, smoke-result JSON).
 | Tracked weight files | `git ls-files *.pt/ckpt/...` 空 | ✅ 空 |
 | Tracked secrets | `git ls-files *.env` 空 | ✅ 空 |
 | Working tree clean | `git status --short` 空 | ✅ 空 |
-| HEAD 引用真实 | `git rev-parse HEAD` matches reports | ✅ `368f030` |
+| HEAD 引用真实 | `git rev-parse HEAD~1` matches reports | ✅ `368f030` (audited parent) |
 | Reviewer evidence saved | 33 reviews + 24 exp README + 24 protocols | ✅ |
 | Configured identity | `git config user.name/email` 设置 | ✅ `agent <agent@local>` |
 
@@ -434,6 +438,7 @@ git status --short
 
 # 4. HEAD reference
 git rev-parse HEAD
+git rev-parse HEAD~1   # audited parent: 368f030
 
 # 5. Tracked doc counts (all reproducible commands)
 git ls-files docs/ | wc -l                                 # → 96
@@ -469,7 +474,8 @@ git ls-files 'datasets/'                                   # EMPTY
 
 ## 12. 结论
 
-**`llm-lab` 项目处于良好的最终审计状态** (HEAD `368f030`):
+**`llm-lab` 项目处于良好的最终审计状态** (audited at parent commit `368f030`;
+this commit adds the report):
 
 - ✅ 完整测试套件 PASS (360 OK in 47.101s, skipped=1, exit 0)
 - ✅ Stage 0 schema validation PASS (9/9, exit 0)
@@ -479,7 +485,7 @@ git ls-files 'datasets/'                                   # EMPTY
   JSON / PNG / PT / .tmp / secrets)
 - ✅ **7047 / 7047 sensitive files gitignored (100%, 0 exceptions)**
 - ✅ Working tree clean
-- ✅ HEAD 引用真实 (`368f030`)
+- ✅ HEAD 引用真实 (`HEAD~1` = `368f030` is the audited parent)
 - ✅ Reviewer evidence 完整 (33 stage reviews + 24 experiment READMEs +
   24 protocols)
 - ✅ Configured commit identity 不被修改 (`agent <agent@local>` 是项目级设置)
