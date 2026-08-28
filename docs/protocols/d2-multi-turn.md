@@ -29,7 +29,7 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 | — | `tool_not_available` | 用户要求的工具不在列表中，模型不调用 |
 | — | `error_recovery` | 工具结果不足/失败，模型调整参数后重试 |
 
-**当前契约（round 14，HEAD `fdfc519`）**：每类 ≥833 unique canonical variants；总规模 **5000 样本**（4 类 833 + 2 类 834），默认 `--count 5000`。Variant pool 扩展与严格嵌套维度公式见 `docs/data/d2-expansion.md`。
+**当前契约（round 14，HEAD `217b0c4`）**：每类 ≥833 unique canonical variants；总规模 **5000 样本**（4 类 833 + 2 类 834），默认 `--count 5000`。Variant pool 扩展与严格嵌套维度公式见 `docs/data/d2-expansion.md`。
 
 ## 3. 多轮 transcript 结构
 

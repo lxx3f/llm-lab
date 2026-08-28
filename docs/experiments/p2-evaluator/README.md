@@ -2,7 +2,7 @@
 
 > 状态：阶段交付（2026-08-28）。
 >
-> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `fdfc519`）。本 README §1-§5 是当前契约下的 D1 dev 评测（活跃状态）；§6 是索引与导读，描述已归档的 P2 阶段自研 5 ckpt 历史评测（完整方法 / 结果表 / 复现命令 / 解读已全部迁移至 `docs/plans/open-issues.md` P3-01 段 line 769-841）；§7 是 P5-02 阶段在当前扩样版 D2 dev 750 子集 90 上的公开模型评测（活跃状态）。
+> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `217b0c4`）。本 README §1-§5 是当前契约下的 D1 dev 评测（活跃状态）；§6 已精简为索引（历史 P2 阶段自研 5 ckpt 评测的完整方法 / 结果表 / 复现命令 / 解读已全部迁移至 `docs/plans/open-issues.md` P3-01 段 line 769-841）；§7 是 P5-02 阶段在当前扩样版 D2 dev 750 子集 90 上的公开模型评测（活跃状态）。
 
 ## 1. 评测对象（5 × 13 = 65 个 reward_signal）
 
@@ -58,7 +58,7 @@
 ### 2.4 已知边界
 
 - **D1 dev 仅 13 样本，5 checkpoint × 13 = 65 signals 不是一个有统计意义的 reward benchmark**；当前活跃评测在 §7（当前扩样版 D2 dev 750 子集 90 上公开模型对比）。
-- **P2 阶段自研 5 ckpt 在 MVP 600 样本版 D2 dev 90 上的历史评测**：完整方法与结果表归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841，含 banner 标注"本节描述的是 MVP 600 样本版的初始交付"）。该段保留的 reward_layered 0.0099 / 0.0000 与 reward_binary 全 0 结论是诚实负结果，与当前 §7 的公开模型对比形成鲜明反差。
+- **P2 阶段自研 5 ckpt 在 D2 dev 上的历史评测**：完整方法、reward 分布表与解读已全部迁移至 `docs/plans/open-issues.md` P3-01 段（line 769-841，该段以 banner 明确标注其内容仅作历史记录）。§6 提供最小索引。
 - `artifacts/d2-mock-reward-d2dev.json`（mock transcript 全 reward_binary=1.0）仅验证 reward_offline 能消费 D2 dev 多轮 transcript 的**管线兼容性**，不等同于模型推理 reward 评测。
 - D1.1 train 50-sample 聚合不是 held-out split，不能用于正式 reward 分布对比。
 - 5 ckpt 之外的多 seed 聚合（d256 5k × 3 seeds）属 SFT MVP 阶段的多 seed 协议（P1-03）产出，本表不重复列举。
@@ -78,8 +78,8 @@
 | `docs/protocols/p2-evaluator.md` | P2 协议文档 |
 | `docs/experiments/p2-evaluator/README.md` | 本文件 |
 | `artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d1dev-reward.json` | 5 ckpt × D1 dev 13 = **65** reward_signal + aggregate（gitignored）|
-| `artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d2dev-reward.json` | P2 阶段 MVP 600 样本版历史：5 ckpt × D2 dev 90 = **450** reward_signal + aggregate（gitignored；详见 `docs/plans/open-issues.md` P3-01 段 line 769-841）|
-| `artifacts/d2-mock-reward-d2dev.json` | P2 阶段 MVP 600 样本版历史：mock transcript pipeline 验证，reward_offline 在 D2 dev 多轮 transcript 上全 reward_binary=1.0（gitignored）|
+| `artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d2dev-reward.json` | P2 阶段自研 ckpt 在 D2 dev 上的历史评测产物（gitignored；详见 `docs/plans/open-issues.md` P3-01 段 line 769-841）|
+| `artifacts/d2-mock-reward-d2dev.json` | mock transcript pipeline 验证（gitignored）|
 
 ## 4. 复现
 
@@ -100,13 +100,13 @@
 
 ## 5. 下一步
 
-1. **P3 数据版本 D2 多轮对话**：当前活跃契约为 5000/3500/750/750（HEAD `fdfc519`）；自研 5 ckpt 的 D2 dev 真实推理评测历史归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
+1. **P3 数据版本 D2 多轮对话**：当前活跃契约为 5000/3500/750/750（HEAD `217b0c4`）；自研 5 ckpt 的 D2 dev 真实推理评测历史归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
 2. **P5-02 Transformers backend**：让公开 instruction-tuned 模型跑同一 reward signal，做公平对比；本 README §7 描述。
 3. **P4 GRPO**：当 P3 + P5-02 就位后，把 `reward_binary` / `reward_layered` 作为 GRPO advantage 计算的输入。
 
-## 6. 自研 5 ckpt × D2 dev 真实推理 reward 评测（已归档索引）
+## 6. 自研 5 ckpt × D2 dev 真实推理 reward 评测（归档索引）
 
-> 本节描述的是 P2 阶段在 MVP 600 样本版 D2 dev 90 上对自研 5 ckpt 跑真实推理 reward 评测的历史结果。当前 D2 契约为扩样后的 5000 样本 / dev 750（HEAD `fdfc519`），该段评测的历史归档位置是 **`docs/plans/open-issues.md` P3-01 段（line 769-841，含 banner 标注"本节描述的是 MVP 600 样本版的初始交付"）**。本节仅作为索引与导读，完整方法、复现命令、reward 分布表、reward_type 分布与解读（含 large-v1 的 reward_layered=0.0099 与其余 4 ckpt 的 0.0000）均已迁移到该段；自研评测在当前扩样版 D2 dev 750 上的对应评测见 §7 公开模型对比与 `docs/plans/reviews/stage-p5-02-transformers-backend.md`。
+> §6 是已归档内容的最小索引指针；完整方法 / 复现命令 / reward 分布表 / reward_type 分布与解读均迁移至 `docs/plans/open-issues.md` P3-01 段（line 769-841）。该段以 banner 明确标注其内容仅作历史记录。**本 README 不再保留任何历史 reward 数字**——详细数字请直接查阅该归档段。
 
 ## 7. P5-02 Transformers backend：5 个公开 instruction-tuned 模型 × 当前扩样版 D2 dev reward 评测（2026-08-28）
 
@@ -122,7 +122,7 @@
 | 4 | `Qwen/Qwen2.5-3B-Instruct` | 3.0 B | ~6.0 GB | HF mirror |
 | 5 | `HuggingFaceTB/SmolLM2-1.7B-Instruct` | 1.7 B | ~3.5 GB | HF mirror |
 
-### 7.2 结果（5 × 90 = 450 reward_signal；2026-08-28 下午修正）
+### 7.2 结果（2026-08-28 下午修正）
 
 评测在当前扩样版 D2 dev 750 子集 90 上完成：
 
@@ -134,11 +134,11 @@
 | 4 | Qwen2.5-3B-Instruct | 0.0000 | 0.3333 | argument_correct × 88, final_answer_correct × 2 | tool_name_correct × 67, schema_valid × 19, call_plan_matches × 1, argument_value_correct × 1, final_answer_correct × 2 |
 | 5 | SmolLM2-1.7B-Instruct | 0.0000 | 0.4236 | final_answer_correct × 15, argument_correct × 75 | tool_name_correct × 75, final_answer_correct × 15 |
 
-**当前扩样版 D2 dev 750 子集 90**：450 signals 全 schema 合法；与 `schemas/reward_signal.schema.json` jsonschema Draft202012 一致。
+**当前扩样版 D2 dev 750 子集 90**：5 × 90 = 450 reward_signal 全 schema 合法；与 `schemas/reward_signal.schema.json` jsonschema Draft202012 一致。
 
 ### 7.3 解读（修正后诚实负结果）
 
-- **全部 5 个公开模型 reward_layered ≥ 0.33**，远高于自研 5 ckpt（其历史评测 reward_layered 均为 0，详见 `docs/plans/open-issues.md` P3-01 段 line 769-841），说明公开模型在多轮工具调用结构化生成上仍优于自研 SFT 模型。
+- **全部 5 个公开模型 reward_layered ≥ 0.33**，远高于自研 5 ckpt（自研历史评测的 reward_layered 分布详见 `docs/plans/open-issues.md` P3-01 段 line 769-841），说明公开模型在多轮工具调用结构化生成上仍优于自研 SFT 模型。
 - **全部 reward_binary = 0**：原版 `SmolLM2-360M binary=0.0111` 是 target-answer 泄漏导致（`_apply_chat_template()` 把 D2 整条 `messages` 包含 gold terminal assistant content 透传给 prompt，模型从 prompt 中复述出 expected_answer）。修正后 `_strip_terminal_assistant()` 删除 terminal assistant content message，所有模型 `no_failure=0`。
 - **tool_name_correct 仍是主要失败层**：D2 使用 `d1_*` 工具名，公开 instruction-tuned 模型未在 D2 数据集上微调。这是诚实预期的行为，不应解读为模型能力退化。
 - **横向对比自研 SFT**（自研历史评测完整数据见 `docs/plans/open-issues.md` P3-01 段 line 769-841）：公开模型即使不做 D2 微调，reward_layered 仍 ≥ 0.33；说明 D2 难度梯度对自研模型过高（5 ckpt 没有学会按 SFT 模板输出 JSON tool-call），而 instruction-tuned 模型对 system + tools 的 chat template 理解更接近 D2 期望格式。
