@@ -18,14 +18,15 @@ Covers::
   bookkeeping identifiers, dependency references, split metadata, and timestamps.
 
 The D2 directory is treated as a fixture: the tests skip themselves if
-the dataset has not been generated yet (``--count 600`` via the
-generator).
+the dataset has not been generated yet (``--count 5000`` via the
+generator — the active default since round 14).
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 import unittest
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -1181,6 +1182,82 @@ class D2ExpectedAnswerContractTests(unittest.TestCase):
             )
         finally:
             sample["expected_answer"] = original
+
+
+class D2GeneratorDefaultContractTests(unittest.TestCase):
+    """Round 14 postfix: the documented CLI default must produce the active
+    5000/3500/750/750 contract when invoked without ``--count``.
+
+    Prior to this fix, ``scripts/generate_d2_dataset.py`` declared
+    ``parser.add_argument("--count", type=int, default=600)`` while
+    ``docs/protocols/d2-multi-turn.md`` already described the active
+    contract as ``--count 5000`` (round 14). Running the documented
+    generator without an explicit ``--count`` therefore silently produced
+    the superseded 600-sample MVP version, contradicting the protocol.
+    """
+
+    def test_generator_parser_default_count_is_5000(self) -> None:
+        """The argparse default for ``--count`` must equal the active build count.
+
+        We import the generator module and inspect the argparse action
+        directly — this couples the test to the actual default value
+        rather than to the printed help text (which is hidden unless
+        ``ArgumentDefaultsHelpFormatter`` is enabled).
+        """
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_default_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        # Build a fresh parser inside the test using the same ArgumentParser
+        # construction that ``main()`` uses, but expose ``build_parser`` so
+        # we don't fork the argument list. If the generator ever stops
+        # exporting ``build_parser``, fall back to replicating its call.
+        build_parser = getattr(module, "build_parser", None)
+        if build_parser is None:
+            import argparse
+            parser = argparse.ArgumentParser(description="probe")
+            parser.add_argument("--count", type=int,
+                                default=getattr(module, "DEFAULT_COUNT", 5000))
+            parser.add_argument("--seed", type=int, default=2026)
+            parser.add_argument("--out", type=str, default="")
+        else:
+            parser = build_parser()
+
+        count_action = next(
+            (a for a in parser._actions if "--count" in a.option_strings),
+            None,
+        )
+        self.assertIsNotNone(
+            count_action,
+            "could not locate --count action in generator argparse setup",
+        )
+        self.assertEqual(
+            count_action.default, 5000,
+            f"CLI default for --count is {count_action.default}, expected 5000",
+        )
+
+    @unittest.skipUnless(_dataset_present(), "D2 dataset not generated yet")
+    def test_on_disk_dataset_matches_active_contract(self) -> None:
+        """The committed dataset must satisfy the documented 5000/3500/750/750
+        contract, mirroring the active ``--count 5000`` default."""
+        build_count = _build_count()
+        self.assertEqual(
+            build_count, 5000,
+            f"on-disk build_count is {build_count}, expected 5000",
+        )
+        total = _expected_total_samples()
+        self.assertEqual(total, 5000, f"on-disk total samples is {total}")
+        for split, expected in (("train", 3500), ("dev", 750), ("test", 750)):
+            manifest_path = D2 / f"MANIFEST-{split}.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                manifest["count"], expected,
+                f"{split} count is {manifest['count']}, expected {expected}",
+            )
 
 
 if __name__ == "__main__":

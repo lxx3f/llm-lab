@@ -1530,12 +1530,22 @@ def _write_manifests(out_dir: Path, samples: list[dict[str, Any]],
             json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """Build the argparse parser used by ``main()``.
+
+    Exposed at module level so tests can introspect argument defaults
+    without spawning a subprocess; see
+    ``tests/test_d2_dataset.py::D2GeneratorDefaultContractTests``.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--count", type=int, default=600)
+    parser.add_argument("--count", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
-    args = parser.parse_args()
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
     if args.count < 6:
         raise SystemExit("--count must be >= 6")
 
