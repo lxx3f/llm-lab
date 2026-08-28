@@ -59,6 +59,7 @@ from scripts.grpo_train import (  # noqa: E402
     _run_step,
     _save_state,
     _seed_all,
+    _supplied_cli_args,
     run_loop,
 )
 
@@ -935,10 +936,106 @@ class TestYamlConfigLoader(unittest.TestCase):
     def test_apply_config_overlays_namespace(self):
         args = _MockArgs()
         cfg = _load_yaml_config(ROOT / "configs" / "grpo_mvp.example.yaml")
-        _apply_config_defaults(args, cfg)
+        # Empty supplied set = no CLI overrides
+        _apply_config_defaults(args, cfg, supplied=set())
         self.assertEqual(args.policy_model, "Qwen/Qwen2.5-0.5B-Instruct")
         self.assertEqual(args.max_steps, 8)
         self.assertEqual(args.learning_rate, 1e-5)
+
+    def test_apply_config_converts_path_values(self):
+        """YAML Path-typed values (samples_dir, checkpoint_dir,
+        resume_from) must be coerced to ``pathlib.Path`` so callers
+        can call ``.mkdir()`` without crashing.
+        """
+        args = _MockArgs()
+        cfg = {
+            "policy_model": "x/y",
+            "samples_dir": "datasets/d2/train",
+            "checkpoint_dir": "artifacts/checkpoints/x",
+            "resume_from": "artifacts/checkpoints/x/state.json",
+        }
+        _apply_config_defaults(args, cfg, supplied=set())
+        # The auditor's specific complaint was that ``mkdir`` failed
+        # because the YAML-supplied value stayed a string.
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            args.checkpoint_dir = Path(td) / "x"
+            # The above path-coercion is the actual exercised path
+            # (we mimic main(): assign and call mkdir).
+            args.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+            self.assertTrue(args.checkpoint_dir.exists())
+        # Path-typed fields must be Path instances
+        self.assertIsInstance(args.samples_dir, Path)
+        self.assertIsInstance(args.checkpoint_dir, Path)
+        self.assertIsInstance(args.resume_from, Path)
+
+    def test_cli_overrides_yaml(self):
+        """CLI args must win over YAML values for any flag the user
+        supplied. Regression for the auditor's round-4 finding: prior
+        implementation did ``setattr(args, k, cfg[k])`` unconditionally.
+        """
+        args = _MockArgs(policy_model="cli/model",
+                         checkpoint_dir=Path("/tmp/cli-out"),
+                         max_steps=99)
+        cfg = _load_yaml_config(ROOT / "configs" / "grpo_mvp.example.yaml")
+        # Mark these three as explicitly supplied on the CLI.
+        supplied = {"policy_model", "checkpoint_dir", "max_steps"}
+        _apply_config_defaults(args, cfg, supplied=supplied)
+        self.assertEqual(args.policy_model, "cli/model")
+        self.assertEqual(args.checkpoint_dir, Path("/tmp/cli-out"))
+        self.assertEqual(args.max_steps, 99)
+        # Non-supplied keys still pick up YAML
+        self.assertEqual(args.k_rollouts, 4)
+        self.assertEqual(args.learning_rate, 1e-5)
+
+    def test_supplied_cli_args_scan(self):
+        """``_supplied_cli_args`` correctly detects long-form flags."""
+        supplied = _supplied_cli_args([
+            "--policy-model", "m",
+            "--checkpoint-dir=/tmp/out",
+            "--max-steps", "8",
+        ])
+        self.assertIn("policy_model", supplied)
+        self.assertIn("checkpoint_dir", supplied)
+        self.assertIn("max_steps", supplied)
+        self.assertNotIn("device", supplied)
+        self.assertNotIn("dtype", supplied)
+
+    def test_supplied_cli_args_scan_with_equals(self):
+        supplied = _supplied_cli_args(["--dtype=fp16"])
+        self.assertIn("dtype", supplied)
+
+    def test_config_only_main_succeeds(self):
+        """``--config <yaml> --checkpoint-dir <path> --max-steps 1``
+        must NOT crash on ``mkdir`` because YAML Path values are
+        coerced to ``pathlib.Path``. This is the auditor's specific
+        repro: ``AttributeError: 'str' object has no attribute 'mkdir'``.
+
+        We invoke ``_prepare_args`` directly so the test exercises
+        argument parsing + config overlay without HF download. The
+        downstream ``main()`` body is already covered by
+        ``TestRunLoopEndToEnd``.
+        """
+        import tempfile
+        from scripts.grpo_train import _prepare_args
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td) / "out"
+            args, raw = _prepare_args([
+                "--config", str(ROOT / "configs" / "grpo_mvp.example.yaml"),
+                "--checkpoint-dir", str(td_path),
+                "--max-steps", "1",
+            ])
+            # Path values must be Path, not str (the auditor's bug)
+            self.assertIsInstance(args.checkpoint_dir, Path)
+            self.assertIsInstance(args.samples_dir, Path)
+            # ``mkdir()`` must work without crashing
+            args.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+            self.assertTrue(args.checkpoint_dir.exists())
+            # YAML values landed
+            self.assertEqual(args.policy_model,
+                             "Qwen/Qwen2.5-0.5B-Instruct")
+            self.assertEqual(args.max_steps, 1)  # CLI override won
+            self.assertEqual(args.k_rollouts, 4)  # YAML default landed
 
 
 # ---------------------------------------------------------------------------

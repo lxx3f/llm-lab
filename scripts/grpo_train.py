@@ -953,11 +953,12 @@ def _load_yaml_config(path: Path) -> dict[str, Any]:
     return data
 
 
-def _apply_config_defaults(args, cfg: dict[str, Any]) -> None:
-    """Overlay ``cfg`` values onto the argparse Namespace. CLI args
-    that were explicitly set override config; defaults that the user
-    did not touch fall back to the config. We approximate "explicit
-    vs default" by comparing each value to the parser default.
+def _apply_config_defaults(args, cfg: dict[str, Any],
+                            supplied: set[str]) -> None:
+    """Overlay ``cfg`` values onto the argparse Namespace. **CLI args
+    win**: for each YAML key, if the user explicitly supplied the
+    corresponding CLI flag (``supplied``), skip overlay; otherwise
+    apply the YAML value (with type coercion for Path fields).
     """
     # Map YAML key → argparse dest + parser default
     yaml_keys = {
@@ -969,29 +970,81 @@ def _apply_config_defaults(args, cfg: dict[str, Any]) -> None:
     for k in yaml_keys:
         if k not in cfg:
             continue
-        # If the user did NOT override the CLI default, apply the config.
-        # We approximate by checking if the current value matches the
-        # parser default; if it does, the user didn't set it via CLI.
-        # (Simpler heuristic: only override if the YAML key is present
-        # and the CLI value equals the documented default. For our
-        # smoke, we just always apply YAML keys not explicitly set.)
-        setattr(args, k, cfg[k])
+        if k in supplied:
+            # CLI explicitly supplied; YAML loses.
+            continue
+        # Coerce Path-typed values so callers can call ``.mkdir()``.
+        if k in {"samples_dir", "checkpoint_dir", "resume_from"} \
+                and isinstance(cfg[k], str):
+            setattr(args, k, Path(cfg[k]))
+        else:
+            setattr(args, k, cfg[k])
 
 
-def main(argv: list[str] | None = None) -> int:
+def _supplied_cli_args(argv: list[str]) -> set[str]:
+    """Scan ``argv`` for long-form flags and return the set of argparse
+    destinations the user explicitly supplied. Boolean flags
+    (``--strict-resume-config``) match a single token; value flags
+    match either ``--flag value`` or ``--flag=value``. Short flags are
+    not used by the GRPO CLI.
+    """
+    long_to_dest: dict[str, str] = {
+        "--policy-model": "policy_model",
+        "--samples-dir": "samples_dir",
+        "--checkpoint-dir": "checkpoint_dir",
+        "--resume-from": "resume_from",
+        "--max-steps": "max_steps",
+        "--k-rollouts": "k_rollouts",
+        "--learning-rate": "learning_rate",
+        "--temperature": "temperature",
+        "--max-new-tokens": "max_new_tokens",
+        "--limit": "limit",
+        "--seed": "seed",
+        "--device": "device",
+        "--max-grad-norm": "max_grad_norm",
+        "--save-every": "save_every",
+        "--dtype": "dtype",
+    }
+    supplied: set[str] = set()
+    i = 0
+    while i < len(argv):
+        tok = argv[i]
+        if tok in long_to_dest:
+            supplied.add(long_to_dest[tok])
+            i += 1
+            continue
+        if "=" in tok:
+            flag, _ = tok.split("=", 1)
+            if flag in long_to_dest:
+                supplied.add(long_to_dest[flag])
+        i += 1
+    return supplied
+
+
+def _prepare_args(argv: list[str] | None) -> tuple[Any, list[str]]:
+    """Parse argv + apply YAML config overlay; return the post-overlay
+    Namespace + the raw argv (for explicit-CLI-flag detection). Used
+    by both ``main()`` and the config-only smoke test.
+
+    No model loading, no side effects beyond parser.error() on missing
+    required args.
+    """
     parser = _build_argparser()
+    raw_argv = list(argv) if argv is not None else sys.argv[1:]
     args = parser.parse_args(argv)
-
-    # Load YAML config first so CLI args can override it.
     if args.config is not None:
         cfg = _load_yaml_config(args.config)
-        _apply_config_defaults(args, cfg)
-
-    # After config overlay, the required-without-config args must be set.
+        supplied = _supplied_cli_args(raw_argv)
+        _apply_config_defaults(args, cfg, supplied)
     if not args.policy_model:
         parser.error("--policy-model (or policy_model in --config) is required")
     if not args.checkpoint_dir:
         parser.error("--checkpoint-dir (or checkpoint_dir in --config) is required")
+    return args, raw_argv
+
+
+def main(argv: list[str] | None = None) -> int:
+    args, _raw_argv = _prepare_args(argv)
 
     if args.smoke_deterministic:
         args.temperature = 0.0

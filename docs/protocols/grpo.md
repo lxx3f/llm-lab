@@ -155,10 +155,32 @@ forced to override a user-specified low-precision dtype.
 `checkpoint_dir`, `resume_from`, `max_steps`, `k_rollouts`,
 `learning_rate`, `temperature`, `max_new_tokens`, `limit`, `seed`,
 `device`, `max_grad_norm`, `save_every`, `dtype` from a YAML file
-(see `configs/grpo_mvp.example.yaml`). CLI args overlay the YAML;
-with only `--config` set, the YAML supplies everything. PyYAML is
-required (raise ``RuntimeError`` with install instructions if
-missing).
+(see `configs/grpo_mvp.example.yaml`).
+
+**CLI precedence**: CLI args explicitly supplied on the command line
+win over YAML. The set of supplied flags is detected by scanning
+`sys.argv` for long-form tokens (matches `--flag value` and
+`--flag=value`); any YAML key whose corresponding flag was NOT
+supplied is overlaid. `_supplied_cli_args(argv)` returns the set.
+
+**Path coercion**: YAML values for `samples_dir`, `checkpoint_dir`,
+`resume_from` are coerced to `pathlib.Path` (argparse normally does
+this for CLI values via `type=Path`; YAML values are strings so
+`_apply_config_defaults` must coerce them). Without this coercion,
+`main()`'s `checkpoint_dir.mkdir(...)` call fails with
+`AttributeError: 'str' object has no attribute 'mkdir'`.
+
+PyYAML is required (raise `RuntimeError` with install instructions
+if missing).
+
+Tests:
+- `TestYamlConfigLoader::test_load_example_yaml`
+- `TestYamlConfigLoader::test_apply_config_overlays_namespace`
+- `TestYamlConfigLoader::test_apply_config_converts_path_values`
+- `TestYamlConfigLoader::test_cli_overrides_yaml`
+- `TestYamlConfigLoader::test_supplied_cli_args_scan`
+- `TestYamlConfigLoader::test_supplied_cli_args_scan_with_equals`
+- `TestYamlConfigLoader::test_config_only_main_succeeds`
 
 ## 11. Unconditional mock-based smoke
 
