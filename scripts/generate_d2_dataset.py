@@ -982,93 +982,142 @@ def _parse_assistant_arguments(arguments: Any) -> Any:
 
 
 def transcript_well_formedness_errors(sample: dict[str, Any]) -> list[str]:
-    """Round 10 cross-message invariants that JSON Schema cannot express.
+    """Round 11 cross-message invariants verified by message-position state machine.
 
-    Checks performed for every multi-turn sample:
+    A flat-list ID comparison can hide positional violations such as a tool
+    response appearing *after* the assistant final answer, or an assistant
+    tool call whose matching tool response appears earlier in the
+    transcript. The validator therefore walks ``messages`` in order and
+    enforces the following positional invariants:
 
-    1. Every assistant ``tool_call.id`` is referenced by a subsequent
-       tool message's ``tool_call_id`` (and vice versa, no orphan tool
-       messages).
-    2. Assistant tool calls are emitted in the same order as their
-       matching tool messages (``assistant ... tool ... assistant ... tool``).
-    3. Every assistant tool call's ``function.name`` and parsed
-       ``function.arguments`` match the ``expected_tool_calls`` entry
-       with the same ``call_id``.
-    4. Every assistant message is followed by a tool response before the
-       next assistant message emits another tool call (no two consecutive
-       assistant tool calls without an intervening tool message).
+    1. The transcript's final assistant message (no ``tool_calls``,
+       non-empty ``content``) is the conversation's terminal answer.
+       Any ``role=tool`` message appearing after that point is rejected.
+    2. Every assistant ``tool_calls[i].id`` must be answered by exactly
+       one subsequent ``role=tool`` message whose ``tool_call_id``
+       matches the call id, in the order the calls were emitted.
+    3. No ``role=tool`` message may reference an unknown id, appear
+       before its issuing assistant call, or appear after the final
+       answer.
+    4. Every assistant tool call's ``function.name`` and parsed
+       ``function.arguments`` must match the ``expected_tool_calls``
+       entry with the same ``call_id``.
     """
     errors: list[str] = []
-    messages = sample.get("messages", [])
+    messages = list(sample.get("messages", []))
     expected_calls = sample.get("expected_tool_calls", [])
     expected_by_id = {call["call_id"]: call for call in expected_calls}
 
-    asst_calls: list[tuple[str, str, Any]] = []  # (call_id, name, parsed_arguments)
-    for message in messages:
+    final_answer_position: int | None = None
+    for index in range(len(messages) - 1, -1, -1):
+        message = messages[index]
+        if (
+            message.get("role") == "assistant"
+            and not (message.get("tool_calls") or [])
+            and message.get("content") not in (None, "")
+        ):
+            final_answer_position = index
+            break
+
+    pending: list[str] = []
+    seen_call_ids: set[str] = set()
+    seen_tool_refs: set[str] = set()
+
+    for position, message in enumerate(messages):
+        role = message.get("role")
+        if role == "assistant":
+            tool_calls = message.get("tool_calls") or []
+            if tool_calls:
+                if final_answer_position is not None and position > final_answer_position:
+                    errors.append(
+                        f"message[{position}]: assistant tool_calls emitted "
+                        f"after the final answer at message[{final_answer_position}]"
+                    )
+                for call in tool_calls:
+                    cid = call["id"]
+                    seen_call_ids.add(cid)
+                    pending.append(cid)
+        elif role == "tool":
+            tcid = message.get("tool_call_id")
+            if not tcid:
+                errors.append(
+                    f"message[{position}]: tool message missing tool_call_id"
+                )
+                continue
+            seen_tool_refs.add(tcid)
+            if final_answer_position is not None and position > final_answer_position:
+                errors.append(
+                    f"message[{position}]: tool message for {tcid!r} "
+                    f"appears after the final answer at "
+                    f"message[{final_answer_position}]"
+                )
+                continue
+            if not pending:
+                errors.append(
+                    f"message[{position}]: tool message for {tcid!r} "
+                    f"appears before any assistant tool call"
+                )
+                continue
+            expected_first = pending[0]
+            if tcid != expected_first:
+                errors.append(
+                    f"message[{position}]: tool message for {tcid!r} "
+                    f"violates in-order matching (pending={expected_first!r})"
+                )
+                continue
+            pending.pop(0)
+        elif role in ("system", "user"):
+            continue
+        else:
+            errors.append(
+                f"message[{position}]: unexpected role {role!r}"
+            )
+
+    if pending:
+        errors.append(
+            f"unanswered assistant tool calls: {pending}"
+        )
+
+    missing_in_tool = seen_call_ids - seen_tool_refs
+    if missing_in_tool:
+        errors.append(
+            f"assistant tool_call.id without matching tool message: "
+            f"{sorted(missing_in_tool)}"
+        )
+    extra_in_tool = seen_tool_refs - seen_call_ids
+    if extra_in_tool:
+        errors.append(
+            f"tool message references unknown tool_call_id: "
+            f"{sorted(extra_in_tool)}"
+        )
+
+    for position, message in enumerate(messages):
         if message.get("role") != "assistant":
             continue
-        for call in message.get("tool_calls", []) or []:
-            asst_calls.append((
-                call["id"],
-                call["function"]["name"],
-                _parse_assistant_arguments(call["function"].get("arguments")),
-            ))
-
-    tool_refs: list[str] = []
-    for message in messages:
-        if message.get("role") != "tool":
-            continue
-        tool_refs.append(message["tool_call_id"])
-
-    asst_ids = [cid for cid, _, _ in asst_calls]
-    if asst_ids != tool_refs:
-        missing_in_tool = set(asst_ids) - set(tool_refs)
-        extra_in_tool = set(tool_refs) - set(asst_ids)
-        if missing_in_tool:
-            errors.append(
-                f"assistant tool_call.id without matching tool message: "
-                f"{sorted(missing_in_tool)}"
-            )
-        if extra_in_tool:
-            errors.append(
-                f"tool message references unknown tool_call_id: "
-                f"{sorted(extra_in_tool)}"
-            )
-
-    for asst_index in range(len(asst_calls) - 1):
-        cid = asst_calls[asst_index][0]
-        if cid not in tool_refs:
-            continue
-        tool_index = tool_refs.index(cid)
-        if tool_index >= len(messages) - 1:
-            continue
-        next_role = messages[tool_index + 1].get("role")
-        if next_role == "assistant":
-            next_asst = messages[tool_index + 1]
-            next_calls = next_asst.get("tool_calls", []) or []
-            if next_calls:
+        for call in message.get("tool_calls") or []:
+            cid = call["id"]
+            expected = expected_by_id.get(cid)
+            if expected is None:
                 errors.append(
-                    f"consecutive assistant tool_calls without intervening "
-                    f"tool response after {cid}"
+                    f"message[{position}]: assistant tool_call.id {cid!r} "
+                    f"missing from expected_tool_calls"
                 )
-
-    for call_id, name, parsed_args in asst_calls:
-        expected = expected_by_id.get(call_id)
-        if expected is None:
-            errors.append(
-                f"assistant tool_call.id {call_id!r} missing from expected_tool_calls"
+                continue
+            if expected["name"] != call["function"]["name"]:
+                errors.append(
+                    f"message[{position}]: assistant tool_call.name "
+                    f"mismatch for {cid!r}: got {call['function']['name']!r}, "
+                    f"expected {expected['name']!r}"
+                )
+            parsed_args = _parse_assistant_arguments(
+                call["function"].get("arguments")
             )
-            continue
-        if expected["name"] != name:
-            errors.append(
-                f"assistant tool_call.name mismatch for {call_id!r}: "
-                f"got {name!r}, expected {expected['name']!r}"
-            )
-        if expected["arguments"] != parsed_args:
-            errors.append(
-                f"assistant tool_call.arguments mismatch for {call_id!r}: "
-                f"got {parsed_args!r}, expected {expected['arguments']!r}"
-            )
+            if expected["arguments"] != parsed_args:
+                errors.append(
+                    f"message[{position}]: assistant tool_call.arguments "
+                    f"mismatch for {cid!r}: got {parsed_args!r}, "
+                    f"expected {expected['arguments']!r}"
+                )
 
     return errors
 

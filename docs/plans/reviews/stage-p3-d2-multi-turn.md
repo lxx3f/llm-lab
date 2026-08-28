@@ -34,7 +34,7 @@ commit 候选变更：见下方“完成范围”节。
 ### reward offline 验证
 
 - `artifacts/d2-mock-reward-d2dev.json`：D2 dev 90 样本的 mock transcript 兼容性验证（90/90 reward_binary=1.0、reward_layered=1.0），用于证明 evaluator 能正确消费多轮 transcript；
-- 5 个 checkpoint 的真实模型推理结果和 reward_offline 输出见 `docs/experiments/p2-evaluator/README.md` 第 6 节及对应 `artifacts/sft-*-eval-d2dev-reward.json`；最终多样化数据上共 450 signals，全部 `reward_binary=0.0`，large-v1 / d256-20k 的 `reward_layered` 分别为 0.0162 / 0.0042。
+- 5 个 checkpoint 的真实模型推理结果和 reward_offline 输出见 `docs/experiments/p2-evaluator/README.md` 第 6 节及对应 `artifacts/sft-*-eval-d2dev-reward.json`；最终多样化数据上共 450 signals，全部 `reward_binary=0.0`；round 9 数字（large-v1 / d256-20k `reward_layered` 0.0162 / 0.0042）是 round 10 之前的状态，已被 IID stratified shuffle 后的 0.0099 / 0.0000 取代（详细变化说明见 README §6.2）。
 
 ### 测试统计
 
@@ -97,7 +97,7 @@ Auditor round 9 指出原 D2 数据在去除 ID、时间戳、split、call_id �
 3. 生成器 `_validate_samples()` 在写盘前执行全局 canonical 去重；任何只改 bookkeeping 的重复样本直接失败。
 4. `tests/test_d2_dataset.py` 新增跨 split canonical overlap、每类 100 个唯一语义实例、以及仅修改 bookkeeping 仍必须拒绝的反向断言。
 5. 正式数据验证：600/600 canonical unique；六类各 100/100 unique；train/dev/test canonical overlap=0。
-6. 5 ckpt × D2 dev reward artifact 按最终数据重新生成：large-v1 `reward_layered=0.0162`、d256-20k `0.0042`，其余为 0.0000；全部 `reward_binary=0.0`。
+6. 5 ckpt × D2 dev reward artifact 按最终数据重新生成（**round 9 历史数字** — round 10 IID 后已被取代）：large-v1 `reward_layered=0.0162`、d256-20k `0.0042`，其余为 0.0000；全部 `reward_binary=0.0`。
 
 验证：`scripts/run_tests.py full` → Ran **255** tests OK；stage0 9/9；D2 专项 33 tests OK。
 
@@ -116,10 +116,22 @@ Auditor round 10 提出两点根因问题：(1) `assign_split_ids()` 用 `sample
 
 验证：`scripts/run_tests.py full` → Ran **264** tests OK（255 + 9 round 10 测试）；stage0 9/9；D2 专项 42 tests OK。
 
+### Round 7（2026-08-28，auditor round 11 文档/状态机/跨数据集一致性修复）
+
+Auditor round 11 提出三点根因问题：(1) `docs/protocols/d2-multi-turn.md` §5.1 写明 `index` 是生成器全局序列 1-based 位置（train=1..420、dev=421..510、test=511..600），但 `assign_split_ids()` 实际使用 split-local 1-based 索引，`d2-train-0001` / `d2-dev-0001` / `d2-test-0001` 三个样本的 `created_at` 都是 `2026-07-25T17:53:47Z`；文档与代码不一致；(2) `transcript_well_formedness_errors()` 分别收集 assistant call id 列表与 tool ref id 列表后做集合/顺序比较，未验证 `role=tool` 消息的实际位置（能否出现在 final answer 之后）或 assistant tool call 能否在 final answer 之后出现；原有测试也没有反向断言；(3) `test_train_disjoint_from_d1_and_d1llm_train()` 只比 ID 文件名，未在 canonical semantic signature 层验证 D2 vs D1.1 互斥。
+
+修复：
+
+1. **时间戳文档同步**：把 §5.1 改为 split-local 1-based（train 1..420、dev 1..90、test 1..90），与 ``sample.id`` 后缀严格一致；说明该选择与 round 8 共识一致（split-local index + UTC + Z），并指出 ``d2-train-0001`` / ``d2-dev-0001`` / ``d2-test-0001`` 均映射到同一 epoch 起始点。open-issues + stage review 中所有 "round 9 数字 0.0162 / 0.0042" 均标注为 **round 9 历史数字 — round 10 IID 后已被取代**，并指向 README §6.2 的变化说明。
+2. **well-formedness 状态机**：将 `transcript_well_formedness_errors()` 从 "并集比较" 重写为消息位置状态机：(a) 先逆向扫描定位 final answer 位置（最末一个 assistant 且 content 非空且无 tool_calls）；(b) 正向扫描维护 pending call_id 队列，tool message 必须与队首匹配后弹出；(c) 任何出现在 final answer 之后的 tool message / assistant tool_call 立即报错；(d) 无效 role / 缺 tool_call_id 也报错。`expected_tool_calls` name/arguments 校验继续作为最后一步。验证：600/600 样本 0 errors；反向断言 "tool message placed after final answer" + "assistant tool_call emitted after final answer" 均被捕获。
+3. **D2 vs D1.1 canonical 互斥**：新增 `d1_canonical_signature()` 投影函数（task_type + schema_version + user turns + tool names + expected_tool_calls name+args + expected_answer）和 `test_d2_canonical_content_is_disjoint_from_d1_d1llm_train()`，断言 D2 train/dev/test 三 split 与 D1 train / D1.1 train 在 canonical signature 层交集均为空。
+
+验证：`scripts/run_tests.py full` → Ran **267** tests OK（264 + 3 round 11 测试：2 well-formedness 反向断言 + 1 D2 vs D1.1 canonical 互斥）；stage0 9/9；D2 专项 45 tests OK（42 + 3 round 11）。
+
 ## 审查结论
 
 - 审查模型：`minimax-cn/MiniMax-M3`
 - 审查 agent：`reviewer`
 - 结论：**通过**
 - 允许创建阶段 commit：是
-- reviewer 输出（PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）保存到 `.pi-glla/scratch/stage-p3-d2-multi-turn-review-postfix-r10.txt`。
+- reviewer 输出（PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）保存到 `.pi-glla/scratch/stage-p3-d2-multi-turn-review-postfix-r10.txt` 和 `.pi-glla/scratch/stage-p3-d2-multi-turn-review-postfix-r11.txt`。

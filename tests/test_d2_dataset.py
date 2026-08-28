@@ -465,6 +465,74 @@ class D2TranscriptWellFormednessTests(unittest.TestCase):
         finally:
             asst_calls[0]["function"]["arguments"] = original
 
+    def test_tool_message_after_final_answer_is_flagged(self) -> None:
+        """Position: tool message placed after the final answer is invalid."""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_after_final_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        sample = deepcopy(self.train[0])
+        if not sample.get("expected_tool_calls"):
+            self.skipTest("train[0] has no expected_tool_calls")
+        final_idx = None
+        for idx, message in enumerate(sample["messages"]):
+            if (message.get("role") == "assistant"
+                    and not (message.get("tool_calls") or [])):
+                final_idx = idx
+        self.assertIsNotNone(final_idx,
+                             "no assistant final-answer message found")
+        orphan_id = sample["expected_tool_calls"][0]["call_id"]
+        sample["messages"].append({
+            "role": "tool",
+            "tool_call_id": orphan_id,
+            "name": "d1_calculate",
+            "content": "orphan",
+        })
+        errors = module.transcript_well_formedness_errors(sample)
+        self.assertTrue(
+            any("after the final answer" in e for e in errors),
+            f"tool-after-final-answer not flagged: {errors}",
+        )
+
+    def test_assistant_tool_call_after_final_answer_is_flagged(self) -> None:
+        """Position: assistant tool call emitted after the final answer is invalid."""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_asst_after_final_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        sample = deepcopy(self.train[0])
+        if not sample.get("expected_tool_calls"):
+            self.skipTest("train[0] has no expected_tool_calls")
+        final_idx = None
+        for idx, message in enumerate(sample["messages"]):
+            if (message.get("role") == "assistant"
+                    and not (message.get("tool_calls") or [])):
+                final_idx = idx
+        self.assertIsNotNone(final_idx)
+        sample["messages"].append({
+            "role": "assistant",
+            "tool_calls": [{
+                "id": "call-orphan-after-final",
+                "type": "function",
+                "function": {"name": "d1_calculate",
+                             "arguments": '{"expression": "1+1"}'},
+            }],
+            "content": None,
+        })
+        errors = module.transcript_well_formedness_errors(sample)
+        self.assertTrue(
+            any("after the final answer" in e for e in errors),
+            f"assistant-tool-call-after-final-answer not flagged: {errors}",
+        )
+
 
 @unittest.skipUnless(_dataset_present(), "D2 dataset not generated yet")
 class D2SplitDisjointnessTests(unittest.TestCase):
@@ -537,6 +605,77 @@ class D2SplitDisjointnessTests(unittest.TestCase):
             self.assertEqual(
                 100, len(task_signatures),
                 f"{task_type} must contain 100 unique semantic instances",
+            )
+
+    def test_d2_canonical_content_is_disjoint_from_d1_d1llm_train(self) -> None:
+        """D2 held-out split must be semantically disjoint from D1 / D1.1 train.
+
+        The objective requires D2's held-out split to be a fully non-overlapping
+        held-out benchmark. ID disjointness alone is insufficient: D2 samples
+        may share their user-turn content with a D1.1 train sample even when
+        the sample IDs do not collide. This test projects both D2 and the
+        neighbouring D1 / D1.1 train samples into a canonical semantic
+        signature (task_type + user text + tool list + expected tool calls +
+        expected answer) and asserts the sets are pairwise disjoint.
+        """
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_d1_disjoint_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        def load(path: Path) -> list[dict]:
+            if not path.exists():
+                return []
+            return [json.loads(p.read_text(encoding="utf-8"))
+                    for p in sorted(path.glob("*.json"))]
+
+        def d1_canonical_signature(sample: dict) -> str:
+            """Project a D1 / D1.1 sample into the same semantic shape D2 uses."""
+            user_turns = tuple(m["content"] for m in sample.get("messages", [])
+                               if m.get("role") == "user")
+            tool_names = tuple(sorted(
+                t.get("function", {}).get("name") if isinstance(t, dict) else t
+                for t in sample.get("tools", [])
+            ))
+            return json.dumps({
+                "task_type": sample.get("metadata", {}).get("task_type"),
+                "schema_version": sample.get("schema_version"),
+                "user_turns": user_turns,
+                "tools": tool_names,
+                "expected_tool_calls": sorted(
+                    (c.get("name"),
+                     json.dumps(c.get("arguments", {}),
+                                sort_keys=True, ensure_ascii=False))
+                    for c in sample.get("expected_tool_calls", [])
+                ),
+                "expected_answer": sample.get("expected_answer"),
+            }, ensure_ascii=False, sort_keys=True)
+
+        d1_train = load(ROOT / "datasets" / "tool-calling-d1" / "train")
+        d1llm_train = load(ROOT / "datasets" / "tool-calling-d1-llm" / "train")
+        d1_sigs: set[str] = {d1_canonical_signature(s) for s in d1_train}
+        d1llm_sigs: set[str] = {d1_canonical_signature(s) for s in d1llm_train}
+
+        for split, samples in (("train", self.train),
+                               ("dev", self.dev),
+                               ("test", self.test)):
+            split_sigs = {module.canonical_content_signature(s)
+                          for s in samples}
+            overlap_d1 = split_sigs & d1_sigs
+            overlap_d1llm = split_sigs & d1llm_sigs
+            self.assertEqual(
+                set(), overlap_d1,
+                f"D2 {split} has {len(overlap_d1)} canonical signatures "
+                f"that also appear in D1 train",
+            )
+            self.assertEqual(
+                set(), overlap_d1llm,
+                f"D2 {split} has {len(overlap_d1llm)} canonical signatures "
+                f"that also appear in D1.1 train",
             )
 
     def test_canonical_duplicate_is_rejected_by_generator_validation(self) -> None:

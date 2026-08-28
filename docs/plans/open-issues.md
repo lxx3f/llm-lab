@@ -804,7 +804,7 @@ P3/P4 后续动作：
 - 重新生成最终 `datasets/tool-calling-d2/`，并重新运行 5 ckpt × D2 dev reward artifact。
 
   - 跑完 5 ckpt × D2 dev 推理 + reward_offline（`artifacts/sft-{large-v1,large-night,d256-5k-seed42,d256-20k-seed42,moe-v1}-eval-d2dev-reward.json`，450 signals 全 schema 合法）；
-  - 最终结果：large-v1 `reward_layered=0.0162`（86 parse_success / 3 argument_value_correct / 1 tool_name_correct），d256-20k `reward_layered=0.0042`（89 parse_success / 1 tool_name_correct），其余 3 个 checkpoint `reward_layered=0.0000`（90 parse_success）；5 个 checkpoint 均 `reward_binary=0.0`；
+  - 最终结果（**round 9 历史数字** — round 10 IID 后被取代）：large-v1 `reward_layered=0.0162`（86 parse_success / 3 argument_value_correct / 1 tool_name_correct），d256-20k `reward_layered=0.0042`（89 parse_success / 1 tool_name_correct），其余 3 个 checkpoint `reward_layered=0.0000`（90 parse_success）；5 个 checkpoint 均 `reward_binary=0.0`；
   - `schemas/reward_signal.schema.json` task_type enum 扩展 D2 六类多轮；
   - `scripts/eval_sft_tool.py` 新增 `--prompt-mode multi_turn`（多轮历史序列化提示）；
   - `tool_not_available` 与其余 task builder 通过 600/600 canonical semantic uniqueness 校验；
@@ -821,6 +821,12 @@ P3/P4 后续动作：
 
 - ~~自研 5 ckpt（单轮训练）尚未在 D2 dev 上跑实际推理 reward 评测——需 P5-02 公开模型 + Transformers backend 后才能验证。~~（已于 round 7 完成：5 ckpt × D2 dev 90 = 450 reward_signal；最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。）
 - D2 数据规模 600（420 train / 90 dev / 90 test）属 MVP；正式 GRPO rollout 池需 D2 扩样到 5000+。
+
+### 审计 round 11 修复
+
+- **根因**：(a) `docs/protocols/d2-multi-turn.md` §5.1 描述的 timestamp `index` 是生成器全局序列位置（train 1..420、dev 421..510），与代码的 split-local index（每 split 独立 1..N）不一致，`d2-train-0001` / `d2-dev-0001` / `d2-test-0001` 三个样本 timestamp 相同；(b) `transcript_well_formedness_errors()` 只比 ID 列表顺序，不验证 message 实际位置（tool message 能否出现在 final answer 之后 / assistant tool_call 能否出现在 final answer 之后），且原有测试缺反向断言；(c) D2 vs D1/D1.1 互斥验证仅在 ID 文件名层，未在 canonical semantic signature 层。
+- **修复**：(a) 把 §5.1 改为 split-local 1-based（train 1..420、dev 1..90、test 1..90），与 `sample.id` 后缀对齐，并补充与 round 8 共识的一致性说明；所有 round 9 数字（0.0162 / 0.0042）一律标注为"round 9 历史数字 — round 10 IID 后被取代"。(b) `transcript_well_formedness_errors()` 改为消息位置状态机：逆向定位 final answer 位置，正向扫描维护 pending call_id 队列，tool message 必须与队首匹配后弹出，final answer 之后任何 tool message 或 assistant tool_call 都报错。(c) 新增 `d1_canonical_signature()` 投影函数和 `test_d2_canonical_content_is_disjoint_from_d1_d1llm_train()` 验证 D2 train/dev/test 三 split 与 D1 train / D1.1 train 在 canonical 层交集为空。
+- **测试**：`D2TranscriptWellFormednessTests` 新增 2 个反向断言（tool-after-final-answer、asst-tool-call-after-final-answer），`D2SplitDisjointnessTests` 新增 1 个跨数据集 canonical 互斥测试。`scripts/run_tests.py full` → Ran **267** tests OK（264 + 3 round 11）；stage0 9/9；D2 专项 45 tests OK。
 
 ---
 

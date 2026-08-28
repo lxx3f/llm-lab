@@ -58,7 +58,7 @@
 ### 2.4 已知边界
 
 - **D1 dev 仅 13 样本，5 checkpoint × 13 = 65 signals 不是一个有统计意义的 reward benchmark**；
-- **D2 dev 90 样本** 是首个有统计意义的 held-out reward split（详见 `docs/protocols/d2-multi-turn.md`）。本节第 6 节已用最终多样化数据和真实模型推理完成 5 ckpt × 90 = 450 reward_signal：全部 `reward_binary=0.0`，但 large-v1 与 d256-20k 分别有少量样本越过解析层，`reward_layered` 为 0.0162 / 0.0042；其余三 checkpoint 为 0.0000。该结果仍是诚实负结果，且 600 个 canonical semantic content 全局唯一、三 split 无语义重叠，说明：(a) D2 dev 评测管线可跑通；(b) 单轮模型基本不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。
+- **D2 dev 90 样本** 是首个有统计意义的 held-out reward split（详见 `docs/protocols/d2-multi-turn.md`）。本节第 6 节已用 round 10 IID stratified shuffle 后的最终多样化数据和真实模型推理完成 5 ckpt × 90 = 450 reward_signal：全部 `reward_binary=0.0`，但 large-v1 有 3 个样本越过解析层，`reward_layered=0.0099`；d256-20k / large-night / d256-5k / moe-v1 均为 0.0000。该结果仍是诚实负结果，且 600 个 canonical semantic content 全局唯一、三 split 无语义重叠，说明：(a) D2 dev 评测管线可跑通；(b) 单轮模型基本不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。
 - `artifacts/d2-mock-reward-d2dev.json`（mock transcript 90/90 reward_binary=1.0）仅验证 reward_offline 能消费 D2 dev 多轮 transcript 的**管线兼容性**，不等同于模型推理 reward 评测；
 - D1.1 train 50-sample 聚合不是 held-out split，不能用于正式 reward 分布对比；
 - 5 ckpt 之外的多 seed 聚合（d256 5k × 3 seeds）属 SFT MVP 阶段的多 seed 协议（P1-03）产出，本表不重复列举；

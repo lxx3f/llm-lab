@@ -106,9 +106,9 @@ ts   = 1785000000 + seed + index
 fmt  = datetime.fromtimestamp(ts, tz=UTC).isoformat().replace("+00:00", "Z")
 ```
 
-其中 `index` 为样本在生成器全局序列中的 1-based 位置（train=1..420、dev=421..510、test=511..600）。MANIFEST 的 `created_at` 使用 `index=0`（即 `seed` 本身的 epoch 秒）。
+其中 `index` 为样本在其 split 内的 1-based 位置（train 1..420、dev 1..90、test 1..90；每个 split 独立编号，与 ``sample.id`` 后缀严格一致）。MANIFEST 的 `created_at` 使用 `index=0`（即 `seed` 本身的 epoch 秒）。选择 split-local 编号而非生成器全局序列的好处是 ``d2-train-0001`` / ``d2-dev-0001`` / ``d2-test-0001`` 都映射到同一个 epoch 起始点，便于跨 split 对齐调试；该选择与 round 8 时间戳契约的"split-local 1-based index"语义一致。
 
-**示例**：seed=2026、index=1 → `2026-07-25T17:53:47Z`；seed=2027、index=1 → `2026-07-25T17:53:48Z`；seed=2026、index=421（d2-dev-001） → `2026-07-25T18:00:47Z`。
+**示例**：seed=2026、index=1 → `2026-07-25T17:53:47Z`；seed=2026、index=420（d2-train-0420） → `2026-08-02T03:28:47Z`；seed=2026、index=90（d2-dev-0090） → `2026-07-25T19:53:17Z`。
 
 该契约保证 `tests/test_d2_dataset.py::D2TimestampContractTests` 中 6 个反向测试全绿：同 `seed+index` 字节相同；不同 `seed` 或不同 `index` 均产出不同字符串；磁盘样本与公式逐字符相等。
 
@@ -144,7 +144,7 @@ P2 阶段交付的 `scripts/reward_offline.py` 直接消费 D2 dev 90 样本作�
 
 D1 dev 13 样本保留作为早期 dev 探针；D2 dev 是首个有统计意义的 reward 评测 split。
 
-**P3 阶段已在 D2 dev 上完成 5 ckpt × 90 = 450 个真实推理 reward_signal**：最终多样化数据上，5 个 checkpoint 均 `reward_binary=0.0`；large-v1 的 `reward_layered=0.0162`（86 个 `parse_success`，4 个 `argument_correct`），d256-20k 的 `reward_layered=0.0042`（89 个 `parse_success`，1 个 `argument_correct`），其余三者为 0.0000。该诚实负结果证明：(a) D2 dev 评测管线可跑通；(b) 单轮模型基本不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。
+**P3 阶段已在 D2 dev 上完成 5 ckpt × 90 = 450 个真实推理 reward_signal（round 10 IID 分裂后重跑）**：5 个 checkpoint 均 `reward_binary=0.0`；large-v1 的 `reward_layered=0.0099`（87 个 `parse_success`，3 个 `argument_correct`），其余 4 个 checkpoint 为 0.0000。与 round 9 数字相比 large-v1 从 0.0162 → 0.0099、d256-20k 从 0.0042 → 0.0000，变化源于 round 10 的 IID stratified shuffle 重新分配 600 个变体至三个 split，导致样本内容不同（同一内容语义不变，但 dev/test 现在拿到的不是 train 的 70-99 连续片段）。该诚实负结果证明：(a) D2 dev 评测管线可跑通；(b) 单轮模型基本不具多轮工具调用能力；(c) 需 P5-02 公开 instruction-tuned 模型或自研多轮 SFT 才能获得有意义的 reward 分布。完整明细与 reward_type 分布见 `docs/experiments/p2-evaluator/README.md` §6。
 
 `scripts/eval_sft_tool.py --prompt-mode multi_turn` 负责把 D2 多轮 messages 序列化为 SFT 模板历史并生成续写，是 D2 dev 评测的标准推理入口。
 
