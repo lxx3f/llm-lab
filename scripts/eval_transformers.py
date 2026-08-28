@@ -129,6 +129,23 @@ def _resolve_dtype(name: str, device: str):
     return resolved
 
 
+def _strip_terminal_assistant(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Drop the final assistant message when it carries no tool_calls.
+
+    D2 sample ``messages`` end with a gold ``assistant`` content message
+    (``expected_answer``). The model is supposed to produce this very
+    content — passing it through the chat template leaks the target
+    answer into the prompt, inflating reward metrics. Mirror the
+    behaviour of ``scripts.eval_sft_tool`` which does the same strip
+    before serialising the prompt.
+    """
+    while messages and messages[-1].get("role") == "assistant":
+        if messages[-1].get("tool_calls"):
+            break
+        messages = messages[:-1]
+    return messages
+
+
 def _apply_chat_template(
     tokenizer,
     sample: dict[str, Any],
@@ -139,8 +156,14 @@ def _apply_chat_template(
     has no chat template (older models). The fallback is deterministic but
     may not honour the model's tool-call formatting, so such models
     should be reported with appropriate caveats.
+
+    The terminal assistant message (the gold ``expected_answer``) is
+    always stripped before rendering so the model must reproduce it from
+    context alone. Earlier assistant ``tool_calls`` messages and tool
+    results are kept as context — they describe how the conversation
+    arrived at the final answer.
     """
-    messages = sample.get("messages", [])
+    messages = _strip_terminal_assistant(list(sample.get("messages", [])))
     if hasattr(tokenizer, "apply_chat_template") and getattr(
         tokenizer, "chat_template", None
     ):

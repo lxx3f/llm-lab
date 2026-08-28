@@ -120,25 +120,32 @@
 
 ## 7. 已知边界
 
+- **target-answer 泄漏修复（2026-08-28 下午）**：D2 样本 `messages` 末尾的 assistant content 消息是 `expected_answer`；必须在 `_apply_chat_template()` 中先调用 `_strip_terminal_assistant()` 删除它，再传给 `apply_chat_template(..., add_generation_prompt=True)`，否则模型在 prompt 里看到目标答案会直接复述。前向 tool_calls 与 tool 结果消息保留作为上下文。回归测试见 `tests/test_transformers_backend.py::GoldAnswerLeakageTests`；
 - **chat template 适配**：不同模型对 `tools` 参数的处理不一致；当前实测的 5 个模型（Qwen2.5-0.5B/1.5B/3B-Instruct、SmolLM2-360M/1.7B-Instruct）均接受 `tools` 参数并按自家格式注入工具描述；如新增 LLaMA / Gemma 等需单独验证 chat template 输出；
-- **D2 工具名 vs 公开模型训练分布**：D2 使用 `d1_calculate / d1_get_weather / d1_web_search` 等工具名，公开 instruction-tuned 模型通常未在 D2 数据集上微调，因此 `tool_name_correct` 大量失败是预期行为。`reward_layered > 0.38` 表明模型能进入后续层；
+- **D2 工具名 vs 公开模型训练分布**：D2 使用 `d1_calculate / d1_get_weather / d1_web_search` 等工具名，公开 instruction-tuned 模型通常未在 D2 数据集上微调，因此 `tool_name_correct` 大量失败是预期行为。`reward_layered > 0.33` 表明模型能进入后续层；
 - **GPU 显存**：`Qwen2.5-3B-Instruct` bf16 约 6 GB，CUDA 12 GB 单卡可运行；4 GB 以上的模型（如 Phi-3.5-mini）可能 OOM，需要 `dtype=fp32` 不可行（精度 + 显存均不可）；
 - **下载通道**：默认走 `https://hf-mirror.com`（通过 `HF_ENDPOINT` 环境变量），避免官方 HF 限速；离线场景下需要把模型预先缓存到 `artifacts/huggingface/`。
 
-## 8. 可复现实验记录（2026-08-28 凌晨）
+## 8. 可复现实验记录（2026-08-28 凌晨，2026-08-28 下午修正）
 
-| Model | binary | layered | reward_type 分布 | notes |
+> **2026-08-28 下午修正记录**：原版 5 模型评测存在 **target-answer 泄漏** bug —— `_apply_chat_template()` 把 D2 样本的整条 `messages`（含 gold terminal assistant `content` = `expected_answer`）透传给 `apply_chat_template(..., add_generation_prompt=True)`，模型在 prompt 中看到目标答案后才生成，导致 `SmolLM2-360M reward_binary=0.0111` 的"首个 D2 dev 非退化 reward"实为 prompt 复述伪结果。修复后重跑 5 模型：所有 5 个模型 `reward_binary=0`（诚实负结果），`reward_layered` 仍在 0.33–0.43，明显高于自研 5 ckpt 的 0.0；`reward_layered > 0.05` 仍远超达成。
+
+### 8.1 修复后结果（5 × 90 = 450 reward_signal；terminal assistant 已 strip）
+
+| Model | reward_binary | reward_layered | reward_type 分布 | first_failure 分布 |
 |---|---|---|---|---|
-| SmolLM2-360M-Instruct | **0.0111** | 0.4602 | final_answer_correct × 14, execution_correct × 1, argument_correct × 75 | 唯一出现 `execution_correct`（1 sample）的模型；`reward_binary > 0` 已达 objective (b) |
-| Qwen2.5-0.5B-Instruct | 0.0000 | 0.3977 | final_answer_correct × 12, argument_correct × 78 | 78 个样本越过 parse 进入 tool name/schema 阶段 |
-| Qwen2.5-1.5B-Instruct | 0.0000 | 0.4134 | final_answer_correct × 15, argument_correct × 75 | 75 个进入 tool name 阶段 |
-| Qwen2.5-3B-Instruct | 0.0000 | 0.3843 | final_answer_correct × 11, argument_correct × 79 | 出现 1 个 call_plan_matches 突破 |
-| SmolLM2-1.7B-Instruct | 0.0000 | 0.4292 | final_answer_correct × 15, argument_correct × 75 | 全部 75 个 sample tool_name_correct 失败 |
+| SmolLM2-360M-Instruct | 0.0000 | 0.4236 | final_answer_correct × 15, argument_correct × 75 | tool_name_correct × 75, final_answer_correct × 15 |
+| Qwen2.5-0.5B-Instruct | 0.0000 | 0.3634 | argument_correct × 85, final_answer_correct × 5 | tool_name_correct × 71, schema_valid × 8, argument_value_correct × 6, final_answer_correct × 5 |
+| Qwen2.5-1.5B-Instruct | 0.0000 | 0.3690 | argument_correct × 84, final_answer_correct × 6 | tool_name_correct × 79, schema_valid × 5, final_answer_correct × 6 |
+| Qwen2.5-3B-Instruct | 0.0000 | 0.3333 | argument_correct × 88, final_answer_correct × 2 | tool_name_correct × 67, schema_valid × 19, call_plan_matches × 1, argument_value_correct × 1, final_answer_correct × 2 |
+| SmolLM2-1.7B-Instruct | 0.0000 | 0.4236 | final_answer_correct × 15, argument_correct × 75 | tool_name_correct × 75, final_answer_correct × 15 |
 
-- 5 模型 × 90 样本 = 450 signals，全部通过 `schemas/reward_signal.schema.json` jsonschema Draft202012 校验；
-- `reward_layered` 全部 ≥ 0.38（自研 5 ckpt 全部 0.0），表明公开模型在多轮工具调用结构化生成上已显著优于自研 SFT 输出；
-- `reward_binary = 0.0111` 仅 SmolLM2-360M 出现，原因是 1 个 tool_not_available  sample 上恰好生成与 `expected_answer` 一致的文本；其他 4 个模型 `reward_binary = 0`，因为它们的 final_answer 与 D2 严格 expected_answer 不完全匹配（典型情况：模型用自然语言解释而非字面相同字符串）；
-- 公开模型在 D2 上未做 SFT 微调，因此 `tool_name_correct` 大量失败（模型不知道 `d1_*` 工具名），这是诚实负结果。
+### 8.2 解读
+
+- **`reward_binary` 全部为 0**：5 个模型没有任何一个完整过 P1-05 8 层分类器；这是诚实负结果。修复前 `SmolLM2-360M reward_binary=0.0111`（1 个 `execution_correct`）是因为 target-answer 泄漏，模型仅复述了 prompt 里出现的 expected_answer。
+- **`reward_layered` 仍在 0.33–0.43**：5 模型全部显著高于自研 5 ckpt 的 0.0；说明 instruction-tuned 模型在多轮工具调用结构化生成上仍优于自研 SFT 模型。
+- **`tool_name_correct` 仍是主要失败层**：D2 使用 `d1_*` 工具名，公开 instruction-tuned 模型未在 D2 数据集上微调，这是诚实预期的行为。
+- **与自研 5 ckpt 横向对比**（详见 `docs/experiments/p2-evaluator/README.md` §7）：自研 5 ckpt 全部 90/90 `parse_success` 失败、`reward_layered=0`；公开模型即使不做 D2 微调，仍能在多层分类器上获得非退化 reward 分。
 
 复现命令（任选模型）：
 

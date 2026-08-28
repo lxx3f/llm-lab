@@ -846,31 +846,34 @@ P3/P4 后续动作：
 
 ### P5-02 Transformers backend + 5 个公开 instruction-tuned 模型 × D2 dev reward 评测（2026-08-28）
 
-状态：已交付（待 detached auditor 审阅）。
-决策：实现 `scripts/eval_transformers.py` Transformers 推理后端，在 D2 dev 90 样本上对 5 个公开 instruction-tuned 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）跑真实推理 + reward_offline；所有 5 模型 reward_layered ≥ 0.38，自研 5 ckpt reward_layered 全部 0.0；首次在 D2 dev 上出现 reward_binary > 0（SmolLM2-360M, 0.0111）。
-改动：
-- `scripts/eval_transformers.py`（9066 → ~10900 bytes）：AutoModelForCausalLM + AutoTokenizer + 官方 chat_template + greedy + bf16；保留 `extract_tool_calls` 与 `classify_tool_failure` 复用，输出与 `eval_sft_tool.py` 完全一致的 `{summary, rows}` schema 以便 `reward_offline.py` 直接消费；CPU 强制 fp32；CUDA bf16；output 增加 `generated_preview` + 完整 `generated`；`first_failure_distribution` / `parse_success_count` / `parse_success_rate` / 5 个 backend 元数据 (backend/revision/device/dtype/transformers_version/torch_version)。
-- `tests/test_transformers_backend.py` 20 个单测：argparse / 设备解析 / dtype / chat template fallback / OOM fallback / greedy generation (do_sample=False, num_beams=1, pad_token fallback) / `extract_tool_calls None → []` 规范化 / artifact schema 兼容性 / `reward_signal.schema.json` enum 一致 / script end-to-end with mocks。
-- `scripts/run_tests.py` `COMMON_TESTS` + `MODULES["training"]` 新增 `test_transformers_backend.py`；运行总数 245 → 265。
-- `docs/protocols/transformers-backend.md`（NEW）：CLI / 输入契约 / chat template 优先级 / output schema 严格定义 / reward_offline 衔接 / GPU 显存 / 已知边界 / 5 模型结果表与复现命令。
-- `docs/experiments/p2-evaluator/README.md` §7（NEW）：5 模型矩阵 + 5×90=450 reward_signal 结果表 + 与自研 5 ckpt 横向对比 + 解读（首个 D2 dev 非退化 reward 分布）。
-- `docs/plans/roadmap.md` P5-02 行更新：含 20 单测、5 模型、450 signals、SmolLM2-360M 0.0111、stage review planned。
+状态：已交付（2026-08-28 下午修正 target-answer 泄漏 bug 后重新验证；待 detached auditor + minimax-M3 subagent reviewer 联合复审）。
+决策：实现 `scripts/eval_transformers.py` Transformers 推理后端，在 D2 dev 90 样本上对 5 个公开 instruction-tuned 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）跑真实推理 + reward_offline；修正后 5 模型 reward_binary 全部 = 0（诚实负结果），reward_layered 在 0.33–0.42 区间，仍显著高于自研 5 ckpt 的 0.0。
+
+改动（含 2026-08-28 下午修正）：
+- `scripts/eval_transformers.py`（9066 → ~11300 bytes）：AutoModelForCausalLM + AutoTokenizer + 官方 chat_template + greedy + bf16；保留 `extract_tool_calls` 与 `classify_tool_failure` 复用，输出与 `eval_sft_tool.py` 完全一致的 `{summary, rows}` schema 以便 `reward_offline.py` 直接消费；CPU 强制 fp32；CUDA bf16；output 增加 `generated_preview` + 完整 `generated`；`first_failure_distribution` / `parse_success_count` / `parse_success_rate` / 5 个 backend 元数据 (backend/revision/device/dtype/transformers_version/torch_version)；**新增 `_strip_terminal_assistant()` 在 `_apply_chat_template()` 中去除 D2 样本的 gold terminal assistant content message 避免 target-answer 泄漏**。
+- `tests/test_transformers_backend.py` 25 个单测（含 5 个 `GoldAnswerLeakageTests` 反向断言）：argparse / 设备解析 / dtype / chat template fallback / OOM fallback / greedy generation (do_sample=False, num_beams=1, pad_token fallback) / `extract_tool_calls None → []` 规范化 / artifact schema 兼容性 / `reward_signal.schema.json` enum 一致 / script end-to-end with mocks / **5 个反向测试证明 gold `expected_answer` 不会出现在 prompt 中、上下文 tool_calls 与 tool 结果消息会保留**。
+- `scripts/run_tests.py` `COMMON_TESTS` + `MODULES["training"]` 新增 `test_transformers_backend.py`；运行总数 245 → 270 fast（含全部子模块）。
+- `docs/protocols/transformers-backend.md`（NEW）：CLI / 输入契约 / chat template 优先级 / output schema 严格定义 / reward_offline 衔接 / GPU 显存 / 已知边界（包含 target-answer 泄漏修复段） / 5 模型修正后结果表与复现命令。
+- `docs/experiments/p2-evaluator/README.md` §7（NEW + 修正）：5 模型矩阵 + 5×90=450 reward_signal 修正后结果表 + 与自研 5 ckpt 横向对比 + 解读（含原版 vs 修正后诚实负结果对比）。
+- `docs/plans/roadmap.md` P5-02 行更新：含 25 单测、5 模型、450 signals、全部 reward_binary=0、stage review planned。
+- `docs/plans/open-issues.md` P5-02 条目含修复记录。
 - `.gitignore` 增 `artifacts/huggingface/` + `artifacts/**/*.json`（避免权重 + eval JSON 入库）。
 - `artifacts/{qwen2.5,huggingfacetb-smollm2}-*-eval-d2dev.json` + `-reward.json`：5 × 2 = 10 个 gitignored 产物（90 signals × 5 = 450 reward_signal）。
--  `HF_ENDPOINT=https://hf-mirror.com` 镜像下载 5 个模型（~14 GB 总 cache）。
+- `HF_ENDPOINT=https://hf-mirror.com` 镜像下载 5 个模型（~14 GB 总 cache）。
 
-验证：
-- `scripts/run_tests.py fast` → Ran 265 tests OK（20 个 P5-02 新增）。
+修正后验证（2026-08-28 下午）：
+- `scripts/run_tests.py fast` → Ran 270 tests OK（25 个 P5-02 含 5 个 GoldAnswerLeakageTests）。
 - `scripts/validate_stage0.py --examples` → 9/9 PASS（reward schema 仍合法）。
 - 5 个 `eval-d2dev-reward.json` 全部 schema 合法（450 signals）。
-- 450 reward_signal aggregate 数字：SmolLM2-360M binary=0.0111/layered=0.4602；Qwen2.5-0.5B binary=0/layered=0.3977；Qwen2.5-1.5B binary=0/layered=0.4134；Qwen2.5-3B binary=0/layered=0.3843；SmolLM2-1.7B binary=0/layered=0.4292。
-- 4 ckpt × D2 dev reward binary=0 的原因：生成 final_answer 是自然语言措辞，与 D2 期望的字节相同字符串不一致；不过都有 call_name_correct / schema_valid / argument_value_correct 跳出 parse_success。
-- 横向对比：自研 5 ckpt reward_layered 全部 0；公开模型 reward_layered ≥ 0.38。
+- 修正后 5 模型 aggregate：SmolLM2-360M binary=0/layered=0.4236（从原 0.0111 修正为 0；原伪信号因 target-answer 泄漏产生）；Qwen2.5-0.5B binary=0/layered=0.3634；Qwen2.5-1.5B binary=0/layered=0.3690；Qwen2.5-3B binary=0/layered=0.3333；SmolLM2-1.7B binary=0/layered=0.4236。
+- 修正后 5 模型 `no_failure` 全部 = 0（SmolLM2-360M 修复前为 1）。所有模型的 final_answer 都是 prompt 中**不存在**的生成文本，证明 prompt 不含 gold 答案。
+- 横向对比：自研 5 ckpt reward_layered 全部 0；公开模型 reward_layered ≥ 0.33。
 
 遗留：
+- **reviewer dispatch（minimax-M3）**：将在下一轮 audit 时由 detached auditor 联动 minimax-M3 subagent reviewer 联合复审；持续证据入 `docs/plans/reviews/stage-p5-02-transformers-backend.md`。
 - P5-03 vLLM backend 未启动（硬件 / 环境需求超出当前阶段）；待 P5-02 audit 通过后启动。
 - D2 数据集扩样到 5000+ 未启动（list queue item #1，待 P5-02 后）。
-- 4 个公开模型 reward_binary=0 为诚实负结果：D2 expected_answer 与公开模型生成的 final_answer 字面不一致；如需严格一致，可加后处理归一化或引入轻量 evaluator prompt。
+- 全部 5 模型 reward_binary=0 为诚实负结果：D2 expected_answer 与公开模型生成的 final_answer 字面不一致；如需严格一致，可加后处理归一化或引入轻量 evaluator prompt。
 
 ---
 

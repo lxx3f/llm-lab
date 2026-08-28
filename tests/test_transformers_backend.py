@@ -127,6 +127,143 @@ class ArgparseAndResolutionTests(unittest.TestCase):
         self.assertEqual(ev._resolve_dtype("fp16", "cuda"), torch.float16)
 
 
+class GoldAnswerLeakageTests(unittest.TestCase):
+    """Regression: the terminal gold ``expected_answer`` must never enter the prompt.
+
+    D2 sample ``messages`` ends with an ``assistant`` content-only
+    message that is exactly ``expected_answer``. If that message is fed
+    to ``apply_chat_template`` the model is asked to reproduce text
+    already present in context, inflating ``reward_binary``. The
+    ``_strip_terminal_assistant`` helper must excise it before
+    rendering.
+    """
+
+    def test_strip_drops_terminal_assistant_without_tool_calls(self) -> None:
+        ev = _load_eval()
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "u1"},
+            {"role": "assistant", "tool_calls": [{"id": "c1"}]},
+            {"role": "tool", "tool_call_id": "c1", "content": "r1"},
+            {"role": "assistant", "content": "GOLD_ANSWER"},
+        ]
+        stripped = ev._strip_terminal_assistant(messages)
+        self.assertEqual(len(stripped), 4)
+        self.assertNotIn("GOLD_ANSWER",
+                         " ".join(str(m.get("content", "")) for m in stripped))
+
+    def test_strip_keeps_assistant_with_tool_calls(self) -> None:
+        ev = _load_eval()
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "u1"},
+            {"role": "assistant", "tool_calls": [{"id": "c1"}]},
+        ]
+        stripped = ev._strip_terminal_assistant(messages)
+        self.assertEqual(len(stripped), 3)
+
+    def test_apply_chat_template_does_not_include_expected_answer(self) -> None:
+        ev = _load_eval()
+
+        class _Tok:
+            chat_template = "<native>"
+
+            def apply_chat_template(self, messages, *, tokenize,
+                                    add_generation_prompt, tools):
+                # Join role + content into the prompt body so the test
+                # can assert the gold answer is absent.
+                lines = []
+                for m in messages:
+                    if m.get("role") == "system":
+                        continue
+                    content = m.get("content") or ""
+                    if isinstance(content, list):
+                        content = " ".join(
+                            c.get("text", "") for c in content
+                            if isinstance(c, dict)
+                        )
+                    lines.append(f"{m['role']}:{content}")
+                return "\n".join(lines)
+
+        sample = _d2_sample(
+            expected_calls=[],
+            expected_answer="GOLD_TEXT_SENTINEL_12345",
+        )
+        prompt = ev._apply_chat_template(_Tok(), sample)
+        self.assertNotIn("GOLD_TEXT_SENTINEL_12345", prompt)
+
+    def test_apply_chat_template_keeps_context_tool_history(self) -> None:
+        ev = _load_eval()
+        captured: dict[str, Any] = {}
+
+        class _Tok:
+            chat_template = "<native>"
+
+            def apply_chat_template(self, messages, *, tokenize,
+                                    add_generation_prompt, tools):
+                captured["messages"] = list(messages)
+                captured["tools"] = tools
+                return "rendered"
+
+        sample = _d2_sample()
+        sample["messages"] = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "u"},
+            {"role": "assistant", "tool_calls": [
+                {"id": "c1", "function": {"name": "d1_get_weather",
+                                          "arguments": "{\"city\": \"上海\"}"}}
+            ]},
+            {"role": "tool", "tool_call_id": "c1", "name": "d1_get_weather",
+             "content": "上海 22C"},
+            {"role": "assistant", "content": sample["expected_answer"]},
+        ]
+        ev._apply_chat_template(_Tok(), sample)
+        # Tool history preserved; final gold assistant message dropped.
+        rendered = captured["messages"]
+        self.assertEqual(len(rendered), 4)
+        self.assertEqual(rendered[-1]["role"], "tool")
+        self.assertEqual(rendered[-1]["content"], "上海 22C")
+        # Tools metadata still passed so the model can name them.
+        self.assertEqual(captured["tools"], sample["tools"])
+
+    def test_apply_chat_template_preserves_intermediate_assistant_calls(self) -> None:
+        ev = _load_eval()
+        sample = _d2_sample()
+        sample["messages"] = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "first question"},
+            {"role": "assistant", "tool_calls": [
+                {"id": "c1", "function": {"name": "d1_calculate",
+                                          "arguments": "{}"}}
+            ]},
+            {"role": "tool", "tool_call_id": "c1", "name": "d1_calculate",
+             "content": "42"},
+            {"role": "assistant", "tool_calls": [
+                {"id": "c2", "function": {"name": "d1_get_weather",
+                                          "arguments": "{}"}}
+            ]},
+            {"role": "tool", "tool_call_id": "c2", "name": "d1_get_weather",
+             "content": "sunny"},
+            {"role": "assistant", "content": "final answer"},
+        ]
+        sample["expected_answer"] = "final answer"
+
+        captured: list[Any] = []
+
+        class _Tok:
+            chat_template = "<native>"
+
+            def apply_chat_template(self, messages, **kwargs):
+                captured.append(list(messages))
+                return "rendered"
+
+        ev._apply_chat_template(_Tok(), sample)
+        # All 6 context messages kept; only the trailing gold assistant
+        # content message is stripped.
+        self.assertEqual(len(captured[0]), 6)
+        self.assertEqual(captured[0][-1]["role"], "tool")
+
+
 class ChatTemplateAndGenerationTests(unittest.TestCase):
     """Chat template selection and greedy generation parameters."""
 
@@ -147,7 +284,10 @@ class ChatTemplateAndGenerationTests(unittest.TestCase):
         tok = _Tok()
         sample = _d2_sample()
         rendered = ev._apply_chat_template(tok, sample)
-        self.assertEqual(rendered, '<rendered>[{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "请查询上海的天气。"}, {"role": "assistant", "content": "对不起，当前可用工具不支持该请求。"}]</rendered>')
+        # The terminal gold ``assistant`` content message has been stripped,
+        # so the rendered payload must not contain ``expected_answer``.
+        self.assertIn('assistant', rendered)  # system / user roles only
+        self.assertNotIn('对不起，当前可用工具不支持该请求。', rendered)
         self.assertEqual(tok.last_kwargs["tokenize"], False)
         self.assertTrue(tok.last_kwargs["add_generation_prompt"])
         self.assertEqual(tok.last_kwargs["tools"], sample["tools"])
@@ -161,7 +301,8 @@ class ChatTemplateAndGenerationTests(unittest.TestCase):
         rendered = ev._apply_chat_template(_Tok(), _d2_sample())
         self.assertIn("system: You are a helpful assistant.", rendered)
         self.assertIn("user: 请查询上海的天气。", rendered)
-        self.assertIn("assistant: 对不起，当前可用工具不支持该请求。", rendered)
+        # The terminal gold answer is stripped — must not appear.
+        self.assertNotIn("对不起，当前可用工具不支持该请求。", rendered)
 
     def test_apply_chat_template_falls_back_on_template_error(self) -> None:
         ev = _load_eval()
@@ -174,6 +315,7 @@ class ChatTemplateAndGenerationTests(unittest.TestCase):
 
         rendered = ev._apply_chat_template(_Tok(), _d2_sample())
         self.assertIn("system: You are a helpful assistant.", rendered)
+        self.assertNotIn("对不起，当前可用工具不支持该请求。", rendered)
 
 
 class TranscriptNormalizationTests(unittest.TestCase):
