@@ -1,20 +1,20 @@
 # 阶段 P3 D2 多轮对话数据集审查（当前契约：5000/3500/750/750）
 
-> 本文档是 P3 阶段 D2 多轮对话数据集的 stage review。它描述当前活跃契约（5000 样本 / train 3500 / dev 750 / test 750，HEAD `53f698a`）。当前契约前的全部历史交付（早期 P3 MVP 交付 + 扩样阶段偏离契约尝试）均已迁出本文档，统一归档在 `docs/plans/open-issues.md` P3-01 段（line 769-841）以及同文件后段的扩样阶段拒绝归档段（line 919+）；P3 扩样阶段的实施记录与设计决策在 `docs/data/d2-expansion.md`。
+> 本文档是 P3 阶段 D2 多轮对话数据集的 stage review。它描述当前活跃契约（5000 样本 / train 3500 / dev 750 / test 750，HEAD：见当前 main）。当前契约前的全部历史交付（早期 P3 MVP 交付 + 扩样阶段偏离契约尝试）均已迁出本文档，统一归档在 `docs/plans/open-issues.md` P3-01 段（line 769-841）以及同文件后段的扩样阶段拒绝归档段（line 919+）；P3 扩样阶段的实施记录与设计决策在 `docs/data/d2-expansion.md`。
 
 审查模型：`minimax-cn/MiniMax-M3`（project-level `reviewer` agent）
 审查 agent：`reviewer`（subagent dispatch 名称）
 实际 provider/model：`PI_PROVIDER=minimax-cn`，`PI_MODEL=MiniMax-M3`
 `PI_AGENT_NAME`：未注入
 审查文件路径：`docs/plans/reviews/stage-p3-d2-multi-turn.md`
-当前契约 commit：HEAD `53f698a`（5000/3500/750/750 严格命中，6 类 ≥833 unique canonical signatures，cross-split disjoint，D2-vs-D1/D1.1 disjoint，MANIFEST 含 `build_count` 字段，`datasets/tool-calling-d2/` 已 gitignore + git rm --cached 隔离）。
+当前契约 commit：HEAD（当前 main；详见 git log -1）（5000/3500/750/750 严格命中，6 类 ≥833 unique canonical signatures，cross-split disjoint，D2-vs-D1/D1.1 disjoint，MANIFEST 含 `build_count` 字段，`datasets/tool-calling-d2/` 已 gitignore + git rm --cached 隔离）。
 
 ## 阶段 p3-d2-multi-turn 审查
 
 ### 完成范围（当前活跃契约）
 
 - **独立 D2 schema**：`schemas/d2_multi_turn_sample.schema.json`，6 个规范 task_type：`tool_not_available` / `tool_error_response` / `insufficient_result_search` / `req_change_city` / `multi_tool_sequential` / `error_recovery`；D1/D1.1 继续使用通用 schema，向后兼容。
-- **独立语义互斥**：生成器和测试均计算 `canonical_content_signature()`；去除 `id` / `call_id` / `tool_call_id` / `depends_on`、`metadata.created_at` 和 `metadata.split` 后，仍保留 task_type、tools、消息内容、工具参数/结果和 expected_answer。**当前契约（round 14，HEAD `53f698a`）**：5000/5000 签名唯一；6 类 ≥833 unique（实际 834/834/833/833/833/833）；train/dev/test 三组 canonical signature 交集均为空。
+- **独立语义互斥**：生成器和测试均计算 `canonical_content_signature()`；去除 `id` / `call_id` / `tool_call_id` / `depends_on`、`metadata.created_at` 和 `metadata.split` 后，仍保留 task_type、tools、消息内容、工具参数/结果和 expected_answer。**当前契约（round 14；HEAD：当前 main）**：5000/5000 签名唯一；6 类 ≥833 unique（实际 834/834/833/833/833/833）；train/dev/test 三组 canonical signature 交集均为空。
 - **D2 生成器** `scripts/generate_d2_dataset.py`：
   - **当前契约**：默认生成 5000 样本（4 类 833 + 2 类 834），train/dev/test = 3500/750/750 IID split，per-class split 通过 `round(per_class × 0.15)` 化 dev/test 使 dev=test=125、train=per_class-250；
   - 确定性 `--seed 2026`、确定性时间戳、id/call_id 命名空间前缀（`d2-{train,dev,test}-...`）；
@@ -49,7 +49,7 @@
 
 ### 下一步（当前活跃契约）
 
-1. P5-02 Transformers backend + 公开 instruction-tuned 模型 ✅（见 `docs/plans/reviews/stage-p5-02-transformers-backend.md`，HEAD `53f698a`）。
+1. P5-02 Transformers backend + 公开 instruction-tuned 模型 ✅（见 `docs/plans/reviews/stage-p5-02-transformers-backend.md`，HEAD：见当前 main）。
 2. P4 GRPO MVP ⏸（list queue item #3，待 P5-02 audit + list activate 后启动）；policy 将基于当前扩样版 D2 train (3500) + reward_signal。
 3. 自研模型加 multi-turn training（messages 含 assistant + tool）后，回填多轮 SFT checkpoint 在当前扩样版 D2 dev 750 上评测。
 

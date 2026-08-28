@@ -2,7 +2,7 @@
 
 > 状态：阶段交付（2026-08-28）。
 >
-> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD `53f698a`）。本 README §1-§5 是当前契约下的 D1 dev 评测（活跃状态）；§6 已精简为索引（历史 P2 阶段自研 5 ckpt 评测的完整方法 / 结果表 / 复现命令 / 解读已全部迁移至 `docs/plans/open-issues.md` round-13 归档段）；§7 是 P5-02 阶段在 P5-02 benchmark evaluation subset 上的公开模型评测（活跃状态；该 subset 是从当前扩样版 D2 dev 750 中采样的固定 benchmark 子集，**不是 D2 数据集规模或 split 契约**，详见 §7.2 表注）。
+> 当前 D2 契约：5000 样本 / train 3500 / dev 750 / test 750（HEAD：见当前 main；stage review 通过）。本 README §1-§5 是当前契约下的 D1 dev 评测（活跃状态）；§6 已精简为索引（历史 P2 阶段自研 5 ckpt 评测的完整方法 / 结果表 / 复现命令 / 解读已全部迁移至 `docs/plans/open-issues.md` round-13 归档段）；§7 是 P5-02 阶段在 P5-02 benchmark evaluation subset 上的公开模型评测（活跃状态；该 subset 是从当前扩样版 D2 dev 750 中采样的固定 benchmark 子集，**不是 D2 数据集规模或 split 契约**，详见 §7.2 表注）。
 
 ## 1. 评测对象（5 × 13 = 65 个 reward_signal）
 
@@ -100,7 +100,7 @@
 
 ## 5. 下一步
 
-1. **P3 数据版本 D2 多轮对话**：当前活跃契约为 5000/3500/750/750（HEAD `53f698a`）；自研 5 ckpt 的 D2 dev 真实推理评测历史归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
+1. **P3 数据版本 D2 多轮对话**：当前活跃契约为 5000/3500/750/750（HEAD：见当前 main；stage review 通过）；自研 5 ckpt 的 D2 dev 真实推理评测历史归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
 2. **P5-02 Transformers backend**：让公开 instruction-tuned 模型跑同一 reward signal，做公平对比；本 README §7 描述。
 3. **P4 GRPO**：当 P3 + P5-02 就位后，把 `reward_binary` / `reward_layered` 作为 GRPO advantage 计算的输入。
 
