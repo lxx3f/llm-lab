@@ -615,9 +615,37 @@ GRPO 需要可靠的：
 
 建议先实现 Transformers backend，并将 vLLM backend 的环境目标明确为 WSL、Linux 或 Docker，避免它成为当前开发阻塞条件。
 
+**状态更新（2026-08-28，SFT 阶段审查）**
+
+```text
+状态：延后，不阻塞当前阶段
+决策：P5-03 仅接入公开 instruction-tuned 模型的 vLLM 推理 backend；不实施暂缓范围内的自研模型完整 vLLM 适配。
+改动：roadmap.md 与 stage-sft-tool-mvp.md 明确 P5-03 的模型范围和 WSL/Linux/Docker 环境目标。
+验证：SFT 阶段审查确认该范围与“自研模型完整 vLLM 适配”暂缓条目不冲突。
+结果：Windows 原生 vLLM 可用性不作为 P5-03 的前置假设；先完成 Transformers backend。
+遗留风险：仍需在 P5-03 实际确认 WSL/Linux/Docker 的 vLLM 版本、CUDA 和显存兼容性。
+```
+
+---
+
+### P1-10 自研小模型未达到可靠工具调用能力
+
+**发现（2026-08-28，SFT 阶段）**
+
+Dense 2M/5M/12M 与 MoE 4-expert 自研模型均完成了训练、生成和 P1-05 八级分类评测，但在 D1 dev 上除一次 1/13 的部分通过外，未形成可靠工具调用能力。该结果是本阶段的诚实负结果，不应表述为 SFT 已提升工具调用质量。
+
+**状态：已记录，阻塞自研模型直接进入 GRPO；不阻塞公开 instruction-tuned 模型后端评测。**
+
+后续决策：
+
+- P5 先使用公开 instruction-tuned 模型作为标准起点；
+- 将 Transformers/vLLM 后端与 P1-05 分类器接通后再评估模型能力；
+- GRPO 需等待确定性 evaluator、reward 离线校验和更可靠的数据 split。
+
 ---
 
 ## P2：范围和文档工程问题
+
 
 ### P2-01 计划目录和实际目录不同步
 
@@ -698,7 +726,18 @@ docs/
 └── environment.md
 ```
 
-当前代码生成的 JSON 结果仍放在实验文档目录下，后续需要决定是否统一迁移到 `artifacts/` 或 `outputs/`，并同步 `.gitignore` 和 README 链接。
+### P2-05 SFT held-out 评测 split 仍然偏小
+
+D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于探索性诊断，但不是独立 held-out split，不能作为正式泛化质量结论。
+
+**状态：延后至 P2/P3。**
+
+后续需要：
+
+- 建立独立 IID 与 compositional held-out split；
+- 明确每个 split 的来源、版本、hash 和分母；
+- 报告 P1-05 八级分布、parse success 和完整任务成功率；
+- 保留多 seed mean ± 总体标准差，但不把训练集抽样结果冒充泛化指标。
 
 ---
 

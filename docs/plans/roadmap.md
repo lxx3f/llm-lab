@@ -41,30 +41,36 @@
 | MoE 5000 步训练曲线 | MoE Top-1 5000 步（total 2.10M / active 1.51M）；MoE schema v1.1 对齐 Dense；MoE vs Dense medium 对比 | `stage-moe-owt-formal-curve.md` |
 | Dense 长训练曲线 | baseline + medium 各 50000 步（5000 步的 10×）；50000 步 val_min 改善 1.2-1.5 nats；log_interval=500 / validation_interval=2000 | `stage-n11-dense-long-curve.md` |
 | Mock 工具执行器 | 纯进程内 mock executor；tool_execution_result schema v1.0；CLI + example + 8 单测；108 tests | `stage-p1-mock-executor.md` |
+| D1 模板工具调用数据集 | 126 样本 8 task_type；D0 manifest；mock_executor 闭环验证；11 单测 | (内嵌于 sft-tool-mvp stage review) |
+| D1.1 LLM 生成工具调用数据集 | MiniMax-M3@minimax-cn 生成 126 样本；扩到 1500（夜间 plan A）；per-file source provenance；aggregate sha256；MANIFEST 重建脚本 | (内嵌于 sft-tool-mvp stage review) |
+| P1-03 多 seed 评测协议 | `scripts/run_multi_seed.py` (Dense + MoE 自动 dispatch)；总体 std；supplemental 测试 | (内嵌于 sft-tool-mvp stage review) |
+| P1-04 数据版本 D0/D1 | `docs/protocols/p1-04-data-version-d0.md`；D1 数据集目录 + MANIFEST；filter 脚本 | (内嵌于 sft-tool-mvp stage review) |
+| P1-05 八级分类器 | parse_success → schema_valid → tool_name_correct → argument_value_correct → call_plan_matches → execution_success → result_grounded → final_answer_correct；含 `_norm_name`/`_norm_args` 鲁棒性；`scripts/classify_tool_failure.py`；44 单测 | (内嵌于 sft-tool-mvp stage review) |
+| SFT 工具调用训练 MVP | Dense + MoE 训练管线（数据构造 → 增强 → 训练 → 生成 → 评测）；5 次实跑对比（medium/large/large-night/d256×2/MoE）；多 seed eval 聚合器；185 单测；诚实负结果 | `stage-sft-tool-mvp.md` |
 
 这些阶段都已通过阶段审查（`minimax-cn/MiniMax-M3` reviewer），不允许回退。
 
-## 当前阶段：P1 工具执行器
+## 当前阶段：P5 推理后端接入 + 大模型起点
 
-目标：在 N5 规模 sweep 之后，从架构/训练阶段跨到评测阶段，先建立工具执行器的最小闭环。子阶段：
+目标：在 SFT MVP 上诚实记录模型能力未达标后，从自研 12M 模型架构上限跳出，转向**开源 instruction-tuned 模型作为 SFT 起点** + **Transformers / vLLM 推理后端接入**，以获得可对比的标准评测能力。
 
 | 子阶段 | 范围 | 退出条件 |
 |---|---|---|
-| P1-01 mock 执行器 | 无外部依赖的 mock 工具、structured result schema | schema 与 example 落盘 |
-| P1-02 沙箱执行器 | subprocess / timeout / 资源限制 / 退出码 | schema 与 example 落盘 |
-| P1-03 失败分类 | parse_success / schema_valid / execution_success / result_grounded / task_success 五级 | 分类 schema 与 mock 失败测试 |
+| P5-01 开源模型选定 + 下载 | Qwen2.5-0.5B-Instruct 或 LLaMA-3.2-1B-Instruct；LICENSE + 模型卡记录；`.gitignore` 覆盖 | metadata.json 落盘 + 下载脚本 |
+| P5-02 Transformers 后端接入 | 复用 `DenseTransformer` 接口；`scripts/eval_transformers.py` CLI；与自研模型同一 P1-05 8 级分类器对比 | eval JSON 落盘 |
+| P5-03 vLLM 后端接入（公开模型） | 仅针对公开 instruction-tuned 模型；vLLM 依赖安装；`scripts/eval_vllm.py` CLI；WSL/Linux/Docker 环境；throughput 对比表；不包含自研模型完整 vLLM 适配 | vLLM 推理成功 + 吞吐数字 |
+| P5-04 双后端基准对比 | 同一样本 + 同一分类器；latency + throughput + parse rate 三轴 | 对比 README |
 
 任一子阶段失败必须先更新本路线图和 `open-issues.md`。
 
-## 下一阶段：评测器、工具执行器、SFT
+## 下一阶段：P2 确定性 evaluator + GRPO
 
 | 阶段 | 范围 | 触发条件 |
 |---|---|---|
-| P1 工具执行器 | mock / 沙箱执行；执行结果结构化；失败模式分类 | N2 完成 |
-| P2 确定性 evaluator | 任务定义、reward schema、离线 reward 校验 | P1 完成 |
-| P3 数据版本 D0/D1/D2 | sample 数、工具分布、split、hash、过滤规则 | P1 完成 |
-| P4 SFT/GRPO 训练 | D0 SFT 跑通；reward offline 校验；GRPO MVP | P2+P3 完成 |
-| P5 vLLM benchmark | Transformers + vLLM 双后端 inference 接口；deployment 实验 | P5 评测 MVP 完成 |
+| P2 确定性 evaluator | 任务定义、reward schema、离线 reward 校验 | P5 基础就位 |
+| P3 数据版本 D0/D1/D2 | D2 真实多轮 + 错误恢复 | P5 基础就位 |
+| P4 GRPO | 基于 P1-05 reward signal + 离线 reward 校验 | P2 + P3 完成 |
+| D2 数据集 | 多轮对话 + 错误恢复；≥5000 样 | P5 基础就位 |
 
 ## 暂缓阶段
 
