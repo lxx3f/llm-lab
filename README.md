@@ -592,10 +592,14 @@ class InferenceBackend:
 - [x] 实现 MoE Top-1 MVP；
 - [x] 实现 N2 Dense/MoE 公平对比协议（A/B）；
 - [x] 实现 N3 统一 benchmark/result 元数据；
+- [x] 完成 D1 模板版与 D1.1 LLM 生成版工具调用数据管线（manifest、source provenance、MockExecutor 校验）；
+- [x] 完成 P1-02 mock 工具执行器（历史阶段文件名为 P1-01）及 P1-05 八级失败分类器；
+- [x] 完成 P1-03 多 seed 评测协议与 eval 聚合器；
+- [x] 完成 SFT 工具调用训练 MVP（Dense + MoE，含诚实负结果）；
 - [ ] 实现 Transformers/vLLM 统一推理接口；
-- [ ] 实现最小数据管线；
-- [ ] 实现最小评测器；
-- [ ] 完成第一组端到端实验。
+- [x] 实现最小数据管线；
+- [x] 实现最小评测器与八级失败分类；
+- [x] 完成第一组端到端实验（D1/D1.1 + Dense/MoE SFT）；
 
 第一版 Dense 训练数据：使用 Stanford CS336 OWT sample，详见 `docs/data/owt-sample.md`。OWT 原始文件位于 `data/raw/owt-sample/`，不会提交到 Git。
 

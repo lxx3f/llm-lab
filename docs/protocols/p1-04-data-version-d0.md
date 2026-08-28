@@ -20,13 +20,14 @@
 ### D1：模型生成样例集（模板版 + D1.1 LLM 生成版）
 
 - **用途**：SFT 训练 + 评测数据；
-- **规模**：模板版 126 样例（canonical）+ D1.1 126 样例；
+- **规模**：模板版 126 样例（canonical，train/dev/test = 100/13/13）+ D1.1 LLM 生成版 **1500 个 train 样例**；D1.1 当前只有 train split，未生成独立 dev/test；
 - **来源**：
-  - **模板版**：`scripts/generate_d1_dataset.py` 确定性模板生成（标注 `source: d1-synthetic-template`），配合 `examples/d1_mocks.py` 产生 deterministic `expected_result`，并由 `MockExecutor` 端到端验证 117/117 expected calls 可执行；
-  - **D1.1（2026-08-27 交付）**：`scripts/generate_d1_llm.py` + MiniMax-M3 API 真实 LLM 生成（标注 `source: MiniMax-M3@2026-08-27`），MockExecutor 端到端验证 130/130 expected calls 可执行；详见 `docs/experiments/d1-llm/README.md`；
-- **split**：train/dev/test = 100/13/13；
-- **hash**：每个样例 + 分片 + 全集合 hash；
-- **质量检查**：schema valid 100%、parse_success 100%、tool_execution_valid ≥ 95%。
+  - **模板版**：`scripts/generate_d1_dataset.py` 确定性模板生成（标注 `source: d1-synthetic-template`），配合 `examples/d1_mocks.py` 产生 deterministic `expected_result`，并由 `MockExecutor` 端到端验证；
+  - **D1.1（2026-08-27 交付并扩展）**：`scripts/generate_d1_llm.py` + MiniMax-M3 API 真实 LLM 生成；1500 个文件的 per-file `metadata.source` 分为 `MiniMax-M3@2026-08-27`（126）和 `MiniMax-M3@minimax-cn`（1374）；当前 manifest 的 `count=1500`，详见 `docs/experiments/d1-llm/README.md`；
+- **task_type 分布**：D1.1 的 6 类各 250（no_tool / single_tool / multi_tool / tool_error / insufficient_result / requirement_change）；
+- **split**：D1 模板版为 train/dev/test = 100/13/13；D1.1 当前仅为 `train`，没有独立 dev/test；
+- **hash**：每个样例 + 分片 + 全集合 hash；MANIFEST 同时记录每个文件的 source；
+- **质量检查**：D1.1 当前 1500/1500 schema valid，1555/1555 expected calls 带 deterministic `expected_result`；正确 transcript 的 P1-05 分类为 1500/1500 `first_failure=None`；这些是数据管线验证结果，不等同于模型泛化评测。
 
 ### D2：规模化生产集（后续）
 
@@ -89,10 +90,10 @@ examples/tool_calling/
 ## 与评测链路关系
 
 ```
-D0 样例 → schema 校验 → mock executor（P1-01）→ 执行结果
+D0 样例 → schema 校验 → mock executor（P1-02；历史文档正文曾写 P1-01）→ 执行结果
 ```
 
-- P1-01 mock executor 的 example 已用 D0 风格样例（`examples/mock_execution/sample-mock-001.json`）；
+- P1-02 mock executor 的 example 已用 D0 风格样例（`examples/mock_execution/sample-mock-001.json`）；历史阶段文档 `stage-p1-mock-executor.md` 的早期正文曾使用 P1-01 名称，路线图现统一以 P1-02 为规范编号；
 - 正式评测（P2）用 D0 样例集作为最小验证集。
 
 ## 遗留

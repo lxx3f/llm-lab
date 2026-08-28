@@ -40,9 +40,9 @@
 | Dense d_ff 消融 | medium × d_ff ∈ {256, 512, 1024}，3 d_ff 点 + 3-curve overlay PNG + FFN hidden sensitivity 表 | `stage-n9-dense-dff-sweep.md` |
 | MoE 5000 步训练曲线 | MoE Top-1 5000 步（total 2.10M / active 1.51M）；MoE schema v1.1 对齐 Dense；MoE vs Dense medium 对比 | `stage-moe-owt-formal-curve.md` |
 | Dense 长训练曲线 | baseline + medium 各 50000 步（5000 步的 10×）；50000 步 val_min 改善 1.2-1.5 nats；log_interval=500 / validation_interval=2000 | `stage-n11-dense-long-curve.md` |
-| Mock 工具执行器 | 纯进程内 mock executor；tool_execution_result schema v1.0；CLI + example + 8 单测；108 tests | `stage-p1-mock-executor.md` |
+| **P1-02 Mock 工具执行器**（历史阶段文档文件名为 `stage-p1-mock-executor.md`，早期正文曾写作 P1-01） | 纯进程内 mock executor；tool_execution_result schema v1.0；CLI + example + 8 单测；108 tests | `stage-p1-mock-executor.md` |
 | D1 模板工具调用数据集 | 126 样本 8 task_type；D0 manifest；mock_executor 闭环验证；11 单测 | (内嵌于 sft-tool-mvp stage review) |
-| D1.1 LLM 生成工具调用数据集 | MiniMax-M3@minimax-cn 生成 126 样本；扩到 1500（夜间 plan A）；per-file source provenance；aggregate sha256；MANIFEST 重建脚本 | (内嵌于 sft-tool-mvp stage review) |
+| D1.1 LLM 生成工具调用数据集 | **1500 个 train 样本**；6 task_type 各 250；初始 126 + 夜间扩展 1374；混合 per-file source provenance；aggregate sha256；MANIFEST 重建脚本 | (内嵌于 sft-tool-mvp stage review) |
 | P1-03 多 seed 评测协议 | `scripts/run_multi_seed.py` (Dense + MoE 自动 dispatch)；总体 std；supplemental 测试 | (内嵌于 sft-tool-mvp stage review) |
 | P1-04 数据版本 D0/D1 | `docs/protocols/p1-04-data-version-d0.md`；D1 数据集目录 + MANIFEST；filter 脚本 | (内嵌于 sft-tool-mvp stage review) |
 | P1-05 八级分类器 | parse_success → schema_valid → tool_name_correct → argument_value_correct → call_plan_matches → execution_success → result_grounded → final_answer_correct；含 `_norm_name`/`_norm_args` 鲁棒性；`scripts/classify_tool_failure.py`；44 单测 | (内嵌于 sft-tool-mvp stage review) |
