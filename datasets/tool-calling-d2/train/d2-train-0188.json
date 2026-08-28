@@ -79,7 +79,7 @@
       "depends_on": []
     }
   ],
-  "expected_answer": "目前检索到的结果有限（关于「RLHF 数据构造」找到 2 条结果。），请告诉我你想深入的角度。",
+  "expected_answer": "明白，我会据此收窄后续整理范围。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

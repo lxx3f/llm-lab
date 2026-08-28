@@ -834,6 +834,12 @@ P3/P4 后续动作：
 - **修复**：(a) 在 `scripts/generate_d2_dataset.py` 新增 `cross_dataset_signature(sample)`——8 字段投影（task_type、schema_version、user_turns、assistant_turns、tool_turns、tool_names、expected_tool_calls、expected_answer）跨 D1 / D1.1 / D2 形状完全一致。`canonical_content_signature()` 保持原 D2 全量投影。测试改用 `cross_dataset_signature`，并新增 `test_cross_dataset_signature_is_comparable_across_d1_d1llm_d2`（三数据集 keys 集合相等）+ `test_cross_dataset_signature_detects_real_overlap`（克隆样本投影碰撞，正向控制）。(b) `D2TranscriptWellFormednessTests` 新增 `with_calls` class attr 和 `train_with_calls()` helper（取第一个有 expected_tool_calls 的样本）；三个测试改用 helper，从 skipped → 实际执行并验证。
 - **测试**：`scripts/run_tests.py full` → Ran **269** tests OK（skipped=0）；stage0 9/9；D2 专项 47 tests OK（skipped=0）；D2 × D1 / D2 × D1.1 cross_dataset_signature 交集 = ∅；两个 reverse-assertion 测试与 argument-mismatch 测试均 `... ok`（实际执行，非 skip）。
 
+### 审计 round 13 修复
+
+- **根因**：`_insufficient_result_search` 生成器把"中间响应"作为 `expected_answer` 传给 `_sample()`，但 transcript 后续又追加 user turn + 一个 terminal assistant acknowledgement——这两个值不一致，违反 protocol 中 `expected_answer` "closes the entire transcript" 约定。100/100 `insufficient_result_search` 样本受影响（train 70/70、dev 15/15、test 15/15）。现有测试只校验 transcript 结构与 schema，未校验 `expected_answer` 与 final assistant content 一致。
+- **修复**：(a) 把 `_insufficient_result_search` 的 final assistant content 抽出为 `final_answer` 变量，同时作为 transcript 最后一条 assistant 消息 content 与 `expected_answer` 参数；(b) `transcript_well_formedness_errors()` 增加 invariant (5)：逆向定位 final assistant content，验证 `sample.expected_answer == final_answer_content`，不等则报错；(c) 新增 `D2ExpectedAnswerContractTests`：`test_expected_answer_equals_final_assistant_content` 遍历 600 样本验证 invariant；`test_transcript_well_formedness_flags_expected_answer_mismatch` 反向断言（修改 expected_answer 后 validator 必须报错）。
+- **测试**：`scripts/run_tests.py full` → Ran **271** tests OK (skipped=0)；stage0 9/9；D2 专项 49 tests OK (skipped=0)；600/600 `expected_answer == final assistant content`；重生成数据集 + 5 ckpt × D2 dev reward 重跑（450 signals schema 合法，large-v1 0.0099、其余 4 ckpt 0、全部 binary=0，数字与 round 12 一致）。
+
 ---
 
 ## 暂不处理的范围

@@ -40,7 +40,7 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 - `assistant` 消息携带 `tool_calls[]`，每个 `tool_call.id` 与 `expected_tool_calls[i].call_id` 一一对应；
 - `tool` 消息携带 `tool_call_id` + `name` + `content`，其中 `tool_call_id` 引用前面某条 `assistant.tool_calls[].id`；
 - `expected_tool_calls` 用 `call_id` + `depends_on` 表达链式依赖，`depends_on[]` 列出所有前置 `call_id`；
-- `expected_answer` 关闭整个 transcript。
+- `expected_answer` 关闭整个 transcript；按约定它必须与 transcript 中最后一条非工具调用的 `assistant` 消息的 `content` **逐字符相同**。该约定由 `transcript_well_formedness_errors()` 与 `tests/test_d2_dataset.py::D2ExpectedAnswerContractTests` 双重校验：generator 写盘前 `_validate_samples()` 拒绝任何偏离样本；测试覆盖 600/600 样本并含反向断言。
 
 `scripts/generate_d2_dataset.py` 在生成时先通过独立 D2 schema 校验，再通过依赖图语义校验，最后为每个样本注册工具并调用真实 `MockExecutor.execute_sequence()`；它检查每个 `expected_tool_calls[i].expected_result` 与 executor 返回值一致。因此每个 D2 样本既是 schema 合法也是执行语义合法。
 

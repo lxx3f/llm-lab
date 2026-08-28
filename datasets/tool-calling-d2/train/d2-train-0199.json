@@ -79,7 +79,7 @@
       "depends_on": []
     }
   ],
-  "expected_answer": "仅找到 1 条结果：关于「BPE tokenizer」找到 1 条结果。。请补充你关注的方向。",
+  "expected_answer": "收到，我会按这个方向继续。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

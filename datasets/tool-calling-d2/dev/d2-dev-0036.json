@@ -79,7 +79,7 @@
       "depends_on": []
     }
   ],
-  "expected_answer": "这次搜索范围较窄，仅返回 关于「工具调用数据集」找到 1 条结果。；请进一步说明筛选条件。",
+  "expected_answer": "了解，我将优先筛选符合该条件的资料。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

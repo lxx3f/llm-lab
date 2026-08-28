@@ -79,7 +79,7 @@
       "depends_on": []
     }
   ],
-  "expected_answer": "已有初步结果：关于「MLA 注意力」找到 2 条结果。。为了继续整理，请补充具体关注点。",
+  "expected_answer": "好的，我会按你的关注点继续检索。",
   "metadata": {
     "source": "d2-synthetic-template",
     "license": "project-internal",

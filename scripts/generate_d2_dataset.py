@@ -495,6 +495,12 @@ def _insufficient_result_search(rng: random.Random, sid: str, created: str, vari
         f"这次搜索范围较窄，仅返回 {result}；请进一步说明筛选条件。",
         f"已有初步结果：{result}。为了继续整理，请补充具体关注点。",
     ][variant % 4]
+    final_answer = [
+        "收到，我会按这个方向继续。",
+        "明白，我会据此收窄后续整理范围。",
+        "了解，我将优先筛选符合该条件的资料。",
+        "好的，我会按你的关注点继续检索。",
+    ][variant % 4]
     return _sample(
         sid,
         [
@@ -504,19 +510,12 @@ def _insufficient_result_search(rng: random.Random, sid: str, created: str, vari
             _tool_message(c1, "d1_web_search", result),
             {"role": "assistant", "content": answer},
             {"role": "user", "content": followup},
-            {"role": "assistant", "content": (
-                [
-                    "收到，我会按这个方向继续。",
-                    "明白，我会据此收窄后续整理范围。",
-                    "了解，我将优先筛选符合该条件的资料。",
-                    "好的，我会按你的关注点继续检索。",
-                ][variant % 4]
-            )},
+            {"role": "assistant", "content": final_answer},
         ],
         [SEARCH_TOOL],
         [{"call_id": c1, "name": "d1_web_search", "arguments": args,
           "expected_result": result}],
-        answer, "insufficient_result_search", "search_then_clarify", created,
+        final_answer, "insufficient_result_search", "search_then_clarify", created,
     )
 
 
@@ -1065,6 +1064,7 @@ def transcript_well_formedness_errors(sample: dict[str, Any]) -> list[str]:
     expected_by_id = {call["call_id"]: call for call in expected_calls}
 
     final_answer_position: int | None = None
+    final_answer_content: Any = None
     for index in range(len(messages) - 1, -1, -1):
         message = messages[index]
         if (
@@ -1073,6 +1073,7 @@ def transcript_well_formedness_errors(sample: dict[str, Any]) -> list[str]:
             and message.get("content") not in (None, "")
         ):
             final_answer_position = index
+            final_answer_content = message.get("content")
             break
 
     pending: list[str] = []
@@ -1174,6 +1175,21 @@ def transcript_well_formedness_errors(sample: dict[str, Any]) -> list[str]:
                     f"mismatch for {cid!r}: got {parsed_args!r}, "
                     f"expected {expected['arguments']!r}"
                 )
+
+    expected_answer = sample.get("expected_answer")
+    if expected_answer is None:
+        errors.append("sample.expected_answer is missing")
+    elif final_answer_content is None:
+        errors.append(
+            "sample has no terminal assistant message yet "
+            "expected_answer is set"
+        )
+    elif expected_answer != final_answer_content:
+        errors.append(
+            f"sample.expected_answer does not match the final assistant "
+            f"content: got {expected_answer!r}, transcript closes with "
+            f"{final_answer_content!r}"
+        )
 
     return errors
 

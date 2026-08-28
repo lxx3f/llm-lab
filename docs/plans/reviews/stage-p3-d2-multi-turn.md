@@ -134,7 +134,20 @@ Auditor round 11 提出三点根因问题：(1) `docs/protocols/d2-multi-turn.md
 - 审查 agent：`reviewer`
 - 结论：**通过**
 - 允许创建阶段 commit：是
-- reviewer 输出（PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）保存到 `.pi-glla/scratch/stage-p3-d2-multi-turn-review-postfix-r{10,11,12}.txt`。
+- reviewer 输出（PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）保存到 `.pi-glla/scratch/stage-p3-d2-multi-turn-review-postfix-r{10,11,12,13}.txt`。
+
+### Round 9（2026-08-28，auditor round 13 expected_answer 与 final assistant 一致性修复）
+
+Auditor round 13 发现 `_insufficient_result_search` 生成的 100/100 样本中 `expected_answer` 指向中间 assistant 响应（"仅找到 1 条结果…请补充关注点"），而 transcript 后续又追加 user + 另一个 assistant 关闭消息（"好的，我会按你的关注点继续"）—— 两者不一致，违反 protocol 中 `expected_answer` "closes the entire transcript" 的约定。该问题在 100 个 `insufficient_result_search` 样本上全部存在（train 70/70、dev 15/15、test 15/15），现有测试只校验 transcript 结构与 schema，未校验 `expected_answer` 与最终 assistant content 一致。
+
+修复：
+
+1. **生成器修复**：把 `_insufficient_result_search` 的 final assistant 内容抽出为 `final_answer` 变量，同时传给 transcript 最后一条 assistant 消息和 `expected_answer` 参数，中间回答 `answer` 只留在 transcript 中间位置。
+2. **验证器强化**：`transcript_well_formedness_errors()` 增加 invariant (5) —— 遍历 messages 反向定位 final answer content，然后验证 `sample.expected_answer == final_answer_content`，不等则报错。`expected_answer` 缺失或 transcript 无 final assistant content 也报错。
+3. **dataset-wide 测试**：`D2ExpectedAnswerContractTests` 新增 `test_expected_answer_equals_final_assistant_content` 遍历 train/dev/test 全部 600 个样本验证 invariant；`test_transcript_well_formedness_flags_expected_answer_mismatch` 反向断言（修改 `expected_answer` 后 validator 必须报错）。
+4. **数据重生 + 5 ckpt × D2 dev reward 重跑**：重生成后验证 600/600 expected_answer == final assistant content；5 ckpt × 90 = 450 signals schema 合法（large-v1 layered=0.0099，其余 4 ckpt 0；全部 binary=0）。验证数字与 round 12 一致，因为 `insufficient_result_search` 类样本在所有模型上都为 `parse_success` 失败。
+
+验证：`scripts/run_tests.py full` → Ran **271** tests OK (skipped=0)；stage0 9/9；D2 专项 49 tests OK (skipped=0)；600/600 `expected_answer == final assistant content`；`test_expected_answer_equals_final_assistant_content` OK；`test_transcript_well_formedness_flags_expected_answer_mismatch` 反向断言 OK。
 
 ### Round 8（2026-08-28，auditor round 12 跨数据集投影可比性 + reverse-assertion 测试实际执行修复）
 

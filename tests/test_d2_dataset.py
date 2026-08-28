@@ -1027,5 +1027,78 @@ exact string equality check guards against off-by-one drift and the
                              f"MANIFEST-{split_name} created_at drift")
 
 
+@unittest.skipUnless(_dataset_present(), "D2 dataset not generated yet")
+class D2ExpectedAnswerContractTests(unittest.TestCase):
+    """Round 13: ``expected_answer`` must equal the final assistant message.
+
+    The protocol states ``expected_answer`` is the assistant's terminal
+    reply that closes the entire transcript. The generator's
+    ``_insufficient_result_search`` originally emitted a *mid-conversation*
+    clarification as ``expected_answer`` while the transcript then
+    appended a second user turn and a closing assistant acknowledgement;
+    the two diverged across 100/100 samples. This class asserts the
+    invariant holds dataset-wide.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.train = _load_split("train")
+        cls.dev = _load_split("dev")
+        cls.test = _load_split("test")
+
+    def _final_assistant_content(self, sample: dict) -> str | None:
+        finals = [m for m in sample["messages"]
+                  if m.get("role") == "assistant"
+                  and not (m.get("tool_calls") or [])
+                  and m.get("content") not in (None, "")]
+        if not finals:
+            return None
+        return finals[-1].get("content")
+
+    def test_expected_answer_equals_final_assistant_content(self) -> None:
+        for split, samples in (("train", self.train),
+                               ("dev", self.dev),
+                               ("test", self.test)):
+            for sample in samples:
+                final = self._final_assistant_content(sample)
+                self.assertIsNotNone(
+                    final,
+                    f"{sample['id']} ({split}) has no final assistant "
+                    f"message but expected_answer is set",
+                )
+                self.assertEqual(
+                    final, sample.get("expected_answer"),
+                    f"{sample['id']} ({split}, "
+                    f"{sample['metadata']['task_type']}) "
+                    f"expected_answer does not match final assistant content",
+                )
+
+    def test_transcript_well_formedness_flags_expected_answer_mismatch(self) -> None:
+        """The validator must catch a deliberate expected_answer drift."""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_expected_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        with_calls = [s for s in self.train + self.dev + self.test
+                      if s.get("expected_tool_calls")]
+        self.assertTrue(with_calls,
+                        "expected at least one D2 sample with expected_tool_calls")
+        sample = deepcopy(with_calls[0])
+        original = sample["expected_answer"]
+        sample["expected_answer"] = "this is not what the transcript says"
+        try:
+            errors = module.transcript_well_formedness_errors(sample)
+            self.assertTrue(
+                any("expected_answer" in e for e in errors),
+                f"expected_answer drift not flagged: {errors}",
+            )
+        finally:
+            sample["expected_answer"] = original
+
+
 if __name__ == "__main__":
     unittest.main()
