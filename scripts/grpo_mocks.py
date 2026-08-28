@@ -88,22 +88,43 @@ class MockTokenizer:
         return [self._tok_id(t) for t in text.split()]
 
     def decode(self, token_ids: list[int], *, skip_special_tokens: bool = True) -> str:
-        # Render each non-special id as a deterministic pseudo-word.
-        # Including tool-call hints so extract_tool_calls picks them up.
+        """Render token_ids back to text. The output text depends on
+        the actual token ids, so different sampled continuations
+        produce different decoded strings and therefore different
+        reward_layered values (round-5 auditor's specific objection:
+        deterministic-only mock loops produce all-equal rewards).
+        """
         out_words = []
+        # Track if we've emitted a tool_call for this rollout (so we
+        # don't emit one every token)
+        emitted_tool_call = False
         for i, tid in enumerate(token_ids):
             if skip_special_tokens and tid in (self.pad_token_id, self.eos_token_id):
                 continue
-            # Cycle through a fixed dictionary to make outputs readable
-            if i % 3 == 0:
-                out_words.append("hello")
-            elif i % 3 == 1:
-                out_words.append("world")
-            else:
-                # Add a synthetic tool call every 4th token so the
-                # extract_tool_calls regex can parse something.
+            # Map each id to a deterministic pseudo-word; the actual
+            # text depends on the id (token id 23 -> "alpha", 24 ->
+            # "beta", ...). This ensures different sampled ids
+            # produce different decoded strings and different
+            # ``extract_tool_calls`` outputs.
+            word = self._id_to_word(tid)
+            # Every 6th non-special token becomes a tool_call so
+            # extract_tool_calls has something to parse.
+            if (i % 6 == 5) and not emitted_tool_call:
                 out_words.append('<tool_call>{"name":"mock_tool","arguments":{}}</tool_call>')
+                emitted_tool_call = True
+            else:
+                out_words.append(word)
         return " ".join(out_words) if out_words else ""
+
+    def _id_to_word(self, tid: int) -> str:
+        # Map id to a fixed small vocabulary so decoded text varies
+        # deterministically with the input id.
+        words = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta",
+                 "eta", "theta", "iota", "kappa", "lambda", "mu",
+                 "nu", "xi", "omicron", "pi", "rho", "sigma"]
+        if tid == 0 or tid == 1:
+            return ""
+        return words[tid % len(words)]
 
 
 class MockPolicy(torch.nn.Module):
@@ -148,23 +169,52 @@ class MockPolicy(torch.nn.Module):
         **_,
     ) -> torch.Tensor:
         """Return ``input_ids`` concatenated with ``max_new_tokens`` new
-        ids chosen deterministically from the model's forward pass.
+        ids chosen from the model's forward pass.
+
+        - ``do_sample=False``: greedy argmax (deterministic).
+        - ``do_sample=True``: multinomial sample with temperature
+          (introduces variance between rollouts — the round-5
+          auditor's specific objection: deterministic-only mock
+          loops produce all-equal rollouts → all-equal rewards →
+          zero advantages → skipped update).
         """
         with torch.inference_mode():
             hidden = self.embedding(input_ids)
             logits = self.head(hidden)
-            argmax = torch.argmax(logits, dim=-1)
-            # Pick a deterministic continuation: cycle through argmax of
-            # each position, shifted by 1.
-            new_ids: list[int] = []
-            for i in range(max_new_tokens):
-                # Greedy pick from the last position of argmax
-                pick = int(argmax[0, -1].item()) % self.vocab_size
-                # Skip pad/eos so the continuation is non-empty
-                if pick in (pad_token_id, self.eos_token_id):
-                    pick = 2  # safe id
-                new_ids.append(pick)
-            new = torch.tensor([new_ids], dtype=input_ids.dtype)
+            if do_sample and temperature > 0:
+                # Sample from softmax(logits / temperature) for the
+                # last position; introduce controlled variance via
+                # torch.multinomial so different ``do_sample`` calls
+                # produce different outputs (when RNG has advanced).
+                last_logits = logits[:, -1, :] / max(temperature, 1e-6)
+                probs = torch.softmax(last_logits, dim=-1)
+                # For each new token, sample a fresh id (the model
+                # has no autoregressive state; we just re-run on
+                # the cumulative sequence to simulate).
+                new_ids: list[int] = []
+                cur_input = input_ids
+                for _ in range(max_new_tokens):
+                    h = self.embedding(cur_input)
+                    l = self.head(h)[:, -1, :] / max(temperature, 1e-6)
+                    p = torch.softmax(l, dim=-1)
+                    pick = int(torch.multinomial(p, num_samples=1)[0, 0].item())
+                    if pick in (pad_token_id, self.eos_token_id):
+                        pick = 2
+                    new_ids.append(pick)
+                    cur_input = torch.cat(
+                        [cur_input, torch.tensor([[pick]], dtype=input_ids.dtype)],
+                        dim=1,
+                    )
+                new = torch.tensor([new_ids], dtype=input_ids.dtype)
+            else:
+                argmax = torch.argmax(logits, dim=-1)
+                new_ids: list[int] = []
+                for i in range(max_new_tokens):
+                    pick = int(argmax[0, -1].item()) % self.vocab_size
+                    if pick in (pad_token_id, self.eos_token_id):
+                        pick = 2
+                    new_ids.append(pick)
+                new = torch.tensor([new_ids], dtype=input_ids.dtype)
         return torch.cat([input_ids, new], dim=1)
 
     def eval(self):  # no-op override to keep the surface uniform

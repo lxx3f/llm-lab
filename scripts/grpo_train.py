@@ -605,6 +605,13 @@ def _save_state(checkpoint_dir: Path, *, global_step: int, last_step_id: str,
     ``state.pt``. The binary blob contains ``{model_state_dict,
     optimizer_state_dict, rng_state}``.
 
+    **Correctness-first invariant**: ``state.pt`` is ALWAYS written
+    alongside ``state.json`` so a resumed run can never combine a
+    newer cursor with stale weights (the round-5 auditor finding).
+    The historical ``save_every`` knob was repurposed as
+    ``--long-snapshot-every`` (long-term archive cadence, separate
+    file); it does NOT affect resume correctness.
+
     ``samples_consumed`` is the number of distinct prompts already
     consumed; on resume the next run starts at ``samples[cursor]``.
     """
@@ -622,31 +629,26 @@ def _save_state(checkpoint_dir: Path, *, global_step: int, last_step_id: str,
         "samples_dir": str(samples_dir),
         "device": device,
         "save_every": save_every,
-        "next_global_step_to_save": next_global_step_to_save
-            if next_global_step_to_save is not None
-            else ((global_step + 1) % save_every == 0
-                  and global_step + 1 < max_steps
-                  and global_step + 1),
         "completed": global_step + 1 >= max_steps,
     }
     (checkpoint_dir / "state.json").write_text(
         json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
-    # Persist the binary state only on the cadence determined by the
-    # caller; the caller passes ``next_global_step_to_save`` to keep
-    # this function side-effect-free (the decision whether to save was
-    # made in main()).
-    if state["next_global_step_to_save"]:
-        blob = {
-            "version": STATE_PT_VERSION,
-            "model_state": {k: v.detach().cpu()
-                            for k, v in model.state_dict().items()},
-            "optimizer_state": (optimizer.state_dict()
-                                if optimizer is not None else None),
-            "rng_state": rng_state,
-        }
-        torch.save(blob, checkpoint_dir / "state.pt")
+    # state.pt is ALWAYS persisted on every step so state.json and
+    # state.pt are always in sync. The previous ``save_every`` skip
+    # optimization was a correctness bug (interruption could leave
+    # state.json newer than state.pt, producing a double-update on
+    # resume).
+    blob = {
+        "version": STATE_PT_VERSION,
+        "model_state": {k: v.detach().cpu()
+                        for k, v in model.state_dict().items()},
+        "optimizer_state": (optimizer.state_dict()
+                            if optimizer is not None else None),
+        "rng_state": rng_state,
+    }
+    torch.save(blob, checkpoint_dir / "state.pt")
 
 
 def _load_state(resume_from: Path) -> dict[str, Any]:
@@ -853,11 +855,18 @@ def run_loop(args, *, model, tokenizer, device: str, samples: list,
     next_global_step = resume_step
     samples_consumed = resume_cursor
     remaining_steps = max(0, args.max_steps - next_global_step)
+    if len(samples) == 0:
+        print(f"[grpo] no samples found in {args.samples_dir}", flush=True)
+        return 1
     if samples_consumed >= len(samples):
-        if len(samples) == 0:
-            print(f"[grpo] no samples found in {args.samples_dir}", flush=True)
-            return 1
-        samples_consumed = 0
+        # Cursor exhaustion: cannot reuse samples (round-5 auditor
+        # finding). Exit cleanly with rc=4 so the caller knows the
+        # loop has run out of distinct prompts. The run must be
+        # restarted with a larger ``--limit`` to continue.
+        print(f"[grpo] cursor exhausted: samples_consumed="
+              f"{samples_consumed} >= len(samples)={len(samples)}. "
+              f"Increase --limit or supply more samples.", flush=True)
+        return 4
     scheduled_samples = samples[samples_consumed:samples_consumed + remaining_steps]
     if not scheduled_samples:
         print(f"[grpo] nothing to do: global_step={next_global_step} >= "
@@ -897,12 +906,8 @@ def run_loop(args, *, model, tokenizer, device: str, samples: list,
             encoding="utf-8",
         )
         last_step_id = step_id
-        is_last_step = (global_step + 1) >= args.max_steps
-        # Always save state.pt on the final step; otherwise respect save_every.
-        if is_last_step:
-            next_save = True
-        else:
-            next_save = ((global_step + 1) % args.save_every == 0)
+        # (state.pt is ALWAYS saved inside _save_state now — no
+        # ``save_every`` skip optimization; see round-5 fix.)
         _save_state(
             checkpoint_dir,
             global_step=global_step,
@@ -919,7 +924,6 @@ def run_loop(args, *, model, tokenizer, device: str, samples: list,
             save_every=args.save_every,
             model=model, optimizer=optimizer,
             rng_state=_capture_rng_state(device),
-            next_global_step_to_save=next_save,
         )
         print(f"[grpo] step {global_step} done: "
               f"loss={update['policy_gradient_loss']:.4f} "
