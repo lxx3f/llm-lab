@@ -120,9 +120,11 @@ D2 test cross_dataset ∩ D1/D1.1: 0
 
 # 5. 测试（含 3500/750/750 契约显式断言）
 $ .venv/python.exe scripts/run_tests.py full
-Ran 296 tests OK
+Ran 296 tests OK（本机环境）/ 294 PASS + 2 environment-driven skips（isolated auditor 环境）
 [test] full suite passed
 9/9 PASS (stage0 schema examples)
+
+注：isolated auditor 环境可能报告 `OK (skipped=2)`；2 个跳过均为 `tests/test_n2_benchmark.py:93, 108` 的 `@unittest.skipUnless(_has_working_cuda(), ...)`，是环境驱动跳过（auditor 隔离会话不一定有可用 CUDA kernel image），不是代码缺陷。其余 294 个测试在两种环境下均 PASS。
 ```
 
 ## 6. 工程改动

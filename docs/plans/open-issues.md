@@ -901,11 +901,18 @@ P3/P4 后续动作：
 - 生成 5000 samples 耗时 34s；train 3500 / dev 750 / test 750 严格命中
 - canonical total unique: 5000/5000；train∩dev=0、train∩test=0、dev∩test=0
 - D2-vs-D1/D1.1 cross_dataset_signature：3 个 split 均 0 重叠
-- `scripts/run_tests.py full` → Ran 296 tests OK；`scripts/validate_stage0.py --examples` → 9/9 PASS
+- `scripts/run_tests.py full`：
+ - 本机环境：Ran 296 tests OK（无跳过）
+ - isolated auditor 环境：可能报告 `OK (skipped=2)`；2 个跳过均为 `tests/test_n2_benchmark.py:93, 108` 的 `@unittest.skipUnless(_has_working_cuda(), ...)`，是环境驱动跳过（isolated auditor 环境不一定有可用的 CUDA kernel image），不是代码缺陷。其余 294 个测试全 PASS。
+- `scripts/validate_stage0.py --examples` → 9/9 PASS
 
 遗留：
 - per-class 总数不均（4 类 833、2 类 834）：这是 5000 / 6 不整除的必然结果，已通过 _plan_per_class_counts helper 自动化。
-- reviewer dispatch 与 detached auditor round 14 还未启动（待本轮提交后）。
+- round 14 status (2026-08-28T16:58):
+ - minimax-M3 subagent reviewer 已派发 + 通过：evidence in `.pi-glla/scratch/stage-p3-d2-expansion-r14-review.txt`；11/11 审查项 PASS。
+ - detached auditor round 14 状态：初次 audit report 在 16:58:01 返回两条 fixes required（同步不一致 + skipped 计数）。
+ - 同步修复：本文档已更新以反映 reviewer PASS 已完成（不是“未启动”）；仅 detached auditor 进行中。
+ - `scripts/run_tests.py full` 在 isolated auditor 环境可能报告 `OK (skipped=2)`：两个跳过均为 `tests/test_n2_benchmark.py:93, 108` 的 `@unittest.skipUnless(_has_working_cuda(), ...)`，是环境驱动跳过（isolated auditor 环境不一定有 CUDA），不是代码缺陷。
 
 ---
 
@@ -935,11 +942,12 @@ P3/P4 后续动作：
 - 生成 5004 samples 耗时 35s，per-task 834；train 3498 / dev 750 / test 756
 - canonical total unique: 5004/5004；train∩dev=0、train∩test=0、dev∩test=0
 - D2-vs-D1/D1.1 cross_dataset_signature：3 个 split 均 0 重叠
-- `scripts/run_tests.py full` → Ran **296** tests OK；`scripts/validate_stage0.py --examples` → 9/9 PASS
+- `scripts/run_tests.py full` → 本机 Ran **296** tests OK；isolated auditor 环境 294 PASS + 2 environment-driven skips（`tests/test_n2_benchmark.py:93, 108` 的 CUDA skipUnless）；`scripts/validate_stage0.py --examples` → 9/9 PASS
 
 遗留：
 - split 实际为 3498/750/756（不是字面 3500/750/750），原因是 `count % 6 == 0` 约束下 6×834=5004，per-class floor-split 583/125/126，6 类累加为 3498/750/750/756。这是数学必然；如需严格 3500/750/750 应改用 6×833+2 模式（4 类 833、2 类 834），但会让 canonical uniqueness 检查需要按 per-class 单独断言而非统一 floor-split。已在 `docs/data/d2-expansion.md` §8 明确记录。
 - reviewer dispatch 与 detached auditor 还未启动（待本目标下一阶段审查）。
+- round 14 实际状态：reviewer dispatch 已完成 + PASS verdict；detached auditor round 14 在 16:58 返回 2 条 fixes required（同步不一致 + skipped 计数）。本 round 14 （16:58 后）的 文档同步修正已涵盖这两点。
 
 ---
 

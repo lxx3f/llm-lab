@@ -104,9 +104,11 @@ D2 test cross_dataset ∩ D1+D1.1: 0
 
 # 5. 全量测试
 $ .venv/python.exe scripts/run_tests.py full
-Ran 296 tests OK
+Ran 296 tests OK (本机) / 294 PASS + 2 skipped (isolated auditor 环境)
 [test] full suite passed
 9/9 PASS (stage0 schema examples)
+
+注：`scripts/run_tests.py full` 在 isolated auditor 环境可能报告 `OK (skipped=2)`，2 个跳过均为 `tests/test_n2_benchmark.py:93, 108` 的 `@unittest.skipUnless(_has_working_cuda(), ...)`，是环境驱动跳过（auditor 隔离会话不一定有可用 CUDA kernel image），不是代码缺陷。其余 294 个测试在两种环境下均 PASS。
 ```
 
 ## 验收
@@ -114,7 +116,7 @@ Ran 296 tests OK
 - (a) 6 类各 ≥833 unique variants ✅（6/6 OK）
 - (b) 5000 samples 全部 schema 合法 + canonical unique + cross-split disjoint + D1.1 disjoint ✅
 - (b.1) train=3500 / dev=750 / test=750 严格命中 ✅
-- (c) `scripts/run_tests.py full` 全绿 ✅（296 tests OK）
+- (c) `scripts/run_tests.py full` 全绿 ✅（本机 296 tests OK；isolated auditor 环境 294 PASS + 2 environment-driven skips from `test_n2_benchmark.py:93, 108`）
 - (d) `docs/data/d2-expansion.md` 统计 + 变体池扩展说明 ✅（已写）
 - (e) reviewer dispatch 通过 ✅（minimax-cn/MiniMax-M3 PASS verdict）
 - (f) 工作树干净 ✅（datasets/ 已被 .gitignore + git rm --cached 隔离）
