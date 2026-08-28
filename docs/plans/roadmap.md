@@ -59,7 +59,7 @@
 | 子阶段 | 范围 | 退出条件 |
 |---|---|---|
 | P5-01 开源模型选定 + 下载 | Qwen2.5-0.5B-Instruct 或 LLaMA-3.2-1B-Instruct；LICENSE + 模型卡记录；`.gitignore` 覆盖 | metadata.json 落盘 + 下载脚本 |
-| P5-02 Transformers 后端接入（公开模型） | 仅针对公开 instruction-tuned 模型；Transformers backend；`scripts/eval_transformers.py` CLI；与自研模型同一 P1-05 8 级分类器 + P2 reward offline 对比 | eval JSON + reward JSON 落盘 |
+| P5-02 Transformers 后端接入（公开模型） | 仅针对公开 instruction-tuned 模型；Transformers backend；`scripts/eval_transformers.py` CLI；与自研模型同一 P1-05 8 级分类器 + P2 reward offline 对比；D2 dev 90 样本 × 5 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）= 450 reward_signal；SmolLM2-360M reward_binary=0.0111（首个 D2 dev 非退化 reward），其他 4 个 reward_layered ≥ 0.38；`tests/test_transformers_backend.py` **20** 单测；`docs/protocols/transformers-backend.md`；`docs/experiments/p2-evaluator/README.md` §7 横向对比 | eval JSON + reward JSON 落盘；stage review planned |
 | P5-03 vLLM 后端接入（公开模型） | 仅针对公开 instruction-tuned 模型；vLLM 依赖安装；`scripts/eval_vllm.py` CLI；WSL/Linux/Docker 环境；throughput 对比表；不包含自研模型完整 vLLM 适配 | vLLM 推理成功 + 吞吐数字 |
 | P5-04 双后端基准对比 | 同一样本 + 同一 P1-05 分类器 + P2 reward offline；latency + throughput + reward 二元 + reward 分层 四轴 | 对比 README |
 
@@ -70,7 +70,7 @@
 | 阶段 | 范围 | 触发条件 |
 |---|---|---|
 | P4 GRPO | 基于 P1-05 reward signal + P2 offline reward 校验 + P3 多轮数据集；advantage 计算 + policy 更新 | P3 + P5-02 完成 |
-| P5-01 开源 instruction-tuned 模型选定 | Qwen2.5-0.5B-Instruct / LLaMA-3.2-1B-Instruct；LICENSE + 模型卡记录 | — |
+| P5-01 开源 instruction-tuned 模型选定 | SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct；5 模型均在 HF mirror 下载并 cache 到 `artifacts/huggingface/`；LICENSE + 模型卡记录入 `docs/protocols/transformers-backend.md` §7/§8 | — |
 | P5-02 Transformers 后端接入（公开模型） | 仅公开模型 + D2 dev 90 样本 reward 评测 | P3 完成 |
 | D2 数据集 | 多轮对话 + 错误恢复；≥5000 样 | P5-02 基础就位 |
 

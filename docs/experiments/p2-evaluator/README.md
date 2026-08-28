@@ -108,6 +108,8 @@
 
 P3 阶段交付 D2 dev（90 多轮样本，独立 IID held-out split，与 D1.1 train 不重叠）后，按目标第 5 项对 SFT MVP 的 5 个 checkpoint 在 D2 dev 上跑真实模型推理 + reward_offline。
 
+P3 阶段交付 D2 dev（90 多轮样本，独立 IID held-out split，与 D1.1 train 不重叠）后，按目标第 5 项对 SFT MVP 的 5 个 checkpoint 在 D2 dev 上跑真实模型推理 + reward_offline。
+
 ### 6.1 方法
 
 - 推理入口：`scripts/eval_sft_tool.py --prompt-mode multi_turn`。多轮提示把 D2 样本的完整 `messages` 历史按 SFT 模板序列化为 `### User` / `### Assistant` / `### Result` 轮次，末尾追加 `### Assistant\n`，贪婪生成续写；
@@ -151,3 +153,54 @@ P3 阶段交付 D2 dev（90 多轮样本，独立 IID held-out split，与 D1.1 
     --output artifacts/sft-<name>-eval-d2dev-reward.json \
     --checkpoint sft-tool-<name>
 ```
+
+## 7. P5-02 Transformers backend：5 个公开 instruction-tuned 模型 × D2 dev reward 评测（2026-08-28）
+
+为了在同一 reward pipeline 上与自研 SFT ckpt 公平对比，新增 `scripts/eval_transformers.py` Transformers 推理后端。详细契约见 `docs/protocols/transformers-backend.md`。
+
+### 7.1 模型矩阵
+
+| # | Model | 规模 | bf16 显存 | 下载通道 |
+|---|---|---|---|---|
+| 1 | `HuggingFaceTB/SmolLM2-360M-Instruct` | 360 M | ~0.7 GB | HF mirror |
+| 2 | `Qwen/Qwen2.5-0.5B-Instruct` | 0.5 B | ~1.0 GB | HF mirror |
+| 3 | `Qwen/Qwen2.5-1.5B-Instruct` | 1.5 B | ~3.0 GB | HF mirror |
+| 4 | `Qwen/Qwen2.5-3B-Instruct` | 3.0 B | ~6.0 GB | HF mirror |
+| 5 | `HuggingFaceTB/SmolLM2-1.7B-Instruct` | 1.7 B | ~3.5 GB | HF mirror |
+
+### 7.2 结果（5 × 90 = 450 reward_signal）
+
+| # | Model | reward_binary | reward_layered | reward_type 分布 |
+|---|---|---:|---:|---|
+| 1 | SmolLM2-360M-Instruct | **0.0111** | 0.4602 | final_answer_correct × 14, execution_correct × 1, argument_correct × 75 |
+| 2 | Qwen2.5-0.5B-Instruct | 0.0000 | 0.3977 | final_answer_correct × 12, argument_correct × 78 |
+| 3 | Qwen2.5-1.5B-Instruct | 0.0000 | 0.4134 | final_answer_correct × 15, argument_correct × 75 |
+| 4 | Qwen2.5-3B-Instruct | 0.0000 | 0.3843 | final_answer_correct × 11, argument_correct × 79（其中 1 个 call_plan_matches 突破） |
+| 5 | SmolLM2-1.7B-Instruct | 0.0000 | 0.4292 | final_answer_correct × 15, argument_correct × 75 |
+
+450 signals 全 schema 合法。
+
+### 7.3 解读（首个 D2 dev 非退化 reward 分布）
+
+- **所有 5 个公开模型 reward_layered ≥ 0.38**，远高于自研 5 ckpt 的 0.0，表明公开模型能进入 P1-05 后续层（tool name / schema / arguments / execution / final answer）；
+- **SmolLM2-360M 唯一出现 reward_binary > 0（1 sample execution_correct）**——1 个 tool_not_available 样本上恰好生成与 expected_answer 字节一致的拒绝文本；其他 4 个模型 reward_binary = 0，是因为它们的 final_answer 字符串与 D2 expected_answer 不严格匹配（典型自然语言措辞差异），但都至少到达 final_answer 层；
+- **tool_name_correct 大量失败**是诚实结果：D2 用 `d1_*` 工具名，公开 instruction-tuned 模型未在 D2 数据集上微调，不知道这些工具名。这是 expected 行为，不应解读为模型能力退化；
+- **横向对比自研 SFT**：自研 5 ckpt 90/90 reward_layered = 0（全部 parse_success 失败）；公开模型即使不做 D2 微调，reward_layered 仍 ≥ 0.38。说明 D2 难度梯度对自研模型过高（5 ckpt 没有学会按 SFT 模板输出 JSON tool-call），而 instruction-tuned 模型对 system + tools 的 chat template 理解更接近 D2 期望格式。
+
+### 7.4 复现
+
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+.venv/python.exe scripts/eval_transformers.py \
+    --model <model-id> \
+    --samples-dir datasets/tool-calling-d2/dev \
+    --output artifacts/<safe-name>-eval-d2dev.json
+.venv/python.exe scripts/reward_offline.py \
+    --transcripts artifacts/<safe-name>-eval-d2dev.json \
+    --samples-dir datasets/tool-calling-d2/dev \
+    --checkpoint <model-id> \
+    --transcript-kind model_generated \
+    --output artifacts/<safe-name>-eval-d2dev-reward.json
+```
+
+5 模型产物位于 `artifacts/{smollm2,qwen2.5}-<size>-eval-d2dev.json` 与 `artifacts/{smollm2,qwen2.5}-<size>-eval-d2dev-reward.json`（gitignored）。

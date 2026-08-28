@@ -76,10 +76,10 @@ data/raw/
 data/interim/
 data/processed/
 artifacts/tokenizers/
-artifacts/checkpoints/
-artifacts/*.json
-artifacts/*.png
+artifacts/huggingface/
 artifacts/multi-seed-configs/
+artifacts/**/*.json
+artifacts/*.png
 
 # Local pi session/runtime state
 .pi-glla/
