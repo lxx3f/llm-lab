@@ -730,9 +730,9 @@ docs/
 
 D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于探索性诊断，但不是独立 held-out split，不能作为正式泛化质量结论。
 
-- **P3 交付摘要**：D2 多轮对话数据集当前为 **5000 样本**（round 14，HEAD `217b0c4`），train/dev/test = 3500/750/750 IID split（4 类 833 + 2 类 834 unique canonical variants）；P3 专项测试当前为 49 个，使用独立 D2 schema、真实 `MockExecutor.execute_sequence()`、依赖图语义校验、canonical semantic uniqueness 校验、IID stratified shuffle、跨 split canonical disjointness 与 D2-vs-D1/D1.1 cross_dataset disjointness。~~历史 MVP 样本版（数字见下方 round-13 归档）~~：在 `21d1d7e` 交付，已于 `c6eac20` 扩样到 5000 取代。
+- **P3 交付摘要**：D2 多轮对话数据集当前为 **5000 样本**（round 14，HEAD：当前 main），train/dev/test = 3500/750/750 IID split（4 类 833 + 2 类 834 unique canonical variants）；P3 专项测试当前为 49 个，使用独立 D2 schema、真实 `MockExecutor.execute_sequence()`、依赖图语义校验、canonical semantic uniqueness 校验、IID stratified shuffle、跨 split canonical disjointness 与 D2-vs-D1/D1.1 cross_dataset disjointness。~~历史 MVP 样本版（数字见下方 round-13 归档）~~：在 `21d1d7e` 交付，已于 `c6eac20` 扩样到 5000 取代。
 
-P3 已解决本条目的独立 IID held-out split 要求（**历史 MVP 样本版（详细数字见下方 round-13 归档）**）：D2 dev 的早期历史子集（详细数字见下方 round-13 归档）可用于 held-out reward pipeline 验证；P3 已完成 5 ckpt × D2 dev 的历史 reward 评测（详细数字见下方 round-13 归档） 个真实推理 reward_signal，最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750（round 14，HEAD `217b0c4`）；P5-02 阶段在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 benchmark 子集，benchmark 子集规模详见 `docs/protocols/transformers-backend.md` §3，**不是 D2 数据集规模或 split 契约**）上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8。
+P3 已解决本条目的独立 IID held-out split 要求（**历史 MVP 样本版（详细数字见下方 round-13 归档）**）：D2 dev 的早期历史子集（详细数字见下方 round-13 归档）可用于 held-out reward pipeline 验证；P3 已完成 5 ckpt × D2 dev 的历史 reward 评测（详细数字见下方 round-13 归档） 个真实推理 reward_signal，最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750（round 14，HEAD：当前 main）；P5-02 阶段在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 benchmark 子集，benchmark 子集规模详见 `docs/protocols/transformers-backend.md` §3，**不是 D2 数据集规模或 split 契约**）上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8。
 
 后续 P3/P5 需要：
 
@@ -767,7 +767,7 @@ P3/P4 后续动作：
 
 ### P3-01 D2 多轮对话数据集 + IID held-out split（2026-08-28）
 
-**状态：已解决（初版 MVP 样本规模历史记录见下方 round-13 归档），已被下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 取代，当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750；HEAD `217b0c4`）。本节描述的是历史 MVP 样本版（详细数字见下方 round-13 归档）的初始交付。**
+**状态：已解决（初版 MVP 样本规模历史记录见下方 round-13 归档），已被下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 取代，当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750；HEAD：当前 main）。本节描述的是历史 MVP 样本版（详细数字见下方 round-13 归档）的初始交付。**
 
 决策：实现 D2 多轮数据版本，作为 P4 GRPO 的数据集基础；为 P2-05 显式未解决的“独立 IID held-out split”提供首个有统计意义的 reward split。
 
@@ -820,7 +820,7 @@ P3/P4 后续动作：
 遗留：
 
 - ~~自研 5 ckpt（单轮训练）尚未在 D2 dev 上跑实际推理 reward 评测——需 P5-02 公开模型 + Transformers backend 后才能验证。~~（已于 round 7 完成：5 ckpt × D2 dev 的历史 reward 评测（详细数字见下方 round-13 归档） reward_signal；最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。）
-- D2 数据规模历史 MVP 阶段的 train/dev/test 划分属 MVP——**已被 D2 扩样到 5000 取代**（见下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 段，HEAD `217b0c4`）；当前正式 GRPO rollout 池以 5000 samples 为准（train 3500 / dev 750 / test 750）。历史划分与详细数字归档于 round-13 归档段。
+- D2 数据规模历史 MVP 阶段的 train/dev/test 划分属 MVP——**已被 D2 扩样到 5000 取代**（见下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 段，HEAD：当前 main）；当前正式 GRPO rollout 池以 5000 samples 为准（train 3500 / dev 750 / test 750）。历史划分与详细数字归档于 round-13 归档段。
 
 ### 审计 round 11 修复
 
@@ -872,7 +872,7 @@ P3/P4 后续动作：
 遗留：
 - **reviewer dispatch（minimax-M3）**：将在下一轮 audit 时由 detached auditor 联动 minimax-M3 subagent reviewer 联合复审；持续证据入 `docs/plans/reviews/stage-p5-02-transformers-backend.md`。
 - P5-03 vLLM backend 未启动（硬件 / 环境需求超出当前阶段）；待 P5-02 audit 通过后启动。
-- D2 数据集扩样到 5000+ **已完成**（见下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 段，HEAD `217b0c4`）：5000 samples（4×833 + 2×834）、train 3500 / dev 750 / test 750 严格命中、6 类 ≥833 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、datasets/ 已加入 `.gitignore` 并 `git rm --cached` 隔离。
+- D2 数据集扩样到 5000+ **已完成**（见下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 段，HEAD：当前 main）：5000 samples（4×833 + 2×834）、train 3500 / dev 750 / test 750 严格命中、6 类 ≥833 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、datasets/ 已加入 `.gitignore` 并 `git rm --cached` 隔离。
 - 全部 5 模型 reward_binary=0 为诚实负结果：D2 expected_answer 与公开模型生成的 final_answer 字面不一致；如需严格一致，可加后处理归一化或引入轻量 evaluator prompt。
 
 ---
