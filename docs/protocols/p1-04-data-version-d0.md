@@ -29,13 +29,13 @@
 - **hash**：每个样例 + 分片 + 全集合 hash；MANIFEST 同时记录每个文件的 source；
 - **质量检查**：D1.1 当前 1500/1500 schema valid，1555/1555 expected calls 带 deterministic `expected_result`；正确 transcript 的 P1-05 分类为 1500/1500 `first_failure=None`；这些是数据管线验证结果，不等同于模型泛化评测。
 
-### D2：规模化生产集（后续）
+### D2：多轮对话集（已交付，详见 `docs/protocols/d2-multi-turn.md`）
 
-- **用途**：正式训练 + GRPO；
-- **规模**：≥1000 样例；
-- **来源**：D1 扩展 + 工具执行回放；
-- **split**：IID + compositional split（避免模板记忆）；
-- **hash**：版本化数据管线输出，记录 pipeline_version + 输入模型 + 过滤规则版本。
+- **用途**：正式训练 + GRPO + 多轮对话能力评测；P5-02 公开模型 benchmark；
+- **规模**：**5000 样本**（4 类 833 + 2 类 834），train/dev/test = **3500/750/750** IID split；每类 ≥833 unique canonical semantic signatures；6 类 task_type（`tool_not_available` / `tool_error_response` / `insufficient_result_search` / `req_change_city` / `multi_tool_sequential` / `error_recovery`）。
+- **来源**：D1 扩展 + 工具执行回放；6 类确定性 builder + canonical semantic uniqueness 校验；
+- **split**：IID split（按 task_type 分层的 seeded shuffle；70/15/15，round 14 改用 `round()` 化 dev/test 严格命中 1125+125+125 per-class），不重叠 + 跨 D1/D1.1 train canonical disjoint；
+- **hash**：每个样例 + 分片 + 全集合 hash；MANIFEST 同时记录每个文件的 source、aggregate hash 与 `build_count` 字段；本轮交付 path 为 `datasets/tool-calling-d2/`，已 gitignore + `git rm --cached` 隔离。
 
 ## D0 固定定义
 
@@ -99,5 +99,5 @@ D0 样例 → schema 校验 → mock executor（P1-02；历史文档正文曾写
 ## 遗留
 
 - D0 样例 metadata.source 已统一为 `synthetic`（2026-08-26，auditor 复核后）；MANIFEST.json 已生成并提交；
-- D1/D2 的触发条件：进入 SFT/GRPO 阶段（P4）前必须完成 D1；
-- compositional split 设计留 D2。
+- D1 的触发条件：进入 SFT/GRPO 阶段（P4）前必须完成 D1；
+- D2 多轮对话集已交付（D2 契约 = 5000/3500/750/750；详见 `docs/protocols/d2-multi-turn.md`）；D2 compositional split 设计后续评估。

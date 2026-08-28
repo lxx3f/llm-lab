@@ -72,7 +72,7 @@
 | P4 GRPO | 基于 P1-05 reward signal + P2 offline reward 校验 + P3 多轮数据集；advantage 计算 + policy 更新 | P3 + P5-02 完成 |
 | P5-01 开源 instruction-tuned 模型选定 | SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct；5 模型均在 HF mirror 下载并 cache 到 `artifacts/huggingface/`；LICENSE + 模型卡记录入 `docs/protocols/transformers-backend.md` §7/§8 | — |
 | P5-02 Transformers 后端接入（公开模型） | 仅公开模型 + P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 benchmark 子集，**不是 D2 数据集规模或 split 契约**）上 5 模型评测；自研 5 ckpt 在同 split 同 benchmark 子集上的历史评测归档于 `docs/plans/open-issues.md` round-13 归档段 | P3 完成（5000 样本交付 + stage review HEAD：见当前 main）|
-| D2 数据集 | 多轮对话 + 错误恢复；≥5000 样 | P5-02 基础就位 |
+| D2 数据集 | 多轮对话 + 错误恢复；**当前活跃契约（round 14）= 5000 样本（4 类 833 + 2 类 834）= train 3500 / dev 750 / test 750**；详见 `docs/protocols/d2-multi-turn.md` + `docs/protocols/p1-04-data-version-d0.md` | P5-02 基础就位 |
 | D2 数据集扩样到 5000+ | 6 类各 ≥833 unique variants；5000 samples（4 类 833 + 2 类 834）；3500/750/750 split 契约命中；cross-split canonical disjoint；D2 vs D1/D1.1 disjoint；MANIFEST 新增 `build_count` 字段；tests 参数化从 on-disk MANIFEST 派生并显式断言 3500/750/750 契约；`datasets/tool-calling-d2/` 加入 .gitignore 并 `git rm --cached` 移除 Git 追踪 | round 14 完成 |
 | D2 数据集扩样到 5000+（round 1） | 偏离 3500/750/750 契约的早期扩样尝试，被 detached auditor 否决（完整偏离数字与原因归档于 `docs/plans/open-issues.md` 后段 line 919+） | 拒绝 |
 
