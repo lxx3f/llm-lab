@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llm-lab/schemas/grpo_step_result.schema.json",
+  "title": "GRPO step result",
+  "description": "Per-step artifact produced by scripts/grpo_train.py: one prompt, K rollouts, K rewards, group-relative advantages, and the policy gradient update summary.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "step_id",
+    "global_step",
+    "policy_model",
+    "prompt_id",
+    "rollouts",
+    "rewards",
+    "advantages",
+    "update"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "step_id": {
+      "type": "string",
+      "description": "Stable per-step identifier (e.g. '<global_step>_<prompt_id>')",
+      "minLength": 1
+    },
+    "global_step": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "0-indexed policy gradient step counter"
+    },
+    "policy_model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Hugging Face model id of the policy"
+    },
+    "prompt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt_metadata": {
+      "type": "object",
+      "description": "Free-form metadata copied from the D2 sample (task_type, expected_answer length, etc.)",
+      "additionalProperties": true
+    },
+    "rollouts": {
+      "type": "array",
+      "minItems": 1,
+      "description": "K assistant continuations generated from the prompt",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["rollout_index", "generated"],
+        "properties": {
+          "rollout_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "generated": {
+            "type": "string"
+          },
+          "extracted_calls": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    "rewards": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Per-rollout reward signals produced by scripts.reward_offline.compute_reward",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["reward_binary", "reward_layered"],
+        "properties": {
+          "rollout_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reward_binary": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "reward_layered": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "reward_type": {
+            "type": "string"
+          },
+          "first_failure": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "advantages": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Group-relative advantages: (reward - mean(group)) / std(group). Length must equal rollouts.length.",
+      "items": {
+        "type": "number"
+      }
+    },
+    "advantage_stats": {
+      "type": "object",
+      "description": "Summary statistics of the advantage distribution (mean, std, min, max)",
+      "additionalProperties": true
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["policy_gradient_loss", "learning_rate", "tokens_seen"],
+      "description": "Policy update summary",
+      "properties": {
+        "policy_gradient_loss": {
+          "type": "number",
+          "description": "Mean per-rollout policy gradient surrogate loss (-E[adv * logp])"
+        },
+        "learning_rate": {
+          "type": "number"
+        },
+        "tokens_seen": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "grad_norm": {
+          "type": "number",
+          "description": "Global gradient norm (pre-clip); null when grad clipping is disabled"
+        },
+        "kl_penalty": {
+          "type": "number",
+          "description": "Approximate KL divergence between current and reference policy at the sampled tokens; 0 when reference policy is omitted"
+        },
+        "skipped": {
+          "type": "boolean",
+          "description": "True when the step was a no-op (e.g. all-zero advantages)"
+        },
+        "skip_reason": {
+          "type": "string",
+          "description": "Human-readable reason when skipped=true"
+        }
+      }
+    },
+    "deterministic": {
+      "type": "object",
+      "description": "Deterministic-replay fingerprints",
+      "additionalProperties": true,
+      "properties": {
+        "seed": {
+          "type": "integer"
+        },
+        "rollouts_text_hash": {
+          "type": "string",
+          "description": "sha256 of the sorted concatenation of rollout.generated strings"
+        },
+        "rewards_text_hash": {
+          "type": "string",
+          "description": "sha256 of the sorted concatenation of reward_layered values (as strings)"
+        }
+      }
+    }
+  }
+}

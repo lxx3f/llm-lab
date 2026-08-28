@@ -37,6 +37,7 @@ COMMON_TESTS = (
     ("tests", "test_sweep_doc_consistency.py"),
     ("tests", "test_artifact_provenance.py"),
     ("tests", "test_token_cache.py"),
+    ("tests", "test_grpo_mvp.py"),
 )
 
 FAST_MODULES = COMMON_TESTS + (
@@ -71,6 +72,7 @@ MODULES = {
         ("tests", "test_aggregate_d256_eval.py"),
         ("tests", "test_sweep_doc_consistency.py"),
         ("tests", "test_artifact_provenance.py"),
+        ("tests", "test_grpo_mvp.py"),
     ),
     "architecture": (
         ("architecture_lab/tests", "test_dense_transformer.py"),

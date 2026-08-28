@@ -1,0 +1,48 @@
+# P4 GRPO MVP — example configuration
+#
+# Minimal group-relative policy optimization run on a public
+# instruction-tuned model. The smoke path runs entirely on CPU using
+# a tiny model; production runs require CUDA + a 0.5B+ model.
+#
+# Usage:
+#   .venv/python.exe scripts/grpo_train.py \
+#       --policy-model Qwen/Qwen2.5-0.5B-Instruct \
+#       --samples-dir datasets/tool-calling-d2/train \
+#       --checkpoint-dir artifacts/grpo-qwen05 \
+#       --max-steps 8 --k-rollouts 4 --limit 8
+#
+# Each step produces:
+#   <checkpoint-dir>/step-<global_step>_<prompt_id>.json
+# <checkpoint-dir>/state.json holds the run-level state.
+
+# Policy: HF model id (or local path)
+policy_model: Qwen/Qwen2.5-0.5B-Instruct
+
+# Dataset: D2 multi-turn train split (3500 samples available; --limit
+# caps the number of distinct prompts sampled per run).
+samples_dir: datasets/tool-calling-d2/train
+
+# Output directory: per-step artifacts + final state.json
+checkpoint_dir: artifacts/grpo-qwen05
+
+# Optional: path to a previous state.json to resume from
+# resume_from: artifacts/grpo-qwen05/state.json
+
+# Run-time limits
+max_steps: 8                # number of policy-gradient steps
+k_rollouts: 4               # GRPO group size K
+learning_rate: 1.0e-5
+temperature: 1.0            # 1.0 = standard GRPO; 0 = greedy (deterministic)
+max_new_tokens: 64          # rollout continuation length
+limit: 8                    # cap on distinct prompts sampled per run
+seed: 2026                  # deterministic seed
+
+# Hardware
+device: auto                # auto = cuda if available else cpu
+
+# Policy update
+max_grad_norm: 1.0          # gradient clipping; 0 = no clipping
+
+# Optional reference model for KL penalty (MVP: accepted as no-op for
+# CLI stability; full implementation is out of scope)
+# reference_model: Qwen/Qwen2.5-0.5B-Instruct
