@@ -51,6 +51,10 @@ Desktop.ini
 *.bak
 .tmp/
 tmp/
+/tmp/
+%TEMP%/
+%d2-audit*/
+d2-audit*/
 
 # Experiment outputs and tracking directories
 outputs/

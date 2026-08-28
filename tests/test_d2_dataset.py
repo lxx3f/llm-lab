@@ -24,6 +24,7 @@ from __future__ import annotations
 import hashlib
 import json
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
@@ -438,6 +439,105 @@ class D2IdFormatTests(unittest.TestCase):
         for s in self.test:
             self.assertTrue(s["id"].startswith("d2-test-"),
                             f"{s['id']} missing d2-test- prefix")
+
+
+class D2TimestampContractTests(unittest.TestCase):
+    """Per-sample ``created_at`` and MANIFEST ``created_at`` must follow
+    the deterministic formula shared with the D1 generator::
+
+        datetime.fromtimestamp(1785000000 + seed + index, tz=UTC)
+            .isoformat().replace("+00:00", "Z")
+
+    ``index`` is the sample's 1-based position in the ordered train /
+dev / test split (1 for d2-train-0001, 1 for d2-dev-0001, etc.). The
+exact string equality check guards against off-by-one drift and the
+``+00:00`` vs ``Z`` formatting convention difference."""
+
+    def setUp(self) -> None:
+        # Trigger the lazy loader used by the rest of the test file so
+        # we can call generate_d2_dataset private helpers.
+        if not hasattr(D2TimestampContractTests, "_module"):
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "_generate_d2_dataset_for_tests",
+                ROOT / "scripts" / "generate_d2_dataset.py",
+            )
+            D2TimestampContractTests._module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(D2TimestampContractTests._module)
+        self.mod = D2TimestampContractTests._module
+
+    def test_now_ts_is_canonical_for_known_pairs(self) -> None:
+        for seed, index in [(2026, 1), (2026, 7), (2027, 90), (0, 420)]:
+            actual = self.mod._now_ts(seed, index)
+            expected = (
+                datetime.fromtimestamp(1785000000 + seed + index, tz=timezone.utc)
+                .isoformat()
+                .replace("+00:00", "Z")
+            )
+            self.assertEqual(expected, actual,
+                             f"seed={seed} index={index}: {actual!r} != {expected!r}")
+
+    def test_now_ts_differs_between_seeds(self) -> None:
+        self.assertNotEqual(self.mod._now_ts(2026, 1),
+                            self.mod._now_ts(2027, 1),
+                            "timestamps must depend on seed")
+
+    def test_now_ts_differs_between_indices(self) -> None:
+        self.assertNotEqual(self.mod._now_ts(2026, 1),
+                            self.mod._now_ts(2026, 2),
+                            "timestamps must depend on index")
+
+    def test_now_ts_is_byte_identical_for_repeated_calls(self) -> None:
+        self.assertEqual(self.mod._now_ts(2026, 1),
+                         self.mod._now_ts(2026, 1),
+                         "same seed+index must produce byte-identical timestamps")
+
+    def test_on_disk_samples_use_canonical_formula(self) -> None:
+        # The generator's sample index is global across all three splits:
+        # train takes positions 1..train_n, dev takes train_n+1..train_n+dev_n,
+        # test takes the remainder. Sample id encodes the 1-based split-local
+        # number, so we recover the global index from the manifest counts.
+        manifest_train = json.loads(
+            (D2 / "MANIFEST-train.json").read_text(encoding="utf-8"))
+        manifest_dev = json.loads(
+            (D2 / "MANIFEST-dev.json").read_text(encoding="utf-8"))
+        train_n = manifest_train["count"]
+        dev_offset = train_n
+        for split_name in ("train", "dev", "test"):
+            split = _load_split(split_name)
+            for sample in split:
+                number = int(sample["id"].rsplit("-", 1)[-1])
+                if split_name == "train":
+                    index = number
+                elif split_name == "dev":
+                    index = dev_offset + number
+                else:
+                    index = dev_offset + manifest_dev["count"] + number
+                expected = (
+                    datetime.fromtimestamp(1785000000 + 2026 + index,
+                                           tz=timezone.utc)
+                    .isoformat()
+                    .replace("+00:00", "Z")
+                )
+                actual = sample["metadata"]["created_at"]
+                self.assertEqual(
+                    expected, actual,
+                    f"{sample['id']} created_at={actual!r} != {expected!r}",
+                )
+
+    def test_manifest_created_at_uses_canonical_formula(self) -> None:
+        for split_name in ("train", "dev", "test"):
+            manifest = json.loads(
+                (D2 / f"MANIFEST-{split_name}.json").read_text(encoding="utf-8")
+            )
+            expected = (
+                datetime.fromtimestamp(1785000000 + manifest["seed"],
+                                       tz=timezone.utc)
+                .isoformat()
+                .replace("+00:00", "Z")
+            )
+            self.assertEqual(expected, manifest["created_at"],
+                             f"MANIFEST-{split_name} created_at drift")
 
 
 if __name__ == "__main__":

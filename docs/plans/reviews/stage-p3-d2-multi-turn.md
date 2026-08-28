@@ -70,6 +70,21 @@ Auditor round 7 提出 3 项阻塞，全部修复：
 
 验证：`scripts/run_tests.py full` → Ran 247 tests OK；stage0 9/9；450 D2 reward signals 全 schema 合法。
 
+### Round 4（2026-08-28，auditor round 8 时间戳契约修复）
+
+Auditor round 8 提出 D2 时间戳未遵循 D1 的 `1785000000 + seed + index` 确定性公式契约。
+
+修复：
+
+1. `scripts/generate_d2_dataset.py::_now_ts(seed, index)` 改用 `datetime.fromtimestamp(1785000000 + seed + index, tz=UTC).isoformat().replace("+00:00", "Z")`，与 `scripts/generate_d1_dataset.py` manifest `created_at` 同步。
+2. `seed` 通过 `build_samples(*, seed=)` + `assign_split_ids(*, seed=)` 下传到每个 builder 的 `created_at`。
+3. MANIFEST 顶层新增 `created_at` 字段（公式中 `index=0`）。
+4. `tests/test_d2_dataset.py::D2TimestampContractTests` 新增 6 例：`_now_ts` 字节相等 / 不同 seed / 不同 index / 磁盘样本逐字符等于公式 / MANIFEST `created_at` 逐字符等于公式。
+5. `docs/protocols/d2-multi-turn.md` §5.1 文档化时间戳契约 + 示例。
+6. 重新生成 `datasets/tool-calling-d2/`（600 样本）以匹配新公式。
+
+验证：`scripts/run_tests.py full` → Ran **253** tests OK（247 + 6 timestamp）；stage0 9/9。
+
 ## 审查结论
 
 - 审查模型：`minimax-cn/MiniMax-M3`

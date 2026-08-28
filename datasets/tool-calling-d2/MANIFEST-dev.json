@@ -4,6 +4,7 @@
   "split": "dev",
   "generator": "scripts/generate_d2_dataset.py",
   "seed": 2026,
+  "created_at": "2026-07-25T17:53:46Z",
   "count": 90,
   "aggregate_sha256": "a3c7060850af1caf877960d7fa79b004081e633784487b059f3fcedd72f10fb1",
   "task_types": {
@@ -17,541 +18,541 @@
   "samples": [
     {
       "path": "dev/d2-dev-001.json",
-      "sha256": "03ed8651410e1ea6d76733145d58978c07d9b1d3a3eb46914a7c4bff84084281",
+      "sha256": "08c6b4231af54dfce04359de819acc07d0795170e841589a2359fa6b7c42cda2",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-002.json",
-      "sha256": "33e840dd1b6cd4f8f9f76762bdee5c7ccb731e204fd20de42611970aee69aa0b",
+      "sha256": "c33626ed8517095bd45847db1ba2ffaaab2880fe132912a778c952fe5c2977d6",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-003.json",
-      "sha256": "08755192dc13d1956b86df187cf90f9d35207c797ab68f9e58440804ba5e3585",
+      "sha256": "ad0fd9ff2e7ff7318d5264d1a89a0944d7c473fc488b2b26d6511dfe2b3eb26c",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-004.json",
-      "sha256": "d6f3e03fd7d844d3cf04a0db28e23d33fc1d114f463e089dc227707f4de611e7",
+      "sha256": "aa0881e7ba17485e06fd59fbf1b85b32ee735351d20c2b0e7872b8ac23df8225",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-005.json",
-      "sha256": "0cd19a4b97111ed07a708bb2bc76fdd284285b176bf27d710d0f9417e5680cdb",
+      "sha256": "f0b606c330bd4c049a1ac11201747d29437622842756e66aa42c1ad949d2e937",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-006.json",
-      "sha256": "5c9de23548443b5ab2ece6c10367b817d804e7b7b8adfa6f61ffdfeafc6b9e19",
+      "sha256": "0bf1986c3b8a2e2b1191d7d3c84279b486b02d534aa8217a58cf452aa258f9a7",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-007.json",
-      "sha256": "ab4e8456d1e3eed95d0ce6a15506bcf5a8d2937160d309e56c7b4fa5324a13dd",
+      "sha256": "624211ff73c6b45b308d2efc216a0fd4e4b2447b7908bdbd4992b1780890f8d6",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-008.json",
-      "sha256": "8c47ed1da846f1242d73feaf5f83f8f0549ab8f168e77a158b7af7228b38d3ee",
+      "sha256": "c5bc9c8f21d0fff35ee3d34823697decf02100743a5a4a76dee499e51699584c",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-009.json",
-      "sha256": "dee8c8477aeb5e122e5ce2f000e72cba5891d8d386ac186e4ce285ad8f5a1f18",
+      "sha256": "a612a0ac3f49e784d24be430dd9717d4cea88b673e1a2371b15b6c4cdda21062",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-010.json",
-      "sha256": "ec93991161a7c708c157e153fe31fb52902f95c49f56734dd221f4d8864c5690",
+      "sha256": "3ba2d9dd9bc658f62619beb4514faf1f90f3f3b29ad2d72cc45d32479a22ff5c",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-011.json",
-      "sha256": "0ec0358fda25051a5b1a2c81cb41c0161d295defd87704401649acaba4b6845e",
+      "sha256": "fbedc387ffa271e9c6c3ca2fcaba1f9a822ac62442e48711345fb6ed65c7b7ef",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-012.json",
-      "sha256": "4fdee3f2f3e4bb5e7e84b894f2aae3ba12f7a390e9ec38b95217beec32be07e0",
+      "sha256": "444ae47d6bb197b5ab12946cd33fe4f69e37b519f03ce580c98b04fe1405d72c",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-013.json",
-      "sha256": "704710dc2c2fec990f9b39b8dd6927a5729cc1d79c6e927bc20028016660d7c8",
+      "sha256": "436f4e49f7ab39cedfefd8974df5c4cbc1e8a25dea4043d3ea754cc70e533b07",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-014.json",
-      "sha256": "f9d49c80e921ea28629e1564438b1a70d9b6fcc060098e1934ba92b8160bb24b",
+      "sha256": "516858636e7f7c990a882c2ede15ccfdd55a1f740da5454393d531bb69694dde",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-015.json",
-      "sha256": "53e08209a788fd7e5e4111f71d06b9d8e79d5b371037918a0184452c2d197e92",
+      "sha256": "d21836f6ced767cec158e6f6076735dfdda476ee03f454e77e87abdb27f311e4",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-016.json",
-      "sha256": "142bee8b65788b214a1f8e73c37b5ee89b5108aeda6b1eedec7b77510b0c8984",
+      "sha256": "41f781210dd5e522c6934d86b12c32f1cfa53a3bcde4c3f7d4c219ba0253e17b",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-017.json",
-      "sha256": "93c7cfe11c07d11b9694be047137bde32c02feaa9df9aa03714472a3a2e9c8b5",
+      "sha256": "4882118759903134eec40b2f39dc4d24231ebd409f2aa84e0825ad665bb411d0",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-018.json",
-      "sha256": "496296d8de0300671e97c1b2a6275af8c1dbf740569c961fc79c2d590649065e",
+      "sha256": "9a12b4d97ae218f0606e4e32c8418e1f5ea53a57cada7c6bd0eda6305ae90996",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-019.json",
-      "sha256": "0e860d397df34999a31e9f6b0e60ff759605859874d040a6b194f65a92a582f4",
+      "sha256": "36fa17ad28f358ae03cc7d67400b7ed395087e55eec5bda0548759e098a0796a",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-020.json",
-      "sha256": "91aa307052850b3a3e3e9345ecaa0d6c215058fcd57254e764bd3ddea66359be",
+      "sha256": "0524e01ec6a1874667f16a58c6d3ec3a392687efbd306c83fd376ee3009fff03",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-021.json",
-      "sha256": "8ab6ab90a169a876ef53da38ec702ac0dd3756aa6e3aabf327c1ce4fe151e9a9",
+      "sha256": "f5b60b9429857c29f824b922a102ab1073e058ec8964b6ab9beb7411d469afbb",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-022.json",
-      "sha256": "597a96d292ab972334f8d461ebd1f7012ecc0d0b0901f68435c9ced93ed41a45",
+      "sha256": "3d9b6ab3343f458e71978b418d5f3cfd37a422827c0fdc1a3d96752093ed42f2",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-023.json",
-      "sha256": "c494e4af9d1a48632f04232c2ad4a09482f50b448b1254fbcb9f1f4bd037c559",
+      "sha256": "7a944730ff415686261a90c530d9bce0d47306acec506946c98e28824b11c5ff",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-024.json",
-      "sha256": "6981b2e7633c6c0936ec3ec81c9b891d219303ce1e69b1fed3e89933b01f8b3d",
+      "sha256": "02a24b5e6d1804dc0b60d9460e5bb54b16a715d9138cdfaf11fec41ee6097ebd",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-025.json",
-      "sha256": "00e6b89981a113382e014154f7bd1163cfbceaea549f481c0c0d227325dfb7bf",
+      "sha256": "98d77d5d46b9f636586e3f94217e0b41f493f5f72aea1ba1fb1dc7e751a40570",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-026.json",
-      "sha256": "8768060578dbd8ae1a2e51ae63916e6dd1243de8f1366160570b915255966be1",
+      "sha256": "265117d148b9712f553c5ecae6e57a4bd247621fef41764f2ae4a0c8e724facb",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-027.json",
-      "sha256": "50de70b04439f098fc37fed953a9987b695371131e7cc77a543fed55c9f6d85c",
+      "sha256": "67f4da8b36e5b277383a88484effe26aa81686396c39c79afe346c4d7e8f6989",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-028.json",
-      "sha256": "a56568992cd5aa0f1ec95e8a337992cf9f19eb7f13acd1525cbe225aac0c747a",
+      "sha256": "60e363f370aadece2942f86a50da483529842eb387596cb23191b17904fedc45",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-029.json",
-      "sha256": "08dc26cbe1db637d779649129f0bab50dc04b142c523389ba4d1bdd8e15544c4",
+      "sha256": "b836a111db7a59dcab594227d74598414ae3c4df411f5fd1867c0311ddc25184",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-030.json",
-      "sha256": "e332f3beab67c3eb5f171f1d8f2459c807f0864e5822ac23df4642f1b9576908",
+      "sha256": "887a4b9db98750e94a7d52f54dea770abf3215a4b7b10cfdd1f1aa9d1bf5a058",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-031.json",
-      "sha256": "b1b871513e5236f29fa70a498274ce15f1dca5001622bf308300f53681178573",
+      "sha256": "2e15b5107a073aa09ccc52af01c49b374c6aca1e65e2f05d00d2618ff077efa2",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-032.json",
-      "sha256": "74de87beb3773ead5743555a4b784b261e65835ff3f2fda6f589c1b954a43da6",
+      "sha256": "273414aec7e96ad8657f23140242ce2970bb128dfe3a38bf2d41c4d805cc5fa4",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-033.json",
-      "sha256": "2caddb125f7a01ee1c94e6a8170e9f66d7a99ec86160d70a8975e451ac638a03",
+      "sha256": "0463750aff9145b16b54e04b40f081739f9538537a41861395ecd56844786468",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-034.json",
-      "sha256": "40e99d1efc79d10fd2ed6506213ecc463d06fe347b63c9bb9c5b8ad2f822b44d",
+      "sha256": "cdb8625b6fd05312c553e22434c7ef6db4088051ca2392adce6393b704172ec5",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-035.json",
-      "sha256": "6c60cafcd60ff24d1aa7487f70b65e27ed5b7a4ed32d881d8b15ca943504cb1b",
+      "sha256": "4dfa5f3282cb772be6304e3822ee68c8e0ffec45665be9a9f7b36e9775d9f029",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-036.json",
-      "sha256": "f17670c85b050a7f5691f10e6013db9f0e01f2345d7273330146bd02eeeb2494",
+      "sha256": "3a1bccc1c31310c3a7b9b5a0f02904dce47fbc50d303d71a52c947bc12de0d16",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-037.json",
-      "sha256": "e77b0213fb058c75222db934aa3f9b1109ee47d42175af3aea5c712aacc6bb1d",
+      "sha256": "46e5969c3bc87639769e116ed3383ecb7713e1465ba1e15ebae7d38597fea554",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-038.json",
-      "sha256": "87c27355d7fb7be616a96f12d2d4b2bdf86a7d1c1ebb59d59a3e6c0c3f0c7de8",
+      "sha256": "ca0172b08c84ea825ebbc0cb17596a8ba1417dd1748a469601f7e88157b43f0c",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-039.json",
-      "sha256": "f562b4ba4409c229d94770d1f7ce4899aa77137f782e9569e6155dcd52d45e71",
+      "sha256": "4c2b5221a644ce6ab5e98691424ae12ffdcfa742999709d67d3047b4a2283366",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-040.json",
-      "sha256": "c3d2c057f01fbe92b5b4972cbe489048dd0e6edfa953b3cc2e8fa6bf1ac9adca",
+      "sha256": "2f28dc09e8c3fa90911fc7df109fa38131329ec80b8177adb59ddb251053c1eb",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-041.json",
-      "sha256": "0d45efca75c3c5cc65aa139ef12b3b105511668d123ec1e2c36fe47f500c7583",
+      "sha256": "156e8b545b780789d7fdf7be67e5692f734921c06bc7992cb39cfb2e4931a452",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-042.json",
-      "sha256": "bff85c0c6aaa5817f4484da3445cd490342f096e36c72b1dc0b5ec040d064995",
+      "sha256": "282d2162e49fd4d7d056cc27db0f3c5d927608511849702a548720ad4bdfc007",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-043.json",
-      "sha256": "3ca5195f5530ff4de02dd7f56f862c1eac9a27129b670895b52dc3349fed42bb",
+      "sha256": "4d5afb1dd44e7ef5dd904a9ba66d981bd77a55fc75f30a9e9acea56c44ff252c",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-044.json",
-      "sha256": "b38b367a25d5059e4753d06eb6de29a141c24f51a18f5202cf4b5a580a5bc7a3",
+      "sha256": "0edd048a19b88160fe13bddb39cf840ba1a373d9103049f90f57fa080091323e",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-045.json",
-      "sha256": "2470d66a426cef585af7bb339a9aa25dde18f3710afee93bbd7cddcbac5477a1",
+      "sha256": "12cb6f1e4d031c4e55fda50befedbde2d025a985840a3528df3d023807bec43d",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-046.json",
-      "sha256": "13723d159ffef207aae973ac9d223f7f65da2a878e40fe76b7e42c674c68e039",
+      "sha256": "e9ed3fcce97d9460cd3ce09162b58f3e7f85b8389cf93785ca704ab5ad0fb5db",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-047.json",
-      "sha256": "ed94176945f607c7e43d81f20f6afdef30e42ff562336ac07373dff84a2085d9",
+      "sha256": "64f706489189915173a17b4aa505ef9d5b7ad98cb2ae2662a5421b63d363708e",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-048.json",
-      "sha256": "dd46fef72c78602985e7c44fb6a6842d9408904d270f6a65cf9646b5a7f87db1",
+      "sha256": "8b84f469f3e0a697d024361422e3c01dc3527b9f1e816d1d666dbdbb01da0c35",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-049.json",
-      "sha256": "6b6e9b9c3b4ec7b4360e12fc2eb0033669124fa0e6587c82d7871a3a9daced13",
+      "sha256": "0389eb6a0a93b0885c52e43947753caf70e9fb5c8c9a7695ada8ff9b8142e90f",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-050.json",
-      "sha256": "f052f26e4e9a9dd35168735f5e30631aee62a537a19c2f5b24bd8aa24d2244dd",
+      "sha256": "08da94208d6c9b1e7cca51d9e6e53c6f96304d32e9a6a7fe7ea2ff0c29b0478f",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-051.json",
-      "sha256": "68e0939d2f1a53a4b428e5ca56672b0636cb35400cf2c2b461821cfb03831ef5",
+      "sha256": "29c31e5ccb809d7055c82af4c9e569c43a764a0e1a753083ad47b1bf2cda0368",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-052.json",
-      "sha256": "f0036426af1a3b3ce81e69bf074dc091a9c91072a52133aeabd2d1a7712debfd",
+      "sha256": "bffe29d8319ecd9574e4ce6a49d4be0f7d43926896c877a3062682210bd5d93f",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-053.json",
-      "sha256": "449e2de4a97bc2e0267f03263ddf98fcebb0c2cc2d85ede8a1d3958fdabe46ec",
+      "sha256": "2c534f63327693e9cb304f5405dafee7ec89f903abfd33307ea09af7dfc880de",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-054.json",
-      "sha256": "9cf438aaf61b1a4b2078f3f8036c19aa2be2d77d11a51035433b5ee28c9a5563",
+      "sha256": "3b6b096c19cd4f3f8dd8fab90254f6492c4b818b501a5b60a8c959b9d756db42",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-055.json",
-      "sha256": "aea30e6c3d6a6a8877cace0a608ed988033f6174d3dbc6d9f3ae57bfe1ff88e4",
+      "sha256": "787a573df217dcd20e2d3d6d9df1997dd7571873c8b8711beab677d1c3757920",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-056.json",
-      "sha256": "1d6a7f692e231d50191760b12712aa035a28984669bcf9f41f681c6708c6e4d5",
+      "sha256": "be6562903f44c01dc99ca736f04a906a60a82e6abe6a14b2f02efe9d34346032",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-057.json",
-      "sha256": "30a606802ed8c2e2d0dd3ed4b732887372f406389c190da383876d79c8e09c47",
+      "sha256": "dadb386b49489a3e88454cceca6bb14388de538b9cfe4075613f276d3955e0df",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-058.json",
-      "sha256": "27082b0c9dcd384586b3fd673ce4ce0ec52f2c95f02c70c013d1dde9d74ac793",
+      "sha256": "ff5fc7990c8bae82cae4b66c130aac10348aafd9ae5768da11af0c5a1b69e13c",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-059.json",
-      "sha256": "1beb7d55fa84507b3d4e105d48f4a880db61a38f12ece3109e854a14fe2c1e01",
+      "sha256": "794fc2f9e329feb7aacde9a3a98ff4acd532d4b3c77c73bb542601b0b2fc9a1c",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-060.json",
-      "sha256": "68c0bdee8d7fc9b55c31b43597a5a3fd01bbf6eb0eef45f51052da4506dcb981",
+      "sha256": "d6c7159f4fa884243d3fb856f851e568b43ee788fd3e488b74d4f485455068b5",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-061.json",
-      "sha256": "7ab5aa75e3633d5007faa160baa60190051acdf5ecc6766befe0757534e1ff16",
+      "sha256": "a432879ea9fa2f451b4ca2ba331bd288e17b146330467f113bbebf76688d01da",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-062.json",
-      "sha256": "c44de1c9dec4467e0c4f3be67941adc5d33d6f08327bda94517f5749e863f492",
+      "sha256": "537247b65d709de99b4eca7562880c3b45197b2fbd2686e09ab18f8ba6de61a0",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-063.json",
-      "sha256": "09387cda214b846f0fb0a370ee412ae0ed604ebf7c6a393641e39f76fc12bb12",
+      "sha256": "aca97cb844d60679e4f6bc0aac1f94891de0ccb46cba91d5a81bd487f192b119",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-064.json",
-      "sha256": "60802a1d62d37737da497ac479018e6b739f873aa9c4354a81ac45f15e4c0564",
+      "sha256": "ec2163c44357e3732e50a92a0fc0ee6679bd52aa3b05bb37d50821236b35b2b7",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-065.json",
-      "sha256": "3579909bc42e0b7339afda8a30751de9c062d994d24753830a29a31788997454",
+      "sha256": "8d3732c42924ad5c4d466e73868871a9d00b51d1a2050dc48a9053e536acc8b1",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-066.json",
-      "sha256": "d89884f37af63568adf0ed63f5678bb6d0dd1d3eca9510c7b77bf7c79eefa359",
+      "sha256": "c5550de312c7cb26af50e477b0c94a3b137e8923948b3c634fd2e0eca91af00f",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-067.json",
-      "sha256": "936845422b1189575f5690ed3a3f86fe18e6120504f63d9a4b928d6746466254",
+      "sha256": "a688c6b5983793eca848746e8ae98ad228265ca15835d41a64a4278dc16cd213",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-068.json",
-      "sha256": "a2e42a8fd93308ceb54e8c4a0a48286ca4392d031f5da9d67062377d017b00a7",
+      "sha256": "451f612537c9e40dddb2bb789cfe299c666538aa5569da1be4af6f2c28b7dde0",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-069.json",
-      "sha256": "31e268318e221997c186848fbf816fdecd0f1aa9ea72231bb1fe6bec1e115270",
+      "sha256": "bef16c87670903ead869f0afdf01f51558ae7e0d1a0d8edac2ff98ec5af56dcc",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-070.json",
-      "sha256": "6a31d3196a5e422cfef74b173d4ef95ddb6e282e660f9b96dbf4e0d16714e5b8",
+      "sha256": "2c9f9a08e0988bf5d2d861e9d71eef891b57eb3ee06ec4106561ea75f3e99553",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-071.json",
-      "sha256": "e6000fe2e0029ae95724811f68d08ba59300e7d4c09dbd63115cf70a73192ed4",
+      "sha256": "c947aecc40fe2b11b167c0e1beefbec77bc8179248d94a9c61df35ad4a00b7de",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-072.json",
-      "sha256": "3dbb20039ee52456c013588748713f92e14b9975a283e12554626d229148c796",
+      "sha256": "b9cf50482a0b4c6805847b4646f8d7f27b2f0d8eec4436388193b0d5a36efa00",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-073.json",
-      "sha256": "6de47ed7c0fa1a2c96fc5f98711a5e1b4f7b1e8d88c648d71ad5b6790f2173da",
+      "sha256": "aa36621905d95cc25207dee29e39269ff9977c257b980fd664c9171d74c9423a",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-074.json",
-      "sha256": "b17bdf03e742be7c2fda531a097ebc7fd5c97f425b2dfd0b7061b3f2112d4417",
+      "sha256": "f9caa0c6800e0cce5d1bcc77d7b095caa87eda93bd35065ac5d703d2c34e925a",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-075.json",
-      "sha256": "8691bfae62e258c59f6fc548b1f89eddb22c655ec8d91dc5c64cd92bd3939bf9",
+      "sha256": "a315c36ebb562b7d67a8554191d91dc6d1110063b4d5581f46a62f0e3be37bed",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-076.json",
-      "sha256": "b04defbbd8c912220c884318d5788544d106a06ce50e1229bd66ba3c4e327074",
+      "sha256": "225f7daa9fe89c052e555dac130d07b623b35037b780305d823fbee1de5ae367",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-077.json",
-      "sha256": "eb11e71cefcb4c4adf4c61967155c21c5161454cef7aa5b4cfc1997618dfd9ea",
+      "sha256": "57bcc928ca797afb0fdac1bfe97842fc1bc0225f34752eec406d67aed47d458b",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-078.json",
-      "sha256": "859aa9a1927c7b408e14a78e2e7f7ab1e283061f1a109e52e23c89c045e98ff5",
+      "sha256": "bd46795781840b8d17788d942c6ce0399a9406b71278cc7fbcf7fdb470341472",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-079.json",
-      "sha256": "b39cf823d900ea1d2a6d5ef45cd39fce05452aaef8cc9ea8a118c5439955ac8c",
+      "sha256": "27d694ca8114eacb3cf2237dda6524df9c3e5d22443ad07270b3d8c3f4920789",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-080.json",
-      "sha256": "bd1a700792590bd4ef19cd8cb0d6ac192be13df2ae9ddd220924192ccf5d4b80",
+      "sha256": "53f26cfa3cabfb53653433e80dea9bd000367b5842dab483ef31bd3332b7a8ae",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-081.json",
-      "sha256": "8f4846835871747457715eed68690308655caf3b6139ca003912bfa1b313fd11",
+      "sha256": "638fb1ae54801a915791b72b6c80b04a72441a18b27aa939b4356b21eba7eab8",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-082.json",
-      "sha256": "9c160a940c346da2a57438c7e75d6fd8a6f5f85658e719ceb9c221a0edb81694",
+      "sha256": "344318f4ff52fd6c068733bfce557d8333f541cbd6a8db575bcc2a61de6888c3",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-083.json",
-      "sha256": "cc1d59ed26d884ce990e72a3b3354ab4cd7c19105cc1e31ed4075514d87cb703",
+      "sha256": "880aaef77300707dbdfec2eadcdcd7e12b5c18530172a1fbcf2627f2743c6660",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-084.json",
-      "sha256": "0beec56a6efbe8faadd3692e4617290fe11ccc055e4b2afe42b502ac1258b3ca",
+      "sha256": "4013ee00b9b273010ce265ac160d5d69d7c3f2df10104806bde2f978f225836e",
       "task_type": "error_recovery",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-085.json",
-      "sha256": "0065b31f54f6946cdff0a20e9f8e5226c718f7f3395c0fa380bfd9f86c76c33f",
+      "sha256": "2e7ae23012af3eb3f664e82c2d91fe911a9a847e418b8acbce59ff4b1d7dd582",
       "task_type": "tool_not_available",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-086.json",
-      "sha256": "4814f93d55d52a142ba75d22e2f7516c0aa56aa071dda487f82b421f1491fbd9",
+      "sha256": "feab0ae94782b8201d8ebea753be84a5149338c36f5b7822875703f3d1c716aa",
       "task_type": "tool_error_response",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-087.json",
-      "sha256": "d3a806de2245ba2a20f1a9c605aca17a6502f9c3feaf00eccd169b99afc1fef1",
+      "sha256": "4bcbde8a0cbfc4711784434326efdb31525c689a25137e7c30fa3e7c068deb27",
       "task_type": "insufficient_result_search",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-088.json",
-      "sha256": "cdbe244493dd8ed749ada03dc95fdec6eea7e3034b0c8b062d9dbaa92e4b894f",
+      "sha256": "9d2d310b837674db6c52c622efd9b3182fddf2460d89d1eb1f05f1602dbf48ca",
       "task_type": "req_change_city",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-089.json",
-      "sha256": "22464c4085621411c6e3f5d302060a65959183b71b2ac87c95959b649c381255",
+      "sha256": "87b056f4b346d111e575be75802d7bc37fdc9a809dadc3d5ecb0512bd58e4b3d",
       "task_type": "multi_tool_sequential",
       "split": "dev"
     },
     {
       "path": "dev/d2-dev-090.json",
-      "sha256": "db9e304743e9b59abeed0122171df21b3fe339e40dc64a1f431c22bf344ee846",
+      "sha256": "a21ded515a94af2b916dceacf6f4f6a22c1431633b0801f0f62a29ea0ade19e3",
       "task_type": "error_recovery",
       "split": "dev"
     }

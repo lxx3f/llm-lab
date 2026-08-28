@@ -77,6 +77,7 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
   "split": "train",
   "generator": "scripts/generate_d2_dataset.py",
   "seed": 2026,
+  "created_at": "2026-07-25T17:53:46Z",
   "count": 420,
   "aggregate_sha256": "<hex64 of sorted ids hash>",
   "samples": [
@@ -92,6 +93,21 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 ```
 
 `aggregate_sha256` 是该 split 内按 id 排序后 hash — 可在测试中独立重算并验证。
+
+### 5.1 时间戳契约
+
+D2 采用与 D1 相同的确定性时间戳公式（与 `scripts/generate_d1_dataset.py` manifest 字段一致）：
+
+```text
+ts   = 1785000000 + seed + index
+fmt  = datetime.fromtimestamp(ts, tz=UTC).isoformat().replace("+00:00", "Z")
+```
+
+其中 `index` 为样本在生成器全局序列中的 1-based 位置（train=1..420、dev=421..510、test=511..600）。MANIFEST 的 `created_at` 使用 `index=0`（即 `seed` 本身的 epoch 秒）。
+
+**示例**：seed=2026、index=1 → `2026-07-25T17:53:47Z`；seed=2027、index=1 → `2026-07-25T17:53:48Z`；seed=2026、index=421（d2-dev-001） → `2026-07-25T18:00:47Z`。
+
+该契约保证 `tests/test_d2_dataset.py::D2TimestampContractTests` 中 6 个反向测试全绿：同 `seed+index` 字节相同；不同 `seed` 或不同 `index` 均产出不同字符串；磁盘样本与公式逐字符相等。
 
 ## 6. 生成与复现
 

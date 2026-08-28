@@ -133,9 +133,30 @@ def _mock_result(name: str, arguments: dict[str, Any]) -> Any:
     return result["result"]
 
 
-def _now_ts(offset: int) -> str:
-    base = datetime(2026, 8, 27, tzinfo=timezone.utc).timestamp()
-    return datetime.fromtimestamp(base + offset, tz=timezone.utc).isoformat()
+# Canonical D2 timestamp contract (mirror scripts/generate_d1_dataset.py
+# manifest field): ``created_at`` is deterministic from the generator seed
+# and the sample's 1-based index so a fresh checkout with the same seed
+# yields byte-identical timestamps. The formula is:
+#
+#     timestamp = 1785000000 + seed + index
+#     isoformat = datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
+#                 .replace("+00:00", "Z")
+D2_TIMESTAMP_EPOCH = 1785000000
+
+
+def _now_ts(seed: int, index: int) -> str:
+    """Deterministic UTC timestamp for the (seed, index) pair.
+
+    index is 1-based (matches the ``offset+1`` convention previously used
+    by this generator and the per-sample ordering contract). Same seed +
+    same index always yield the exact same string, byte-for-byte.
+    """
+    ts = D2_TIMESTAMP_EPOCH + seed + index
+    return (
+        datetime.fromtimestamp(ts, tz=timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def _sha256_file(path: Path) -> str:
@@ -400,19 +421,19 @@ BUILDERS: tuple[tuple[str, Callable[[random.Random, str, str], dict[str, Any]]],
 )
 
 
-def build_samples(count: int, rng: random.Random) -> list[dict[str, Any]]:
+def build_samples(count: int, rng: random.Random, *, seed: int) -> list[dict[str, Any]]:
     samples: list[dict[str, Any]] = []
     for index in range(count):
         sid = f"d2-local-{index + 1:04d}"
         task_type, builder = BUILDERS[index % len(BUILDERS)]
-        sample = builder(rng, sid, _now_ts(index + 1))
+        sample = builder(rng, sid, _now_ts(seed, index + 1))
         if sample["metadata"]["task_type"] != task_type:
             raise AssertionError(f"builder/type mismatch: {task_type} != {sample['metadata']}")
         samples.append(sample)
     return samples
 
 
-def assign_split_ids(samples: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def assign_split_ids(samples: list[dict[str, Any]], *, seed: int) -> list[dict[str, Any]]:
     total = len(samples)
     train_n = int(total * 0.7)
     dev_n = int(total * 0.15)
@@ -431,7 +452,7 @@ def assign_split_ids(samples: list[dict[str, Any]]) -> list[dict[str, Any]]:
         old_id = sample["id"]
         sample["id"] = final_id
         sample["metadata"]["split"] = split
-        sample["metadata"]["created_at"] = _now_ts(index + 1)
+        sample["metadata"]["created_at"] = _now_ts(seed, index + 1)
 
         old_to_new: dict[str, str] = {}
         all_call_ids: list[str] = []
@@ -579,6 +600,7 @@ def _write_manifests(out_dir: Path, samples: list[dict[str, Any]], seed: int) ->
             "split": split,
             "generator": "scripts/generate_d2_dataset.py",
             "seed": seed,
+            "created_at": _now_ts(seed, 0),
             "count": len(items),
             "aggregate_sha256": digest.hexdigest(),
             "task_types": {task: sum(1 for item in items if item["metadata"]["task_type"] == task)
@@ -598,7 +620,10 @@ def main() -> int:
     if args.count < 6:
         raise SystemExit("--count must be >= 6")
 
-    samples = assign_split_ids(build_samples(args.count, random.Random(args.seed)))
+    samples = assign_split_ids(
+        build_samples(args.count, random.Random(args.seed), seed=args.seed),
+        seed=args.seed,
+    )
     errors = _validate_samples(samples)
     if errors:
         for error in errors[:20]:
