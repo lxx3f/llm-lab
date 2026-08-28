@@ -291,6 +291,62 @@ def canonical_content_signature(sample: dict[str, Any]) -> str:
     return json.dumps(projection, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def cross_dataset_signature(sample: dict[str, Any]) -> str:
+    """Comparable cross-dataset semantic projection (round 12 fix).
+
+    Returns a JSON string with the SAME field set regardless of whether the
+    sample is a D1, D1.1, or D2 row. This is what makes the
+    D2-vs-D1/D1.1 semantic disjointness check meaningful: two rows have
+    the same signature iff every comparable field (task_type, schema
+    version, user / assistant / tool turn texts, sorted tool names,
+    expected tool calls, expected answer) is identical.
+
+    ``canonical_content_signature`` keeps its broader D2-only projection
+    (full messages + full tools + full metadata) for D2-internal
+    canonical-uniqueness checks. ``cross_dataset_signature`` is a strict
+    subset intended for cross-dataset comparison only.
+    """
+    user_turns = tuple(
+        m.get("content", "")
+        for m in sample.get("messages", [])
+        if m.get("role") == "user"
+    )
+    assistant_turns = tuple(
+        m.get("content") or ""
+        for m in sample.get("messages", [])
+        if m.get("role") == "assistant" and not (m.get("tool_calls") or [])
+    )
+    tool_turns = tuple(
+        m.get("content", "")
+        for m in sample.get("messages", [])
+        if m.get("role") == "tool"
+    )
+    tool_names = tuple(sorted(
+        t.get("function", {}).get("name") if isinstance(t, dict) else t
+        for t in sample.get("tools", [])
+    ))
+    expected_calls = tuple(sorted(
+        (
+            call.get("name"),
+            json.dumps(call.get("arguments", {}),
+                       sort_keys=True, ensure_ascii=False,
+                       separators=(",", ":"))
+        )
+        for call in sample.get("expected_tool_calls", [])
+    ))
+    projection = {
+        "task_type": sample.get("metadata", {}).get("task_type"),
+        "schema_version": sample.get("schema_version"),
+        "user_turns": user_turns,
+        "assistant_turns": assistant_turns,
+        "tool_turns": tool_turns,
+        "tool_names": tool_names,
+        "expected_tool_calls": expected_calls,
+        "expected_answer": sample.get("expected_answer"),
+    }
+    return json.dumps(projection, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
 def _multi_tool_sequential(rng: random.Random, sid: str, created: str, variant: int) -> dict[str, Any]:
     expressions = [
         "2 + 3", "17 * 4", "100 / 5", "3 ** 4", "(8 - 3) * 6",

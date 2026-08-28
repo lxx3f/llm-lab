@@ -134,4 +134,16 @@ Auditor round 11 提出三点根因问题：(1) `docs/protocols/d2-multi-turn.md
 - 审查 agent：`reviewer`
 - 结论：**通过**
 - 允许创建阶段 commit：是
-- reviewer 输出（PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）保存到 `.pi-glla/scratch/stage-p3-d2-multi-turn-review-postfix-r10.txt` 和 `.pi-glla/scratch/stage-p3-d2-multi-turn-review-postfix-r11.txt`。
+- reviewer 输出（PI_PROVIDER=minimax-cn / PI_MODEL=MiniMax-M3 / BLOCKERS: none）保存到 `.pi-glla/scratch/stage-p3-d2-multi-turn-review-postfix-r{10,11,12}.txt`。
+
+### Round 8（2026-08-28，auditor round 12 跨数据集投影可比性 + reverse-assertion 测试实际执行修复）
+
+Auditor round 12 提出两点根因问题：(1) round 11 引入的 `d1_canonical_signature()` 与 D2 自己的 `canonical_content_signature()` 形状完全不兼容（D2 sig 含 `messages` + `metadata` + `tools` 全量；D1 sig 只含 `user_turns` + `tools` 改名 `tool_names` + 部分字段）—— 两者 JSON 字符串的 set intersection 无论 D2 与 D1.1 是否真有语义重叠都恒为 ∅，跨数据集互斥验证退化为 vacuous truth；(2) round 11 新增的两个 reverse-assertion 测试（`test_tool_message_after_final_answer_is_flagged` / `test_assistant_tool_call_after_final_answer_is_flagged`）以及 `test_transcript_well_formedness_errors_catches_argument_mismatch` 都使用 `train[0]`（`d2-train-0001` = `tool_not_available`），该样本无 `expected_tool_calls`，三个测试全部 `skip`；验证证据为空，但 complete_goal claim 写了"反向断言被捕获"，是虚假证据。
+
+修复：
+
+1. **可比跨数据集投影**：在 `scripts/generate_d2_dataset.py` 新增 `cross_dataset_signature(sample)` —— 8 字段投影（task_type、schema_version、user_turns、assistant_turns、tool_turns、tool_names、expected_tool_calls、expected_answer）跨 D1 / D1.1 / D2 形状完全一致。`canonical_content_signature()` 保持原 D2 全量投影（用于 D2 内部去重）。
+2. **跨数据集测试重写**：`test_d2_canonical_content_is_disjoint_from_d1_d1llm_train` 改用 `cross_dataset_signature` + 验证 `len(d1llm_sigs) > 0` 防 vacuous；新增 `test_cross_dataset_signature_is_comparable_across_d1_d1llm_d2`（D1/D1.1/D2 三类样本 projection keys 集合相等）；新增 `test_cross_dataset_signature_detects_real_overlap`（正向控制：克隆一个样本后投影必须碰撞）。
+3. **reverse-assertion 测试样本选择**：`D2TranscriptWellFormednessTests` 新增 `with_calls` class attr 和 `train_with_calls()` helper（取第一个含 `expected_tool_calls` 的样本）。两个 reverse-assertion 测试 + argument-mismatch 测试改用 helper，三个测试从 skipped 变为实际执行并验证。
+
+验证：`scripts/run_tests.py full` → Ran **269** tests OK (skipped=0)；stage0 9/9；D2 专项 47 tests OK (skipped=0)；D2 × D1 / D2 × D1.1 cross_dataset_signature 交集 = ∅；test_cross_dataset_signature_is_comparable_across_d1_d1llm_d2 OK（三个数据集 projection keys 集合相等）；test_cross_dataset_signature_detects_real_overlap OK（克隆样本投影碰撞）。

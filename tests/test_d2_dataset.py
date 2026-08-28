@@ -354,6 +354,13 @@ class D2TranscriptWellFormednessTests(unittest.TestCase):
         cls.dev = _load_split("dev")
         cls.test = _load_split("test")
         cls.all_samples = cls.train + cls.dev + cls.test
+        cls.with_calls = [s for s in cls.all_samples
+                          if s.get("expected_tool_calls")]
+
+    def train_with_calls(self) -> dict:
+        if not self.with_calls:
+            self.skipTest("no D2 sample contains expected_tool_calls")
+        return deepcopy(self.with_calls[0])
 
     def _call_validator(self):
         import importlib.util
@@ -446,14 +453,12 @@ class D2TranscriptWellFormednessTests(unittest.TestCase):
     def test_transcript_well_formedness_errors_catches_argument_mismatch(self) -> None:
         """An assistant tool call whose arguments differ from expected must be reported."""
         module = self._call_validator()
-        sample = deepcopy(self.train[0])
+        sample = self.train_with_calls()
         asst_calls = [
             call for message in sample["messages"]
             if message["role"] == "assistant"
             for call in message.get("tool_calls", [])
         ]
-        if not asst_calls:
-            self.skipTest("train[0] has no assistant tool calls")
         original = asst_calls[0]["function"]["arguments"]
         asst_calls[0]["function"]["arguments"] = '{"expression": "999 + 1"}'
         try:
@@ -475,9 +480,7 @@ class D2TranscriptWellFormednessTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
-        sample = deepcopy(self.train[0])
-        if not sample.get("expected_tool_calls"):
-            self.skipTest("train[0] has no expected_tool_calls")
+        sample = self.train_with_calls()
         final_idx = None
         for idx, message in enumerate(sample["messages"]):
             if (message.get("role") == "assistant"
@@ -508,9 +511,7 @@ class D2TranscriptWellFormednessTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
-        sample = deepcopy(self.train[0])
-        if not sample.get("expected_tool_calls"):
-            self.skipTest("train[0] has no expected_tool_calls")
+        sample = self.train_with_calls()
         final_idx = None
         for idx, message in enumerate(sample["messages"]):
             if (message.get("role") == "assistant"
@@ -614,9 +615,10 @@ class D2SplitDisjointnessTests(unittest.TestCase):
         held-out benchmark. ID disjointness alone is insufficient: D2 samples
         may share their user-turn content with a D1.1 train sample even when
         the sample IDs do not collide. This test projects both D2 and the
-        neighbouring D1 / D1.1 train samples into a canonical semantic
-        signature (task_type + user text + tool list + expected tool calls +
-        expected answer) and asserts the sets are pairwise disjoint.
+        neighbouring D1 / D1.1 train samples into a single comparable
+        ``cross_dataset_signature`` (8 fields: task_type, schema_version,
+        user_turns, assistant_turns, tool_turns, tool_names, expected_tool
+        calls, expected_answer) and asserts the sets are pairwise disjoint.
         """
         import importlib.util
 
@@ -633,50 +635,102 @@ class D2SplitDisjointnessTests(unittest.TestCase):
             return [json.loads(p.read_text(encoding="utf-8"))
                     for p in sorted(path.glob("*.json"))]
 
-        def d1_canonical_signature(sample: dict) -> str:
-            """Project a D1 / D1.1 sample into the same semantic shape D2 uses."""
-            user_turns = tuple(m["content"] for m in sample.get("messages", [])
-                               if m.get("role") == "user")
-            tool_names = tuple(sorted(
-                t.get("function", {}).get("name") if isinstance(t, dict) else t
-                for t in sample.get("tools", [])
-            ))
-            return json.dumps({
-                "task_type": sample.get("metadata", {}).get("task_type"),
-                "schema_version": sample.get("schema_version"),
-                "user_turns": user_turns,
-                "tools": tool_names,
-                "expected_tool_calls": sorted(
-                    (c.get("name"),
-                     json.dumps(c.get("arguments", {}),
-                                sort_keys=True, ensure_ascii=False))
-                    for c in sample.get("expected_tool_calls", [])
-                ),
-                "expected_answer": sample.get("expected_answer"),
-            }, ensure_ascii=False, sort_keys=True)
+        def cross_sig(sample: dict) -> str:
+            return module.cross_dataset_signature(sample)
 
         d1_train = load(ROOT / "datasets" / "tool-calling-d1" / "train")
         d1llm_train = load(ROOT / "datasets" / "tool-calling-d1-llm" / "train")
-        d1_sigs: set[str] = {d1_canonical_signature(s) for s in d1_train}
-        d1llm_sigs: set[str] = {d1_canonical_signature(s) for s in d1llm_train}
+        d1_sigs: set[str] = {cross_sig(s) for s in d1_train}
+        d1llm_sigs: set[str] = {cross_sig(s) for s in d1llm_train}
 
         for split, samples in (("train", self.train),
                                ("dev", self.dev),
                                ("test", self.test)):
-            split_sigs = {module.canonical_content_signature(s)
-                          for s in samples}
+            split_sigs = {cross_sig(s) for s in samples}
             overlap_d1 = split_sigs & d1_sigs
             overlap_d1llm = split_sigs & d1llm_sigs
             self.assertEqual(
                 set(), overlap_d1,
-                f"D2 {split} has {len(overlap_d1)} canonical signatures "
+                f"D2 {split} has {len(overlap_d1)} cross-dataset signatures "
                 f"that also appear in D1 train",
             )
             self.assertEqual(
                 set(), overlap_d1llm,
-                f"D2 {split} has {len(overlap_d1llm)} canonical signatures "
+                f"D2 {split} has {len(overlap_d1llm)} cross-dataset signatures "
                 f"that also appear in D1.1 train",
             )
+
+        self.assertGreater(
+            len(d1llm_sigs), 0,
+            "D1.1 train is expected to exist; otherwise this check is "
+            "vacuously satisfied",
+        )
+
+    def test_cross_dataset_signature_is_comparable_across_d1_d1llm_d2(self) -> None:
+        """Both D1 / D1.1 / D2 samples must yield the SAME signature shape.
+
+        This guards against a round 11-style regression where two distinct
+        projections produce structurally-incompatible JSON whose set
+        intersection is always empty regardless of the underlying data.
+        """
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_shape_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        def keys_of(sample_path: Path) -> set[str]:
+            return set(json.loads(
+                module.cross_dataset_signature(
+                    json.loads(sample_path.read_text(encoding="utf-8"))
+                )
+            ).keys())
+
+        d2_keys = keys_of(sorted((ROOT / "datasets" / "tool-calling-d2" / "train").glob("*.json"))[0])
+        d1_path = ROOT / "datasets" / "tool-calling-d1" / "train"
+        d1llm_path = ROOT / "datasets" / "tool-calling-d1-llm" / "train"
+        if d1_path.exists():
+            self.assertEqual(d2_keys,
+                             keys_of(sorted(d1_path.glob("*.json"))[0]))
+        if d1llm_path.exists():
+            self.assertEqual(d2_keys,
+                             keys_of(sorted(d1llm_path.glob("*.json"))[0]))
+
+    def test_cross_dataset_signature_detects_real_overlap(self) -> None:
+        """A fabricated duplicate must actually collide in cross_dataset_signature.
+
+        If two samples project to the same user turn, task_type, expected
+        tool calls and expected answer, their ``cross_dataset_signature``
+        must be byte-identical. This is the positive control that proves
+        the projection can detect overlap rather than structurally cannot.
+        """
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "generate_d2_for_collision_test", GENERATOR)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        candidates = [s for s in self.train + self.dev + self.test
+                      if s.get("expected_tool_calls")]
+        if not candidates:
+            self.skipTest("no D2 sample contains expected_tool_calls")
+        sample = deepcopy(candidates[0])
+        duplicate = deepcopy(sample)
+        duplicate["id"] = "d2-dev-9999"
+        duplicate["metadata"] = dict(sample["metadata"])
+        duplicate["metadata"]["split"] = "dev"
+        self.assertEqual(
+            module.cross_dataset_signature(sample),
+            module.cross_dataset_signature(duplicate),
+            "cross_dataset_signature must collide when two samples share the "
+            "same semantic content (positive control)",
+        )
 
     def test_canonical_duplicate_is_rejected_by_generator_validation(self) -> None:
         """Changing only bookkeeping fields must not bypass duplicate checks."""

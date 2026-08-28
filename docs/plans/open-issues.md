@@ -828,6 +828,12 @@ P3/P4 后续动作：
 - **修复**：(a) 把 §5.1 改为 split-local 1-based（train 1..420、dev 1..90、test 1..90），与 `sample.id` 后缀对齐，并补充与 round 8 共识的一致性说明；所有 round 9 数字（0.0162 / 0.0042）一律标注为"round 9 历史数字 — round 10 IID 后被取代"。(b) `transcript_well_formedness_errors()` 改为消息位置状态机：逆向定位 final answer 位置，正向扫描维护 pending call_id 队列，tool message 必须与队首匹配后弹出，final answer 之后任何 tool message 或 assistant tool_call 都报错。(c) 新增 `d1_canonical_signature()` 投影函数和 `test_d2_canonical_content_is_disjoint_from_d1_d1llm_train()` 验证 D2 train/dev/test 三 split 与 D1 train / D1.1 train 在 canonical 层交集为空。
 - **测试**：`D2TranscriptWellFormednessTests` 新增 2 个反向断言（tool-after-final-answer、asst-tool-call-after-final-answer），`D2SplitDisjointnessTests` 新增 1 个跨数据集 canonical 互斥测试。`scripts/run_tests.py full` → Ran **267** tests OK（264 + 3 round 11）；stage0 9/9；D2 专项 45 tests OK。
 
+### 审计 round 12 修复
+
+- **根因**：(a) round 11 引入的 `d1_canonical_signature()` 与 D2 的 `canonical_content_signature()` 投影形状不兼容——D2 含 `messages` + `metadata` + `tools` 全量，D1 含 `user_turns` + `tool_names` + 部分字段，两个 JSON 字符串的 set intersection 恒为空，无论数据是否真有重叠，跨数据集互斥验证退化为 vacuous truth；(b) round 11 三个 reverse-assertion / argument-mismatch 测试全部用 `self.train[0]`（`d2-train-0001` = `tool_not_available`、无 `expected_tool_calls`），全部 `skip`，但 complete_goal claim 写"反向断言被捕获"，证据虚假。
+- **修复**：(a) 在 `scripts/generate_d2_dataset.py` 新增 `cross_dataset_signature(sample)`——8 字段投影（task_type、schema_version、user_turns、assistant_turns、tool_turns、tool_names、expected_tool_calls、expected_answer）跨 D1 / D1.1 / D2 形状完全一致。`canonical_content_signature()` 保持原 D2 全量投影。测试改用 `cross_dataset_signature`，并新增 `test_cross_dataset_signature_is_comparable_across_d1_d1llm_d2`（三数据集 keys 集合相等）+ `test_cross_dataset_signature_detects_real_overlap`（克隆样本投影碰撞，正向控制）。(b) `D2TranscriptWellFormednessTests` 新增 `with_calls` class attr 和 `train_with_calls()` helper（取第一个有 expected_tool_calls 的样本）；三个测试改用 helper，从 skipped → 实际执行并验证。
+- **测试**：`scripts/run_tests.py full` → Ran **269** tests OK（skipped=0）；stage0 9/9；D2 专项 47 tests OK（skipped=0）；D2 × D1 / D2 × D1.1 cross_dataset_signature 交集 = ∅；两个 reverse-assertion 测试与 argument-mismatch 测试均 `... ok`（实际执行，非 skip）。
+
 ---
 
 ## 暂不处理的范围

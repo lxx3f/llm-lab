@@ -60,6 +60,7 @@ D2 直接服务于 **P2-05 / P2-06 显式未解决项** —— P2 阶段已交�
 - 目录物理隔离（`datasets/tool-calling-d2/{train,dev,test}/`）；
 - 与 D1 / D1.1 train id 在 stem 层不重叠（D2 id 是 `d2-*`，D1 是 `d1-*` / `d1llm-*`）；
 - 生成器和测试均计算同一个 `canonical_content_signature()`：去除 `id` / `call_id` / `tool_call_id` / `depends_on`、`metadata.created_at` 和 `metadata.split` 后，仍保留 task_type、tools、消息内容、工具参数/结果与 expected_answer。600 个签名全局唯一；每类 100/100 唯一；train/dev/test 三组 canonical signature 交集均为空。
+- 与 D1 / D1.1 train 的 **跨数据集语义互斥**由 `cross_dataset_signature()` 投影保证：8 字段（task_type、schema_version、user_turns、assistant_turns、tool_turns、tool_names、expected_tool_calls、expected_answer）形状跨 D1/D1.1/D2 完全一致；`tests/test_d2_dataset.py::test_d2_canonical_content_is_disjoint_from_d1_d1llm_train` 验证 D2 三 split 与 D1/D1.1 train 在该投影下交集均为空；`test_cross_dataset_signature_is_comparable_across_d1_d1llm_d2` 保证投影本身可检测重叠（防止 round 11 那种两个不兼容投影退化为 vacuous ∅）；`test_cross_dataset_signature_detects_real_overlap` 为正向控制样本验证投影能真地检测重叠。
 
 `tests/test_d2_dataset.py::D2SplitDisjointnessTests` 显式校验：
 
