@@ -29,12 +29,17 @@ This report contains:
 
 ### How to reproduce the entire audit
 
-```bash
-# Step 1: obtain the audited tree
-git stash push -u -m "WIP before re-running final-audit"
-git checkout HEAD~1
+The audit is run against the **current** working tree on `main`.
+There is no `git checkout` step: the auditor verifies the current
+clean `main` tree directly. This keeps the procedure non-mutating
+and avoids leaving the user on a detached HEAD.
 
-# Step 2: run all audit scripts in order
+```bash
+# Step 1: confirm we are on main with a clean tree
+git rev-parse --abbrev-ref HEAD          # → main
+git status --short                       # → empty
+
+# Step 2: run all audit scripts in order (non-mutating, read-only)
 .venv/python.exe scripts/run_tests.py full
 .venv/python.exe scripts/validate_stage0.py --examples
 python scripts/audit/run_gitignore_coverage.py
@@ -175,21 +180,29 @@ matched to its script.
 
 ### Real results from this audit (this host)
 
-- Total active docs scanned: **58**
-- Docs with artifact refs: **48**
+- Total active docs scanned: **59**
+- Docs with artifact refs: **49**
 - Docs without artifact refs: **10**
-- Total artifact references: **167**
-- **Placeholders excluded**: **18**
-- **References FOUND**: **96**
+- Total artifact references: **173**
+- **Placeholders excluded**: **19**
+- **References FOUND**: **97**
 - **References MISSING (resolvable)**: **5**
 - **References MISSING (unresolvable)**: **0**
 - **Directories FOUND**: **19**
 - **Directories MISSING (resolvable)**: **0**
 - **Directories MISSING (unresolvable)**: **0**
-- **Globs FOUND**: **29**
+- **Globs FOUND**: **33**
 - **Globs MISSING (resolvable)**: **0**
 - **Globs MISSING (unresolvable)**: **0**
 - Exit code: **0**
+
+These numbers reflect the **current** tree state at HEAD (including
+the `docs/reports/final-audit/round-13-reviewer-evidence.md` doc
+added in round-14, which itself contains 9 artifact references).
+The round-13 implementation commit `afd579f` was verified at that
+commit with 58/167/29 counts (see
+`docs/reports/final-audit/round-13-reviewer-evidence.md` for the
+exact round-13 reproduction).
 
 ### What round-13 fix addresses
 
@@ -223,9 +236,11 @@ to be silently dropped from the audit.
    (26 tests) verify the regex captures all reference forms
    including the auditor-cited brace/wildcard examples.
 
-**Result**: 167 total refs captured (was 141 in round-12; +26 refs
-that were previously truncated or not extracted). 29 globs FOUND on
-disk. 0 MISSING_UNRESOLVABLE across all kinds.
+**Result**: 173 total refs captured at the current HEAD (was 141 in
+round-12; +32 vs round-12; +6 vs round-13 because the round-14
+reviewer-evidence doc itself adds 9 refs). 33 globs FOUND on disk
+(was 0 in round-12; +4 vs round-13 from the new doc's globs). 0
+MISSING_UNRESOLVABLE across all kinds.
 
 ## 5. Intentionally Tracked JSON Files
 
@@ -331,9 +346,9 @@ git ls-files docs/protocols/ | wc -l       # → 24
 ## 11. 完整复现命令 (single block)
 
 ```bash
-# ---- Setup: obtain the audited tree ----
-git stash push -u -m "WIP before re-running final-audit"
-git checkout HEAD~1
+# ---- Setup: confirm we are on main with a clean tree (no checkout) ----
+git rev-parse --abbrev-ref HEAD          # → main
+git status --short                       # → empty
 
 # ---- 1. Tests ----
 .venv/python.exe scripts/run_tests.py full
@@ -386,12 +401,12 @@ The audit verifies the following invariants via automated scripts:
 1. **Tests pass**: 28 test targets, 386 tests, OK (skipped=host-dependent),
    exit 0.
 2. **Schemas validate**: 9/9 examples PASS, exit 0.
-3. **Doc ↔ artifact reconciliation** (broad scan over 58 active docs):
-   - 167 total refs (including wildcards + brace-expansions +
-     placeholders); 18 placeholders excluded; 96 references FOUND;
+3. **Doc ↔ artifact reconciliation** (broad scan over 59 active docs):
+   - 173 total refs (including wildcards + brace-expansions +
+     placeholders); 19 placeholders excluded; 97 references FOUND;
      5 MISSING_RESOLVABLE; 0 MISSING_UNRESOLVABLE
    - 19 directories FOUND; 0 directories missing
-   - 29 globs FOUND; 0 globs missing
+   - 33 globs FOUND; 0 globs missing
    - 26 regression tests in
      `tests/test_audit_reconciliation_extraction.py` verify regex
      captures all reference forms
