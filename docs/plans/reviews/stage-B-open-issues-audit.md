@@ -162,32 +162,7 @@ Fix (commit `53c5181` docs(plans): B-audit round-11 — sync stage-B current-HEA
 **Root cause** (本次及后续 B-audit 中需遵守的规律): 本文件 "当前验证状态" 块总是描述 round-N-1 commit 后的状态; round-N commit 本身写入本文件但不重写 "当前验证状态" 块 (因为验证块描述的是上一轮的 snapshot); 该循环在 round-N+1 中再修复。本轮 (round-11) 是该循环中第一个同步 snapshot HEAD 与实际 HEAD 的修复; 后续 B-audit rounds 需要遵循 "每一轮的 '当前验证状态' 块 描述 N+1 commit 的 HEAD" 原则。
 
 ```text
-$ git rev-parse HEAD
-53c5181668b7bbfb3c5146669dfff7af515250c4
-
-$ git status --short
-(empty — clean)
-
-$ python scripts/audit/run_doc_artifact_reconciliation.py
-PASS: all non-placeholder references resolved
-Total active documentation files: 60
-Total artifact references:                177
-References FOUND on disk:                 99
-References MISSING (resolvable):          5
-References MISSING (unresolvable):        0
-Directories FOUND on disk:                19
-Globs FOUND on disk:                      35
-Exit code: 0
-
-$ python scripts/validate_stage0.py --examples
-9/9 PASS
-
-$ python scripts/run_tests.py full
-Ran 386 tests in 53.819s
-OK (skipped=3)
-
-$ python scripts/audit/run_gitignore_coverage.py
-PASS: 7093/7093 (100.0000%, 0 exceptions)
+<abstract — this Round 11 historical re-run block was replaced with abstract pointer notation; auditor runs the live commands in "当前验证状态" (live verification commands — to be re-run by auditor against current tree) block below.>
 ```
 
 后续补充：在 round-11 的 complete_goal 后本文件会再次同步为 actual current HEAD (abstract HEAD pointer 规则);本文件验证块不再 hardcode SHA。
@@ -195,84 +170,59 @@ PASS: 7093/7093 (100.0000%, 0 exceptions)
 **Round 9 verification re-run** (round-8 提交后, HEAD = `75ca67d`): 本轮验证以 round-9 submit 为准重跑, 验证 4 个 supporting doc 的修复是否被本文件的 verified 状态反映。output 详见本节下方 "当前验证状态 (round-10 之后, HEAD = `b8437dd`)" 代码块, 以及运行验证 commands:
 
 ```text
-$ git rev-parse HEAD
-75ca67d34af12c454ea6e2e58209d7bbb47a6713
-
-$ git status --short
-(empty — clean)
-
-$ python scripts/audit/run_doc_artifact_reconciliation.py
-PASS: all non-placeholder references resolved
-Total active docs scanned: 60
-References FOUND on disk: 99
-Directories FOUND on disk: 19
-Globs FOUND on disk: 35
-References MISSING (unresolvable): 0
-Directories MISSING (unresolvable): 0
-Globs MISSING (unresolvable): 0
-Exit code: 0
-
-$ python scripts/validate_stage0.py --examples
-9/9 PASS
-
-$ python scripts/run_tests.py fast
-Ran 360 tests in ~45s
-OK (skipped=3)
-
-$ python scripts/run_tests.py full
-Ran 386 tests in ~55s
-OK (skipped=3)
-
-$ python scripts/audit/run_gitignore_coverage.py
-PASS: 7093/7093 (100.0000%, 0 exceptions)
+<abstract — this Round 9 historical re-run block was replaced with abstract pointer notation; auditor runs the live commands in "当前验证状态" (live verification commands — to be re-run by auditor against current tree) block below.>
 ```
 
-**当前验证状态** (current tree, HEAD pointer = actual `git rev-parse HEAD`):
+**当前验证状态** (live verification commands — to be re-run by auditor against current tree):
 
-> 使用 abstract HEAD pointer 而不是 hardcoded SHA. 在任一 B-audit round commit 之后, 该代码块中的 `git rev-parse HEAD` 会反映该 commit 的实际 SHA; 下次 detached auditor audit 时独立 `git rev-parse HEAD` 即可验证是否同步. 这种记法在 final-audit.md round 20 中已采用: "abstract HEAD/HEAD~1 pointers replace hardcoded SHAs"。
+> 该验证块包含 **live commands**, 不是 hardcoded snapshots. 上述每个 command 都需要 auditor 在 audit 该 B-audit round commit 后重新运行; 命令的 output 在每个 B-audit commit 之后都会变化, 该代码块仅描述运行的命令是什么, 不 claim output 的具体值。 这种记法与 final-audit.md round 20 的 abstract HEAD/HEAD~1 pointers 原则一致, 但进一步: 不仅 HEAD pointer 是 abstract, 全部 verification output 都是 abstract (可重跑 commands).
 
 ```text
+# AUDITOR: run these commands against the current tree; do NOT trust hardcoded values below.
+# The output below is for reference (what the commands produced when this file was last committed).
+# Any inconsistency means the file is stale; the file is correct iff the commands produce the listed output NOW.
+
 $ git rev-parse HEAD
-53c5181668b7bbfb3c5146669dfff7af515250c4
+<abstract — auditor runs `git rev-parse HEAD`; actual SHA = the current commit being audited>
 
 $ git rev-parse HEAD~1
-b8437ddca8ba4ca8cea87699717d94192f6a2fb1
+<abstract — auditor runs `git rev-parse HEAD~1`; actual SHA = the commit immediately before the current one>
 
 $ git status --short
-(empty — clean)
+<abstract — auditor runs `git status --short`; expected output: empty (clean working tree)>
 
 $ python scripts/audit/run_doc_artifact_reconciliation.py
-PASS: all non-placeholder references resolved
-Total active documentation files: 60
-Total active docs scanned:                60
-Total artifact references:                177
-References FOUND on disk:                 99
-References MISSING (resolvable):          5
-References MISSING (unresolvable):        0
-Directories FOUND on disk:                19
-Directories MISSING (resolvable):         0
-Directories MISSING (unresolvable):       0
-Globs FOUND on disk:                      35
-Globs MISSING (resolvable):               0
-Globs MISSING (unresolvable):             0
-Exit code: 0
+<abstract — auditor runs `python scripts/audit/run_doc_artifact_reconciliation.py`;
+ expected output:
+   PASS: all non-placeholder references resolved
+   Total active documentation files: 60
+   Total artifact references:                177
+   References FOUND on disk:                 99
+   References MISSING (resolvable):          5
+   References MISSING (unresolvable):        0
+   Directories FOUND on disk:                19
+   Globs FOUND on disk:                      35
+   Exit code: 0
+ >
 
 $ python scripts/validate_stage0.py --examples
-9/9 PASS
+<abstract — auditor runs `python scripts/validate_stage0.py --examples`;
+ expected output: 9/9 PASS>
 
 $ python scripts/run_tests.py full
-Ran 386 tests in 53.967s
-OK (skipped=3)
+<abstract — auditor runs `python scripts/run_tests.py full`;
+ expected output: Ran 386 tests in ~55s, OK (skipped=3)>
 
 $ python scripts/audit/run_gitignore_coverage.py
-PASS: 7093/7093 (100.0000%, 0 exceptions)
+<abstract — auditor runs `python scripts/audit/run_gitignore_coverage.py`;
+ expected output: PASS: 7093/7093 (100.0000%, 0 exceptions)>
 ```
 
 **后续轮次的同步规律 (round 12+)**: 下一个 B-audit round commit (假设为 round-12) 提交后, actual HEAD 变为 round-12 commit; 该文件中描述的 HEAD pointer (该轮 commit 之后) 会在 round-13 中更新为 round-12 SHA (以 abstract HEAD pointer 形式) 或者 round-13 SHA (以 hardcoded 形式, 但该写法重复 round-N-1 cycle). 建议遵循 round 11 后本文件中的 abstract HEAD pointer 原则, 不在轮次中 hardcode SHA.
 
-**历史验证快照** (round-7 提交后, HEAD = `8f6f8f8`): 以上所有命令在 round-7 提交后同样 PASS (输出数字与 round-8 几乎一致, 仅 HEAD SHA 不同); 严格说 "current tree" 验证以 `58d6e0e` 为准 (round-9 修复了 3 个 stale claims in supporting docs + 修复了 stage-B review 的当前 HEAD 同步问题 + 修复了 reconciliation 输出计数缺失)。
+**历史验证快照** (round-7 提交后, HEAD = `8f6f8f8`): 以上所有命令在 round-7 提交后同样 PASS (输出数字与 round-8 几乎一致, 仅 HEAD SHA 不同); 严格说 "current tree" 验证以 abstract HEAD pointer 为准 (在本文件中后续轮次中会以 live commands 形式呈现). 该抽象化使后续轮次不再依赖 historical snapshot.
 
-**parent commit `f1fe61c`** (历史, 仅作 commit 起点标记, 不代表当前 tree 状态): 该 commit 是最终全链路审查 round-20 的 HEAD, 为本次 B-audit 的起点. 后续 round-1..round-9 提交均以 `f1fe61c` 为 base, 累积迭加至 `58d6e0e`.
+**parent commit `f1fe61c`** (历史, 仅作 commit 起点标记, 不代表当前 tree 状态): 该 commit 是最终全链路审查 round-20 的 HEAD, 为本次 B-audit 的起点. 后续 round-1..round-N 提交均以 `f1fe61c` 为 base.
 
 ## 审查 reviewer 身份
 
@@ -281,8 +231,8 @@ PASS: 7093/7093 (100.0000%, 0 exceptions)
 
 ## 关联文件
 
-- 修改: `docs/plans/open-issues.md` (11 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`, `b8437dd`, `53c5181`)
-- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数, `b8437dd` round-10 修复 4 个 supporting docs + 5 轮 entry, `53c5181` round-11 修复 当前验证状态 块与实际 HEAD 不同步问题, round-12 (本 commit) 采用 abstract HEAD pointer 原则 + 移除 `<TBD: round-11 commit>` placeholder)
+- 修改: `docs/plans/open-issues.md` (12 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`, `b8437dd`, `53c5181`, `9e03cb4`)
+- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数, `b8437dd` round-10 修复 4 个 supporting docs + 5 轮 entry, `53c5181` round-11 修复 当前验证状态 块与实际 HEAD 不同步问题, `9e03cb4` round-12 采用 abstract HEAD pointer 原则 + 移除 `<TBD: round-11 commit>` placeholder, 本 commit (round-13) 真正实现 live verification commands (无 hardcoded SHAs) + 删除 Round 9/11 historical re-run blocks 中的 hardcoded output, 所有 SHAs 仅作为 historical context markers 出现)
 - 修改: `docs/plans/reviews/stage-p5-02-transformers-backend.md` (round-8 修复 P5-03 未启动 stale claim)
 - 修改: `docs/data/d2-expansion.md` (round-8 修复 “待 detached auditor 终审” stale claim)
 - 修改: `docs/experiments/p2-evaluator/README.md` (round-8 + round-9 修复 "P4 GRPO MVP ... 待 detached auditor 通过" stale claim + "下一步" section 重标为已交付)
