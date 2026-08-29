@@ -191,7 +191,7 @@ Fix (commit `817b59e` docs(plans): B-audit round-17-postfix — fill in actual r
 
 detached auditor (round-17-postfix 后) 反馈: (1) "Final current-tree verdict ... HEAD = 9683505" 实际 current HEAD 是 `817b59e` (round-17-postfix commit); (2) gitignore 计数 7093/7093 与实际 7094/7094 不一致 (额外 1 个文件来自 scripts/audit/validate_readme.py round-16 添加后 round-17 删除, 但 round-17 删除后 net effect 仍是 7094, 说明此前 7093 计数本身就漏掉了 1 个文件); (3) P2-03 accepted-residual-scope 表格误称 "pyproject.toml / requirements.txt 记录了依赖", 但 `git ls-files -- 'requirements*' 'pyproject.toml' ...` 返回空。
 
-Fix (commit `<TBD: round-18 commit>` docs(plans): B-audit round-18 — sync HEAD + gitignore count + fix P2-03 statement): (1) "Final current-tree verdict" header 从 `HEAD = 9683505` 更新为 `HEAD = 817b59e`; (2) 验证块中所有 7093 引用更新为 7094; open-issues.md 中 3 处 7093 引用同步更新为 7094; (3) P2-03 accepted-residual-scope 表格 entry 改为 "当前项目未使用 pyproject.toml / requirements.txt / environment.yml / lockfile; 依赖版本记录在 `docs/environment.md`"; (4) 新增本 Round 18 entry 记录本次 doc-only fix。
+Fix (commit `6fa0160` B-audit round-18 doc-only sync: HEAD 9683505 -> 817b59e; gitignore 7093 -> 7094; P2-03 fix (no pyproject.toml), 2026-08-29 03:45): (1) "Final current-tree verdict" header 从 `HEAD = 9683505` 更新为 `HEAD = 817b59e`; (2) 验证块中所有 7093 引用更新为 7094; open-issues.md 中 3 处 7093 引用同步更新为 7094; (3) P2-03 accepted-residual-scope 表格 entry 改为 "当前项目未使用 pyproject.toml / requirements.txt / environment.yml / lockfile; 依赖版本记录在 `docs/environment.md`"; (4) 新增本 Round 18 entry 记录本次 doc-only fix。
 
 ```text
 <abstract — this Round 11 historical re-run block was replaced with abstract pointer notation; auditor runs the live commands in "当前验证状态" (live verification commands — to be re-run by auditor against current tree) block below.>
@@ -256,9 +256,9 @@ $ python scripts/audit/run_gitignore_coverage.py
 
 **parent commit `f1fe61c`** (历史, 仅作 commit 起点标记, 不代表当前 tree 状态): 该 commit 是最终全链路审查 round-20 的 HEAD, 为本次 B-audit 的起点. 后续 round-1..round-N 提交均以 `f1fe61c` 为 base.
 
-## Final current-tree verdict (round-17-postfix, HEAD = `817b59e`)
+## Final current-tree verdict (round-18, HEAD = `6fa0160`)
 
-**detached auditor verification** for the current tree (round-17-postfix commit 之后): README fenced JSON blocks 验证使用 inline python script (不修改代码; 该脚本是 one-shot invocation 仅用于验证) 证明 README 三个示例均与 schema 一致; 其余 commands (audit / validate_stage0 / run_tests / gitignore) 均为现有 tooling。
+**detached auditor verification** for the current tree (round-18 commit 之后): README fenced JSON blocks 验证使用 inline python script (不修改代码; 该脚本是 one-shot invocation 仅用于验证) 证明 README 三个示例均与 schema 一致; 其余 commands (audit / validate_stage0 / run_tests / gitignore) 均为现有 tooling。
 
 **verdict: PASS** — round-17 修复 后, 本 stage-B review 与 actual current tree 一致: 无 hardcoded SHAs in active verification block; 无 fabricated commit references; 无 duplicate Round entries; 接受残余未完成 items 明确列出。
 
