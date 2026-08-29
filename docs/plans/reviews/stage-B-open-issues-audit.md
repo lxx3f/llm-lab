@@ -183,7 +183,7 @@ Fix (commit `e7c6a16` docs(readme): B-audit round-15 — align README examples w
 
 detached auditor (round-15 后) 反馈: P2-02 evidence 引用的 `8f3a2b1` commit 不存在 (`git cat-file -t 8f3a2b1` returns fatal: Not a valid object name); scripts/.tmp/validate_readme.py 路径错误（文件实际位于 .tmp/ 而非 scripts/.tmp/）; stage-B review 未覆盖 rounds 14-15。
 
-Fix (本 commit, 实际 SHA 在 commit 后填入): P2-02 evidence 中 `8f3a2b1` 替换为真实 `e7c6a16` (round-15 actual commit); validate_readme.py 从 gitignored `.tmp/validate_readme.py` 移动到 tracked `scripts/audit/validate_readme.py` (路径稳定且为 tracked); stage-B review 加 Round 14/15/16 entries + 列出全部 16 个 B-audit commits。
+Fix (commit `b178434` docs(plans): B-audit round-16 — fix fabricated commit SHA + relocate validate_readme.py, 2026-08-29 03:25): P2-02 evidence 中 `8f3a2b1` 替换为真实 `e7c6a16` (round-15 actual commit); validate_readme.py 从 gitignored `.tmp/validate_readme.py` 移动到 tracked `scripts/audit/validate_readme.py` (路径稳定且为 tracked); stage-B review 加 Round 14/15/16 entries + 列出全部 16 个 B-audit commits。
 
 **重要**: round-15 中我引用了虚构 commit `8f3a2b1` 是错误 — 该 commit 当时不存在。后续 B-audit rounds 需严格遵循 "evidence SHA must be resolvable by git cat-file -t" 原则: 在 commit message 中引用 commit SHA 后, 需实际 git push 后检查 git cat-file -t <sha> 确认; 若 commit 尚未提交, 不得引用其 SHA。
 
