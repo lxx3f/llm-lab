@@ -1,7 +1,7 @@
 # Stage Review — P5-04 双后端基准对比（Transformers vs vLLM）
 
 - **List item**: D
-- **状态**: 最终 correction，等待本轮独立 reviewer 核验
+- **状态**: ✅ PASS；本记录为 round-6 correction 后的最终 stage-review record
 - **日期**: 2026-08-29
 - **当前提交指针**: 使用抽象 HEAD 指针；审核时运行 `git rev-parse HEAD` 核验，不在 active verification 中固化 SHA
 - **Canonical reviewer**: `minimax-cn/MiniMax-M3`，符合 `docs/plans/review-process.md`
@@ -148,17 +148,40 @@ python scripts/run_tests.py full
 
 ## 7. Detached reviewer verdict
 
-本轮 reviewer 需要在本 correction 提交后重新核验以下内容：
+- **Agent**: `reviewer`
+- **PI_PROVIDER**: `minimax-cn`
+- **PI_MODEL**: `MiniMax-M3`
+- **Dispatch**: 本轮 correction 提交后独立 read-only 核验
+- **Verdict**: **PASS**
+- **Critical findings**: none
+- **Warnings**: none
+- **Suggestions**: 两项非阻塞文档/代码可读性建议，均不影响目标完成
 
-- `PI_PROVIDER=minimax-cn`；
-- `PI_MODEL=MiniMax-M3`；
-- exact ordered P5-02 manifest；
-- 20 个 90-row artifacts、aggregate CSV、Δ% CSV；
-- `--selftest` 与 full suite；
-- 当前文件范围与 README/protocol 一致性。
+本轮 reviewer 核验了：
 
-当前状态：**PENDING independent review**。reviewer 完成后在本节填入实际 dispatch 时间、verdict、Critical/Warning/Suggestion 结果。
+- `git rev-parse HEAD` = 当前 correction commit，工作树 clean；
+- `git ls-files tests/test_eval_backend_comparison.py` 为空；
+- `p5-02-benchmark-subset-ids.txt` 为严格有序的 90 个 ID：`d2-dev-0001`…`d2-dev-0090`；
+- 20 个真实 GPU run artifacts，每个 90 rows，顺序与 manifest 完全一致；
+- `comparison.csv` 20 行、`comparison_delta.csv` 10 行；
+- 1800/1800 个 `user_turn` 非空；
+- `python scripts/eval_backend_comparison.py --selftest` 全部 PASS；
+- `python -m py_compile scripts/eval_backend_comparison.py` 通过；
+- `compute_delta_percentages()` 公式和正负号约定正确；
+- protocol、README 与 stage review 没有 stale active 30-sample/test-file/PENDING claim。
+
+### Reviewer findings
+
+#### Critical
+none.
+
+#### Warnings
+none.
+
+#### Suggestions
+- `compute_delta_percentages()` 的 `vl_val is None` 防御判断可进一步前置；当前逻辑已经正确，非阻塞。
+- README 中约 30 分钟 wall-clock 说明出现多次；当前内容一致，非阻塞。
 
 ## 8. Final disposition
 
-在本轮 reviewer 核验通过后，P5-04 的代码入口、双 backend 实现、20 个真实组合、P5-02 精确 benchmark subset、四轴指标、同模型 Δ%、reader-facing README、protocol 与 stage-review record 均满足目标。更大数据集、服务化、多 GPU、自研模型 vLLM 适配属于后续阶段，不阻塞本目标。
+**PASS / complete**：P5-04 的代码入口、双 backend 实现、20 个真实组合、P5-02 精确 benchmark subset、四轴指标、同模型 Δ%、reader-facing README、protocol 与 stage-review record 均已交付。剩余事项（更大数据集、服务化、多 GPU、自研模型 vLLM 适配）明确属于后续阶段，不阻塞本目标。

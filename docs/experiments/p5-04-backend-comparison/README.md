@@ -20,6 +20,7 @@
 - **Max new tokens**: 64
 - **Backends**: Transformers 5.15.0 (greedy bf16) + vLLM 0.27.1 (greedy bfloat16 + TORCH_SDPA)
 - **Models**: SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct
+- **固定样本 manifest**: `p5-02-benchmark-subset-ids.txt`（90 个有序 ID，`d2-dev-0001`…`d2-dev-0090`）
 
 ## 不做什么（明确边界）
 
