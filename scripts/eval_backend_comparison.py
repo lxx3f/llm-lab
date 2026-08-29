@@ -1320,32 +1320,75 @@ def _run_selftests() -> int:
     )
     tb.teardown()
 
-    vb = VLLMBackend(dtype="bf16", max_new_tokens=8, gpu_memory_utilization=0.5)
-    # Selftest must not actually instantiate the vLLM ``LLM`` engine (no GPU
-    # in this environment). We only verify that setup() captures the
-    # passed revision even without an LLM by stubbing ``_no_engine_setup``.
-    vb.revision = ""
-    rev = rev_value
-    vb.revision = str(rev)
-    _expect(
-        "test_vllm_records_revision",
-        vb.revision == rev_value,
-        hint=f"got {vb.revision!r}",
-    )
-    # Build the metadata dict directly to bypass the vLLM engine import.
-    vb_metadata = {
-        "backend": "vllm",
-        "vllm_version": "0.27.1",
-        "dtype": vb.dtype,
-        "gpu_memory_utilization": vb.gpu_memory_utilization,
-        "max_new_tokens": vb.max_new_tokens,
-        "model_id": vb.model_id,
-        "revision": vb.revision,
-    }
-    _expect(
-        "test_vllm_metadata_has_revision",
-        vb_metadata.get("revision") == rev_value,
-    )
+    # Round-13: VLLMBackend.setup() actually exercises vllm.LLM() and
+    # AutoTokenizer.from_pretrained() inside the function body. Stub both
+    # so no GPU / network is needed, then verify the revision flows from
+    # kwargs through setup() to both loaders and the metadata dict.
+    fake_vllm_module = type(sys)("vllm")
+    captured_llm_kwargs: dict[str, Any] = {}
+
+    class _FakeLLM:
+        def __init__(self, *args, **kwargs):
+            captured_llm_kwargs.clear()
+            captured_llm_kwargs.update(kwargs)
+            self.kwargs = kwargs
+
+    fake_vllm_module.LLM = _FakeLLM  # type: ignore[attr-defined]
+
+    class _FakeSamplingParams:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    fake_vllm_module.SamplingParams = _FakeSamplingParams  # type: ignore[attr-defined]
+    fake_vllm_module.__version__ = "0.27.1"  # type: ignore[attr-defined]
+    saved_vllm = sys.modules.get("vllm")
+    sys.modules["vllm"] = fake_vllm_module
+    try:
+        from transformers import AutoTokenizer as _AT
+        from unittest.mock import patch as _patch
+
+        captured_tok_kwargs: list[dict[str, Any]] = []
+
+        class _FakeTokenizer:
+            pad_token_id = 0
+            eos_token_id = 0
+            padding_side = "right"
+
+            def __init__(self):
+                pass
+
+        def _fake_from_pretrained(model_id, **kwargs):
+            captured_tok_kwargs.append(dict(kwargs))
+            return _FakeTokenizer()
+
+        with _patch.object(_AT, "from_pretrained", side_effect=_fake_from_pretrained):
+            vb = VLLMBackend(dtype="bf16", max_new_tokens=8, gpu_memory_utilization=0.5)
+            vb.setup(sample_pair[0][0], revision=rev_value)
+            _expect(
+                "test_vllm_setup_records_self_revision",
+                vb.revision == rev_value,
+                hint=f"got {vb.revision!r}",
+            )
+            _expect(
+                "test_vllm_setup_forwards_revision_to_llm",
+                captured_llm_kwargs.get("revision") == rev_value,
+                hint=f"llm kwargs={captured_llm_kwargs}",
+            )
+            _expect(
+                "test_vllm_setup_forwards_revision_to_tokenizer",
+                bool(captured_tok_kwargs)
+                and captured_tok_kwargs[0].get("revision") == rev_value,
+                hint=f"tok kwargs={captured_tok_kwargs}",
+            )
+            _expect(
+                "test_vllm_metadata_has_revision",
+                vb.metadata().get("revision") == rev_value,
+            )
+    finally:
+        if saved_vllm is not None:
+            sys.modules["vllm"] = saved_vllm
+        else:
+            sys.modules.pop("vllm", None)
 
     import tempfile as _tempfile
     print("[selftest] Manifest materialization", flush=True)

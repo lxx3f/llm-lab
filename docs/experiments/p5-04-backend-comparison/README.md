@@ -45,7 +45,17 @@
 
 实测结果：**本轮 20 个组合 0 个 generation failure**, 全部 1800 个 row `generated` 非空且完整。
 
-## 4 轴对比结果（实测, 90 样本 / 组合, manifest-driven）
+## Round-13 重跑与新 archive (2026-08-30)
+
+detached auditor round-13 指出 round-12 的 archive (sha256=d2c85e48...) 生成于 commit `4176f65` 之前，20 个 run JSON 均缺 `backend_metadata.revision`。本轮:
+
+1. 在 RTX 5070 Ti WSL2 bf16 用 round-12 代码重跑全部 20 个组合 (transformers 10 + vllm 10);
+2. 重生成 `p5-04-runs.tar.gz` + `p5-04-runs.archive-manifest.json`；
+3. 新 archive SHA256 = `ffd8e0471f28332cd66a413e7ba02aec76b84326abe9b7a28583c76463bc9e1a`, aggregate SHA = `572c499756b0a506f333608cc2a4f0957d021e75743d48d89ccacb87a4beab1e`;
+4. 验证 `runs_with_revision=20/20` + `entry_sha_match=24/24`, 同一个模型的 transformers / vllm 两条 run 携带完全相同的 canonical revision;
+5. vLLM selftest 强化为真正的 setup() 调用 (patch vllm.LLM + AutoTokenizer.from_pretrained), 取代之前对 `vb.revision` 的直接赋值, selftest 从 106 增至 108 PASS。
+
+## 4 轴对比结果（实测, 90 样本 / 组合, manifest-driven, round-13 重跑）
 
 ### Latency (ms / sample, 越低越好)
 

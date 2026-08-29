@@ -234,7 +234,7 @@ detached auditor round-12 针对三件事提出修复要求。本节记录针对
 ### 10.2 Tracked immutable archive 交付 20 个实证产物
 
 - **症状**: `artifacts/**/*.json` 被 `.gitignore:89` 覆盖，20 个 run_*.json + comparison.csv/json + comparison_delta.csv/json 是 gitignored local-only；detached auditor 只有 README 表格与散落本地文件作为证据。
-- **修复**: 把 24 个文件打包到 `docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz` (tracked, 137,321 bytes)，并附 `p5-04-runs.archive-manifest.json` (tracked) 记录每个 entry 的 `path` / `bytes` / `sha256` + archive 自身 SHA256 (`d2c85e48e424448aa41f0aee1fe4315dcc2cda9e5c72b65be2ce790c0ef5e3b8`) + aggregate SHA (`5cafad3e00d867a5997d7786e0ba8dd3db8994c834b021899acf81a36fbcfb78`)。
+- **修复**: 把 24 个文件打包到 `docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz` (tracked, 24 entries)，并附 `p5-04-runs.archive-manifest.json` (tracked) 记录每个 entry 的 `path` / `bytes` / `sha256` + archive 自身 SHA256。**round-13 重跑**: 原 archive 生成于 commit `4176f65` 之前，20 个 run JSON 均缺 `backend_metadata.revision`。本轮在 RTX 5070 Ti WSL2 bf16 用 round-12 代码重跑 20 个组合，新 archive SHA = `ffd8e0471f28332cd66a413e7ba02aec76b84326abe9b7a28583c76463bc9e1a`，aggregate SHA = `572c499756b0a506f333608cc2a4f0957d021e75743d48d89ccacb87a4beab1e`；验证 `runs_with_revision=20/20`, `entry_sha_match=24/24`。
 - **复现验证脚本**: 协议 §9.1 提供 5 行 Python 脚本，detached auditor / 第三方可在干净 checkout 中独立运行：实测 `archive_sha_match=True` + 24/24 entries sha_match=True。
 
 ### 10.3 两后端 immutable revision 对称
@@ -255,7 +255,7 @@ P5-04 final objective (90-sample interpretation; list item D):
 - abstract HEAD pointer: HEAD is on a commit that contains all of:
     - scripts/eval_backend_comparison.py  (with _materialize_manifest_samples + revision symmetry + tracked archive delivery)
     - docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json  (tracked, 90 entries, source_commit=b4fd879, aggregate_sha256=d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282)
-    - docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz  (tracked, 137,321 bytes, archive_sha256=d2c85e48e424448aa41f0aee1fe4315dcc2cda9e5c72b65be2ce790c0ef5e3b8)
+    - docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz  (tracked, archive_sha=ffd8e0471f28332cd66a413e7ba02aec76b84326abe9b7a28583c76463bc9e1a, round-13 重跑含 revision)
     - docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.archive-manifest.json  (tracked, 24 entries + aggregate_sha256)
     - docs/experiments/p5-04-backend-comparison/README.md  (round-12 加固段)
     - docs/protocols/backend-comparison.md  (§3.1 / §6.2 / §9.1 加固)

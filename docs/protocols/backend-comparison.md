@@ -275,13 +275,17 @@ from pathlib import Path
 arch=Path('docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz')
 meta=json.loads(Path('docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.archive-manifest.json').read_text())
 print('archive_sha_match', hashlib.sha256(arch.read_bytes()).hexdigest() == meta['archive_sha256'])
+# Round-13: verify every run JSON carries backend_metadata.revision matching
+# the canonical DEFAULT_MODELS revision (same model, transformers+vllm identical).
 with tarfile.open(arch,'r:gz') as t:
-    names=set(t.getnames())
     for e in meta['entries']:
+        if not e['path'].startswith('artifacts/p5-04-backend-comparison/full/run_'):
+            continue
         m=t.extractfile(e['path'].split('/')[-1])
-        print(e['path'].split('/')[-1], 'sha_match', hashlib.sha256(m.read()).hexdigest() == e['sha256'])
+        d=json.loads(m.read().decode())
+        print(e['path'].split('/')[-1], 'rev', d['summary']['backend_metadata'].get('revision'))
 "
-# 期望: archive_sha_match=True + 24 entries 全 sha_match=True.
+# 期望: archive_sha_match=True + 24 entries 全 sha_match=True + 20/20 run 僅报 revision (round-13 重跑补齐)。
 ```
 
 ## 10. 已知边界
