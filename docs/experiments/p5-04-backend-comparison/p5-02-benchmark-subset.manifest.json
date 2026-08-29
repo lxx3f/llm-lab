@@ -1,0 +1,565 @@
+{
+  "schema_version": "2.0",
+  "data_version": "D2",
+  "split": "dev",
+  "benchmark": "p5-02",
+  "description": "Historical P5-02 benchmark evaluation subset (post target-answer-leakage fix at b4fd879): 90 stratified dev samples (6 task_types × 15 each). Extracted from b4fd879 so the actual content matches the historical P5-02 transcript results.",
+  "source_commit": "b4fd879",
+  "source_commit_short": "b4fd879",
+  "source_path": "datasets/tool-calling-d2/MANIFEST-dev.json",
+  "source_aggregate_sha256": "d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282",
+  "source_count": 90,
+  "recomputed_aggregate_sha256": "d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282",
+  "computed_at": "2026-08-29",
+  "sample_count": 90,
+  "task_type_counts": {
+    "tool_not_available": 15,
+    "tool_error_response": 15,
+    "insufficient_result_search": 15,
+    "req_change_city": 15,
+    "multi_tool_sequential": 15,
+    "error_recovery": 15
+  },
+  "samples": [
+    {
+      "sample_id": "d2-dev-0001",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0001.json",
+      "sha256": "3334f7ea4b2fd43b6d6118bf65e301f73bb2eaaf03e71dac515967a880527908",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0002",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0002.json",
+      "sha256": "03207e95c9f3ca22b1de3e5eba11c7b108a4d18f1d756cbe3c27e8ec3bb265f0",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0003",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0003.json",
+      "sha256": "aabb188475e15f64e434d8fbdd20fea5ea43283cf538bfcde09aa67c14dbdb05",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0004",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0004.json",
+      "sha256": "9f41c230aac3f69b900931a54a8011d55e4ac3a7904f0083ffb51a0129d0f6b2",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0005",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0005.json",
+      "sha256": "c98ba1b4e58b1611ce5a624ee8318cd4551c26080992834a36b949d833ea3514",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0006",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0006.json",
+      "sha256": "9f2f6a1dcd0ca1d676a86d7572043f224bdb1a05db28d7ea6d1700f091f9b9af",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0007",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0007.json",
+      "sha256": "e49d50dce262e3a5801c855d884f947f51cb32bc2bd144e04d72e6ca9afed83a",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0008",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0008.json",
+      "sha256": "a0e05589653387248637db7e41f15231bc7debb92e459133daa3a8f607b42caa",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0009",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0009.json",
+      "sha256": "db5c95905f6e3e74f89a27e73e099ca6236119bdaabb80eeeb89f220b4fd3bcc",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0010",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0010.json",
+      "sha256": "a6166dfada0fbba08717967a9fe3a843cbbe75fe075ae78a42259fe532ae7900",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0011",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0011.json",
+      "sha256": "b233607053d167f51ce1fb697fdf82cacd7c1e8b7c165aa586577923c2374be3",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0012",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0012.json",
+      "sha256": "75e7136a99b54f7983ee759778fb4f96050ae77dad3e9863ecf3c3cd8814f536",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0013",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0013.json",
+      "sha256": "fa247bbd7e094241e798fa85aab9e7b8ec4a2a98aef8ea6492803d3830d2b6f6",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0014",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0014.json",
+      "sha256": "c3bc7c055c8397e595ca627e7b1988e9c6168681a39adaf9a470b52d50495aae",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0015",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0015.json",
+      "sha256": "c27e255603afe68737473cc3057eafa77d3f9cda064ecfb452bce60e82c971c8",
+      "task_type": "tool_not_available"
+    },
+    {
+      "sample_id": "d2-dev-0016",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0016.json",
+      "sha256": "1e137901d4fbfc7c9b4c2633a28719dc964378c484f384f364bec711169bc587",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0017",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0017.json",
+      "sha256": "6b28bd9687f97867af26f8f973edef8e7bf292664d87fe009625f7d1e6ef8b5c",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0018",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0018.json",
+      "sha256": "ee6c2a3bf7e75b4c8fb9f9621d467bad4f28911f6832f9cb815b1e25858f4e31",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0019",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0019.json",
+      "sha256": "682c948bdc513bae4bb19cc123f97c6f129231bff14471e8be24fd018b5c463e",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0020",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0020.json",
+      "sha256": "b02672867d2b8b5aa76f768b7f9a2b4cf17e56b5b896629a6e7a0db494aee8f2",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0021",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0021.json",
+      "sha256": "8cb1d8a76fdfdf584d85880dcd64ba4d025947a4b773ae168581fcbbdf719289",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0022",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0022.json",
+      "sha256": "1b405b3c72f8f29d66e9c49c5d553518a85134373436cdda015807d85e56f6c3",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0023",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0023.json",
+      "sha256": "2837405fe88caa9b975af19f516154f53b93f864e5a45a56f62ec4542f2fc381",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0024",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0024.json",
+      "sha256": "7d8579a9c037ba6b8236256f5ae6c6d3a5a7c0b41ecf544634f4f3d5e62a2007",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0025",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0025.json",
+      "sha256": "1550d22742e8ff849989f150d6bbbd1d4abb7ffaf93d1742cf8b24672a0135bb",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0026",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0026.json",
+      "sha256": "c71402a80e974c70ed5cac9ac4978a6c810ff38ec323f8301a10ed159d4115eb",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0027",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0027.json",
+      "sha256": "510a687e822a142f975c13a24581e24515b87716d4a7f4b8939fbbff2b196212",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0028",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0028.json",
+      "sha256": "6f6af90ce829259a720388344252cde54f3fcc0f0e54e2c6a0830c63a80391b9",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0029",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0029.json",
+      "sha256": "8af17d68a842761c9dcf653059d341134685edece2c5361f57175c73cc4e791e",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0030",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0030.json",
+      "sha256": "38e37318efe981f41e95337ef0d6fa39f41bc8b9db09831f8470f4bc8634f3b8",
+      "task_type": "tool_error_response"
+    },
+    {
+      "sample_id": "d2-dev-0031",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0031.json",
+      "sha256": "1eaf84fd5815180952c867bce41200799a5783660e20272c80c5557e3c26abd3",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0032",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0032.json",
+      "sha256": "745736dbc7489c55ec1c9c72298e7149d0a72cbb02316ad48ae15fc5ea5a5cef",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0033",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0033.json",
+      "sha256": "47b125228136f16e859330d8c0dbd287637423c7e5198d9ebac6b2fa544efc06",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0034",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0034.json",
+      "sha256": "ae22e2cc5072431c9dc56e00dfbe10453e9264439d48657dc16c208cf0a9bdd2",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0035",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0035.json",
+      "sha256": "d7739acb00279d427def037fbd081850da53410453a95e2e46f1378564d40f0e",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0036",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0036.json",
+      "sha256": "34a084b681ab18594b020fcabe6f624fa6fb10bb7052de6899ec000f5c9798a1",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0037",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0037.json",
+      "sha256": "fab7cd02bd2a2743e7d4af2e9ccb8064f61c25a6fb15c1e93fe26c1a13471df2",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0038",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0038.json",
+      "sha256": "a4dd8f48f838a39e77d4698e2097cdb2a75ae90fdf03da06d36f672abf168c99",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0039",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0039.json",
+      "sha256": "443710041ffcf766cc18f5732f3b28495ff9a47410552f0ec515bbb5d69ecfb3",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0040",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0040.json",
+      "sha256": "a2c082bfc2e8cb9a75ee361851225f100ef92b3758a715450e4bb4401f443c00",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0041",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0041.json",
+      "sha256": "6afc77962496f23577730d3b719cd5ccaf4a60d6aa7be9e2272978d4b8e913b1",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0042",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0042.json",
+      "sha256": "62609f480a254084c1b2dfbc021491c9bc63fe5025dded10a9c9d2dd87b7aa4c",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0043",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0043.json",
+      "sha256": "cda4ba9802eab096fa2fa6987bd409b2bfe0a254784f105f22d44d28346d1bba",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0044",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0044.json",
+      "sha256": "051e3400a83d3fe243c71a47a7d99643a8681b66798c3acd94de7fec6ef60b3d",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0045",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0045.json",
+      "sha256": "a380103e71439118217f0b2c50d67ea2795a78a7548224a4390ff0e3f4f66aaf",
+      "task_type": "insufficient_result_search"
+    },
+    {
+      "sample_id": "d2-dev-0046",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0046.json",
+      "sha256": "51e196275875f655c7ec4bfa0ae224b19e27f087edce25aa326de94d5de7316a",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0047",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0047.json",
+      "sha256": "5c65b3615410607a9bd8bab73e4ed8396fe9ee67dd52058c77a4207f92cadf20",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0048",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0048.json",
+      "sha256": "9724a2a34b61a0e8b0164c036060824a8184872366e66776f9c5595bc92fe392",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0049",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0049.json",
+      "sha256": "b45c11edc02a7adf227db8b1433e1361cf24e930d336b81001ab4037661c867a",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0050",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0050.json",
+      "sha256": "522c34eb29f42bffa65c749622f8ddc78e5ccce0fa87fb78529212212a24b63a",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0051",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0051.json",
+      "sha256": "a4f53a2642c4154e1dd03bd9187f07e8544c62b5901aa1b63983568e5729a6e7",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0052",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0052.json",
+      "sha256": "3a1e840e4219d643f74db5bedaabcb55982ec71f38546b430a8c5f35c238cff9",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0053",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0053.json",
+      "sha256": "88405b3e8517d7e06580268846480a11c098820fbd3f532182cf6ebd3ab814ba",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0054",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0054.json",
+      "sha256": "99b0e1a478149c71cc653370e2c0728730e9939b2511578cd62a21d98d3bfa37",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0055",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0055.json",
+      "sha256": "818c6ad9b56937778bfa6e36285606f5f3cf9477be9da14c742d35c67e606530",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0056",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0056.json",
+      "sha256": "d9cdc28fef17ebdd71203d5f3ef60718ddd1bdac53614b45e9be5992415ad67e",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0057",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0057.json",
+      "sha256": "72f339a225e4e488799ee8b3e68539b549e2e16ccc02832af14f52190c47d3ed",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0058",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0058.json",
+      "sha256": "eeb87217540c4518ee0e5864039fa950d84b608a10516aab4463410101dfadb4",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0059",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0059.json",
+      "sha256": "ecb0a1305cd6bec6e499c745433c7cd9122fd990c85c2b437717743475021563",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0060",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0060.json",
+      "sha256": "f007be3cf59047b0842d10f15379b00ae7f438dfb3cd24fcc3abb383b6de7461",
+      "task_type": "req_change_city"
+    },
+    {
+      "sample_id": "d2-dev-0061",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0061.json",
+      "sha256": "b8080a80950b26f9a2f70b52abd620113629f6afce13a700f32f0fb90321a6c7",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0062",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0062.json",
+      "sha256": "f16db750be8e380a6b1faa93f6741b92649807bd8ab46b42f256c37f8b33fe86",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0063",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0063.json",
+      "sha256": "4954dc49203888957514c45208e8a73986d96b424fda7261b50fc5e2dbf3fc3c",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0064",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0064.json",
+      "sha256": "de551d5542a0d7cb23a89cf753f3f687450d6543583a54d8dc5a5355f2e5f0e9",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0065",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0065.json",
+      "sha256": "ec879468de9ccc64acbdeca0c25d29df10d6c9b598f0df91bfe73f08bfd820e9",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0066",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0066.json",
+      "sha256": "f9851053b60ce8e7dba4ffce265903ff67b482181fe37459b7ad2ad536e960bf",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0067",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0067.json",
+      "sha256": "7352031fd91e0b534efb69f62c92f45a8dca5b4f7d6529f9b68c2c858f294cc6",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0068",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0068.json",
+      "sha256": "3b3db5928f67f40f51bf8f281151cd12671a36a8fd855e663540e29fbd7d3a5a",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0069",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0069.json",
+      "sha256": "0357fc75f8ae8d8755844f793e18f94912690f95eca2e72947feaceb7ccc0326",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0070",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0070.json",
+      "sha256": "ec687b8ba2b849d2d59b68ca6456e294ff82689d590ca778b2f84ece53c5f2fd",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0071",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0071.json",
+      "sha256": "385dc8060664cc71f0a8d67766d1b3e27e73b542694f6f5222159b1541d9bb3c",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0072",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0072.json",
+      "sha256": "6ffef6ba82270b8d28d817c281127ae5fc2630bcfef7972536a56b915cfa9a65",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0073",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0073.json",
+      "sha256": "7b06b0955b3a7c48b559b93d2ed2d45bf5811cfbcae4a4d4824aeba556a0fd00",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0074",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0074.json",
+      "sha256": "7818500db88ae25bd9b9f1a29a1732ca0be56bc716315145f8c2db0d471d3ae4",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0075",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0075.json",
+      "sha256": "1e5f0801c580a401d33d84e9e3a88acf014a70fb5e9e8e5723b0751c81303659",
+      "task_type": "multi_tool_sequential"
+    },
+    {
+      "sample_id": "d2-dev-0076",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0076.json",
+      "sha256": "317e1a122c0185f1661498c7e3c1e00a69aa46fd9e202682760320c03f19dfc2",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0077",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0077.json",
+      "sha256": "4c0dfc1310f52b0039068ef7065cb30bfaf6b40b1f6d9d1b3e66d13d0c695f46",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0078",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0078.json",
+      "sha256": "0fd352a21b4fca0d54ace8edbca211b057731fa85ab9da16b0d80f8b93d21d93",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0079",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0079.json",
+      "sha256": "044824359d853a0a8e411476991addd4b57966b8449190df114f8f8910ec87ec",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0080",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0080.json",
+      "sha256": "36b65c7f62485aab6664df7b4b76bb25401a34a5fee055ad97a4eb5f8f8bf1da",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0081",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0081.json",
+      "sha256": "431bb9ccd999a4579dc94a636371e27f3c081a1c18e1a007f8cc75963acf1f0e",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0082",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0082.json",
+      "sha256": "137797d8f1c1ec1d0f846b4e4b0d0b8bb94f300a53750184443e2e2cd400cd82",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0083",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0083.json",
+      "sha256": "e08b83aabc30a9981a8e193347879ccc381be62ddede4dbfe39d5b6040f2ea6d",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0084",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0084.json",
+      "sha256": "d767e1d65caaa8f6be59f910734e87bf88536c4068f93a32dfe64d905cc4fe6a",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0085",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0085.json",
+      "sha256": "c796d32152bc15fc34b3ef1dfa0646b9d218df3373af420d171505a149eabd04",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0086",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0086.json",
+      "sha256": "532ef76401a247c19dca0a350219def74ce54fa949e585f503626894b1a4fadb",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0087",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0087.json",
+      "sha256": "67ca4076d40e75976dec8be0bd6819a8198f9946522c15192525ff6641a1b837",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0088",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0088.json",
+      "sha256": "bfceb662c0c219f6c041a85b0d5d75eed41947701b8f50a29c43570c82b3c3f5",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0089",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0089.json",
+      "sha256": "c18ca65f3efc5d0bf061483becaac7b2e971653717f30e5fa1d5a50b934a033d",
+      "task_type": "error_recovery"
+    },
+    {
+      "sample_id": "d2-dev-0090",
+      "path": "datasets/tool-calling-d2/p5-02-benchmark/d2-dev-0090.json",
+      "sha256": "99fbea0efb2e425381befa658027c8c3c144a7a959b7bf93d75e46823951535b",
+      "task_type": "error_recovery"
+    }
+  ]
+}

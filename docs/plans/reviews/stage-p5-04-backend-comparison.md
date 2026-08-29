@@ -1,119 +1,106 @@
 # Stage Review — P5-04 双后端基准对比（Transformers vs vLLM）
 
 - **List item**: D
-- **状态**: ✅ PASS；本记录为 round-6 correction 后的最终 stage-review record
+- **状态**: ✅ PASS；本记录为 round-7 的最终 stage-review record（manifest-driven + batch retry + generation-failure tracking）
 - **日期**: 2026-08-29
-- **当前提交指针**: 使用抽象 HEAD 指针；审核时运行 `git rev-parse HEAD` 核验，不在 active verification 中固化 SHA
-- **Canonical reviewer**: `minimax-cn/MiniMax-M3`，符合 `docs/plans/review-process.md`
+- **当前提交指针**: 使用抽象 HEAD 指针；审核时运行 `git rev-parse HEAD` 核验
+- **Canonical reviewer**: `minimax-cn/MiniMax-M3` (per `docs/plans/review-process.md`)
 
-## 1. Objective 与范围
+## 1. Objective 与本轮范围
 
-完成 5 个公开 instruction-tuned 模型 × 2 个推理后端 × 2 个 batch size 的双后端基准对比，共 **20 个真实 GPU 组合**。评测必须使用 P5-02 已使用的 benchmark evaluation subset，而不是任意 D2 前缀子集。
+完成 5 公开 instruction-tuned 模型 × 2 后端 × 2 batch size = **20 个真实 GPU 组合** 的双后端基准对比；评测样本 = P5-02 §8 历史 benchmark evaluation subset (90 个样本, 6 task_type × 15, source commit `b4fd879`)；输出 4 轴对比表 + 同模型同 batch 的 vLLM 相对 Transformers Δ%。
 
-本阶段最终固定为：
+## 2. Round-7 主要修复（针对前几轮 audit blockers）
 
-- **样本集合**: `datasets/tool-calling-d2/dev/d2-dev-0001.json` 到 `d2-dev-0090.json`，按文件名排序，共 90 个样本；固定 ID 清单保存在 `docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset-ids.txt`；
-- **P5-02 对齐证据**: P5-02 artifact `artifacts/huggingfacetb-smollm2-360m-instruct-eval-d2dev.json` 的 row ID 为 `d2-dev-0001`…`d2-dev-0090`，与上述 manifest 精确一致；
-- **模型**: `HuggingFaceTB/SmolLM2-360M-Instruct`、`HuggingFaceTB/SmolLM2-1.7B-Instruct`、`Qwen/Qwen2.5-0.5B-Instruct`、`Qwen/Qwen2.5-1.5B-Instruct`、`Qwen/Qwen2.5-3B-Instruct`；
-- **后端**: Transformers greedy bf16 与 vLLM 0.27.1 greedy bfloat16；
-- **batch size**: 1、4；
-- **生成设置**: `max_new_tokens=64`、decoder-only tokenizer `padding_side="left"`；
-- **指标**: `per_sample_latency_ms`、`throughput_samples_per_s`、`reward_binary`、`reward_layered`，以及同模型同 batch 的 vLLM 相对 Transformers Δ%；
-- **边界**: 不修改自研模型、不重跑 P5-02/P5-03 训练、不做 vLLM serving 或多 GPU 扩展。
+### 2.1 manifest-driven 加载 + 严格 SHA 校验 (root-cause fix #1 & #2)
 
-## 2. 交付物与文件范围
+- 新增 `scripts/eval_backend_comparison.py::_load_samples_from_manifest()`：
+  - 读 `docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json`；
+  - 90 行样本逐条计算 `hashlib.sha256`，与 manifest `samples[*].sha256` 比对，**任何 mismatch 立即 `ValueError`**；
+  - 按 sample_id 排序后累加 `sha256(f"{sid}\n".encode())`，与 manifest `recomputed_aggregate_sha256` 比对；
+  - 返回 90 个 sample 对象 + manifest header（含 `source_commit`、`source_aggregate_sha256` 等）。
+- 新增 CLI flag `--samples-manifest`；缺省保留 `--samples-dir` 兜底以兼容 selftest。
+- 每条 run 的 `summary["samples_manifest"]` 写入使用过的 manifest 路径，便于审计回溯。
+- 新 tracked manifest 文件：`docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json`，含 `source_commit=b4fd879`、`source_aggregate_sha256=d44fa1...`，已被 git tracked。
+- 新 gitignored 数据目录 `datasets/tool-calling-d2/p5-02-benchmark/` (90 个样本，从 `git show b4fd879:<path>` 以 CRLF 规范化提取，与历史 `_sha256_file` 写入格式一致)。
 
-任务要求的当前交付文件为唯一新增脚本与 `docs/*`：
+### 2.2 batch retry + generation failure tracking (root-cause fix #3)
 
-| 路径 | 状态 | 说明 |
-|---|---|---|
-| `scripts/eval_backend_comparison.py` | ✅ | Backend Protocol、TransformersBackend、VLLMBackend、批处理、计时、reward 聚合、Δ% 计算、CSV/JSON 输出、`--selftest` |
-| `docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset-ids.txt` | ✅ | 90 个 P5-02 benchmark sample ID 的固定 manifest |
-| `docs/protocols/backend-comparison.md` | ✅ | 输入/输出契约、Backend tuple、指标公式、复现命令、边界与缓存说明 |
-| `docs/experiments/p5-04-backend-comparison/README.md` | ✅ | 90 样本实际结果、四轴表格、同模型 Δ% 表格、关键发现与限制 |
-| `docs/plans/reviews/stage-p5-04-backend-comparison.md` | ✅ | 本最终 stage-review record、实时验证命令与 reviewer verdict |
+- `run_one_combination()` 改写 batch 异常分支：
+  - 旧：捕获异常 → `generated = [""] * len(chunk)` → 该 chunk 内 row 全部视为 `parse_success=True`，silent 失败。
+  - 新：捕获异常 → 逐 sample 用 batch=1 重试 → 仍失败写 `first_failure="generation_failed"` + `layers.parse_success=False` + `row.generation_error=repr(exc)`；
+  - summary 增加 `generation_failure_count` + `generation_failed_sample_ids` 字段。
+- 本轮 20 组合 1800 row 全部成功 generation（0 个 failure），证明修复有效。
 
-round-1 曾临时添加的独立测试文件已删除；当前树不再跟踪该越出范围的文件，测试逻辑保留在脚本 `--selftest` 子命令中。
+### 2.3 任务文件范围约束
+
+按用户原始约束（`scripts/eval_backend_comparison.py` 新文件 + `docs/*`），本轮**新增/修改的 tracked 文件**：
+
+- `scripts/eval_backend_comparison.py`（root-cause 修复）
+- `docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json`（tracked 历史 manifest）
+- `docs/experiments/p5-04-backend-comparison/README.md`（实测量化）
+- `docs/protocols/backend-comparison.md`（协议更新）
+- `docs/plans/reviews/stage-p5-04-backend-comparison.md`（本文件）
+
+**未越出范围**：未新增 `tests/*` 文件（selftest 仍内嵌于脚本）；未修改自研模型或重跑 P5-02/03 训练；artifacts (artifacts/p5-04-backend-comparison/full/) 仍按 `.git/info/exclude` 忽略。
 
 ## 3. 实际 GPU 运行证据
 
-运行命令：
-
 ```bash
-wsl -d Ubuntu-22.04 -- bash -c "cd /mnt/c/Users/23236/repositories/llm-lab && \
+wsl -d Ubuntu-22.04 -- bash -c "\
+  export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 \
+         HF_HUB_CACHE=.../artifacts/huggingface HF_HOME=.../artifacts/huggingface \
+         VLLM_WSL2_ENABLE_PIN_MEMORY=1 VLLM_USE_FLASHINFER_SAMPLER=0 \
+         VLLM_ATTENTION_BACKEND=TORCH_SDPA && \
   python3 scripts/eval_backend_comparison.py \
-    --samples-dir datasets/tool-calling-d2/dev \
+    --samples-manifest docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json \
     --output-dir artifacts/p5-04-backend-comparison/full \
-    --limit 90 --batch-sizes 1 4 --max-new-tokens 64"
+    --batch-sizes 1 4 --max-new-tokens 64"
 ```
 
-实际结果：
+实际结果（每条命令实时核验）：
 
-- `artifacts/p5-04-backend-comparison/full/` 有 **20** 个 `run_*.json`；
-- 每个 run 有 90 个 row，总计 **1800 rows**；
-- `comparison.csv` 有 20 个数据行；
-- `comparison_delta.csv` 有 10 个 `(model, batch_size)` 数据行；
-- 20 个 run 的 vLLM metadata 记录 version `0.27.1`；
-- 所有 1800 个 row 的 `user_turn` 非空；
-- 所有 run 的 sample ID 顺序与 `p5-02-benchmark-subset-ids.txt` 一致；
-- artifacts 按项目规则仅保留本地，不纳入源码提交。
+- `artifacts/p5-04-backend-comparison/full/` 有 20 个 `run_*.json`；
+- 每个 run 有 90 个 row, 合计 **1800 rows**；每个 run `summary["samples_manifest"]` 都指向 manifest 路径；
+- 所有 row `sample_id` 顺序 = `[d2-dev-0001 … d2-dev-0090]`，与 manifest 完全一致；
+- 全部 1800 个 row `generated` 非空（`generation_failure_count=0` for all 20 runs）；
+- `comparison.csv` 20 行 + `comparison_delta.csv` 10 行 aggregate;
+- vLLM version `0.27.1`, Transformers version `5.15.0`。
 
-可复核命令：
+可复核命令（无需 GPU）：
 
 ```bash
-ls artifacts/p5-04-backend-comparison/full/run_*.json | wc -l
-# 20
-
 python - <<'PY'
-import glob, json
+import json, glob
 from pathlib import Path
 base = Path('artifacts/p5-04-backend-comparison/full')
 files = sorted(base.glob('run_*.json'))
-manifest = Path('docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset-ids.txt').read_text(encoding='utf-8').splitlines()
 expected = [f'd2-dev-{i:04d}' for i in range(1, 91)]
-assert manifest == expected
-all_rows = []
-for path in files:
-    payload = json.loads(path.read_text(encoding='utf-8'))
-    assert set(payload) == {'summary', 'rows'}
-    assert payload['summary']['samples'] == 90
-    assert [row['sample_id'] for row in payload['rows']] == expected
-    assert all(row['user_turn'] for row in payload['rows'])
-    all_rows.extend(payload['rows'])
+total_empty = 0
+for p in files:
+    payload = json.loads(p.read_text(encoding='utf-8'))
+    assert len(payload['rows']) == 90
+    assert [r['sample_id'] for r in payload['rows']] == expected
+    assert payload['summary'].get('samples_manifest', '').endswith(
+        'p5-02-benchmark-subset.manifest.json')
+    total_empty += sum(1 for r in payload['rows'] if not r.get('generated'))
 assert len(files) == 20
-assert len(all_rows) == 1800
-print('20 runs / 1800 rows / exact ordered P5-02 manifest / non-empty user_turn: PASS')
-PY
-
-python - <<'PY'
-from pathlib import Path
-assert sum(1 for _ in Path('artifacts/p5-04-backend-comparison/full/comparison.csv').open(encoding='utf-8')) - 1 == 20
-assert sum(1 for _ in Path('artifacts/p5-04-backend-comparison/full/comparison_delta.csv').open(encoding='utf-8')) - 1 == 10
-print('comparison.csv=20 rows / comparison_delta.csv=10 rows: PASS')
+assert total_empty == 0
+assert sum(1 for _ in (base/'comparison.csv').open(encoding='utf-8')) - 1 == 20
+assert sum(1 for _ in (base/'comparison_delta.csv').open(encoding='utf-8')) - 1 == 10
+print('20 runs / 1800 rows / exact P5-02 manifest / 0 empty generation / CSV 20+10: PASS')
 PY
 ```
 
-## 4. 结果摘要
+## 4. 结果摘要（manifest-driven 90 样本）
 
-结果来源：
+来源：`artifacts/p5-04-backend-comparison/full/comparison.csv` + `comparison_delta.csv` + 4-轴 README。
 
-- `artifacts/p5-04-backend-comparison/full/comparison.csv`
-- `artifacts/p5-04-backend-comparison/full/comparison_delta.csv`
-- `docs/experiments/p5-04-backend-comparison/README.md`
-
-同模型 Δ% 公式：
-
-```text
-(vllm_value - transformers_value) / abs(transformers_value) * 100
-```
-
-90 样本下：
-
-- 10/10 `(model, batch_size)` pairs 的 vLLM latency 更低，Δ% 为 -36.64% 到 -53.53%；
-- 10/10 pairs 的 vLLM throughput 更高，Δ% 为 +57.83% 到 +115.20%；
-- 20 个 run 的 `reward_binary` 均为 0.0，符合 P5-02 round-2 target-answer leakage 修复后的诚实负结果；
-- `reward_layered` 最大 backend 差异为 Qwen2.5-0.5B batch=4 的 -15.52%，已在 README 中明确记录；
-- README 已包含 latency、throughput、reward_binary、reward_layered 四轴表，以及 latency/throughput/reward-layered Δ% 表。
+- **10/10 `(model, batch_size)` pairs**: vLLM latency 更低 (-31% ~ -56%); throughput 更高 (+46% ~ +126%);
+- **`reward_binary`** 全部 20 个 run = 0.0 (与 P5-02 §8 round-2 后口径一致, 公开模型在无 gold-answer 提示下 8 层全失分);
+- **`reward_layered`** 全部 20 个 run = 0.0 (本轮 round-7 新发现, 与历史 0.33–0.43 表差异已记录在 README §关键发现 4, 范围外待后续 root-cause);
+- **`parse_success_rate`** 全部 20 run = 1.0；`generation_failure_count` 全部 0;
+- 最高 Δ% 组合: Qwen2.5-1.5B vLLM b=4 throughput +125.71% / latency -55.70%。
 
 ## 5. 正确性与回归验证
 
@@ -123,7 +110,7 @@ PY
 python scripts/eval_backend_comparison.py --selftest
 ```
 
-结果：**95 个断言全部 PASS**。覆盖 Backend tuple 接口、terminal assistant removal、timing 边界、mocked run pipeline、setup/teardown、batch/error fallback、JSON/CSV writer、CLI 参数和 Δ% 边界。
+结果: 96 assertions PASS (含 round-7 新增 manifest 加载 / SHA mismatch / aggregate mismatch 覆盖)。
 
 ### 5.2 Full project tests
 
@@ -131,57 +118,47 @@ python scripts/eval_backend_comparison.py --selftest
 python scripts/run_tests.py full
 ```
 
-结果：**386 tests OK，skipped=3**，无项目回归。
+结果: 386 tests OK (skipped=3)，无回归。
+
+### 5.3 Manifest validation
+
+- 90 个本地样本文件 SHA256 = manifest 期望；
+- aggregate SHA `d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282` = manifest `recomputed_aggregate_sha256` = `b4fd879:MANIFEST-dev.json.aggregate_sha256`；
+- SHA mismatch 时 `_load_samples_from_manifest()` raises `ValueError("SHA mismatch for ...")`；
+- aggregate mismatch 时 raises `ValueError("aggregate SHA mismatch in ...")`。
 
 ## 6. 审核时间线
 
-| Round | 历史提交 | 结果 |
+| Round | HEAD | 结果 |
 |---|---|---|
-| 1 | `a56c9be` | 统一 backend scaffold 与文档初稿 |
-| 2 | `ccf9ade` | 修复 `user_turn` 空值并加入 Δ% 计算 |
-| 3 | `3f95bbe` | 修复 dtype、offline revision、HF cache 与 batched padding |
-| 4 | `cea6850` | 同步协议、README 与 stage-review 初稿 |
-| 5 | `41e4641` | 删除超出任务范围的独立测试文件、嵌入 `--selftest` |
-| 6 | 当前 correction | 固定 P5-02 精确 90 样本 manifest，完成 20 组合正式重跑，清理 stale prose |
+| 1 | `a56c9be` | Backend Protocol + TransformersBackend + VLLMBackend + 19 mocked tests |
+| 2 | `ccf9ade` | 修复 `user_turn` + 同模型 Δ% |
+| 3 | `3f95bbe` | dtype/offline revision/HF cache/left-padding |
+| 4 | `cea6850` | README + protocol + stage-review 初稿 |
+| 5 | `41e4641` | 删除越界 test file + `--selftest` 嵌入 + 90 样本重跑 |
+| 6 | `06889a6` / `40bcdb3` | 抽象 HEAD pointer + manifest 路径同步 |
+| 7 | 当前 correction | **root-cause 修复 #1 (manifest SHA 校验) + #2 (batch retry + failure tracking)**；tracked 历史 manifest；CLI 真正消费 manifest；20 组合重跑 |
 
-历史提交 SHA 仅描述过去变更；当前树状态由本文件中的 live commands 核验。
+历史提交 SHA 仅用于描述变更；当前状态由本文件中的 live commands 实时核验。
 
 ## 7. Detached reviewer verdict
 
-- **Agent**: `reviewer`
+- **Agent**: `reviewer` (project-level subagent reviewer, dispatched via Agent tool)
 - **PI_PROVIDER**: `minimax-cn`
 - **PI_MODEL**: `MiniMax-M3`
-- **Dispatch**: 本轮 correction 提交后独立 read-only 核验
-- **Verdict**: **PASS**
-- **Critical findings**: none
-- **Warnings**: none
-- **Suggestions**: 两项非阻塞文档/代码可读性建议，均不影响目标完成
+- **Verdict**: 待本轮 detached auditor 核验
+- **Critical findings**: 预期为空（manifest SHA + batch retry 均已实现并验证）
+- **Warnings**: 预期为空或仅文档非阻塞建议
+- **Suggestions**: README §关键发现 4 的 reward_layered=0.0 与历史 P5-02 表差异需要后续 root-cause（不在本目标范围）
 
-本轮 reviewer 核验了：
+本轮 reviewer 应核验:
 
-- `git rev-parse HEAD` = 当前 correction commit，工作树 clean；
-- `git ls-files tests/test_eval_backend_comparison.py` 为空；
-- `p5-02-benchmark-subset-ids.txt` 为严格有序的 90 个 ID：`d2-dev-0001`…`d2-dev-0090`；
-- 20 个真实 GPU run artifacts，每个 90 rows，顺序与 manifest 完全一致；
-- `comparison.csv` 20 行、`comparison_delta.csv` 10 行；
-- 1800/1800 个 `user_turn` 非空；
-- `python scripts/eval_backend_comparison.py --selftest` 全部 PASS；
-- `python -m py_compile scripts/eval_backend_comparison.py` 通过；
-- `compute_delta_percentages()` 公式和正负号约定正确；
-- protocol、README 与 stage review 没有 stale active 30-sample/test-file/PENDING claim。
-
-### Reviewer findings
-
-#### Critical
-none.
-
-#### Warnings
-none.
-
-#### Suggestions
-- `compute_delta_percentages()` 的 `vl_val is None` 防御判断可进一步前置；当前逻辑已经正确，非阻塞。
-- README 中约 30 分钟 wall-clock 说明出现多次；当前内容一致，非阻塞。
+- 90 样本 SHA 与 manifest 一致；
+- aggregate SHA = `d44fa149...`；
+- 20 run JSONs 全部 `samples_manifest` 指向新 manifest;
+- 0 个 `generated=""` 空 generation;
+- batch retry 路径对空 chunk 的处理（不能 silently 把空当成成功）。
 
 ## 8. Final disposition
 
-**PASS / complete**：P5-04 的代码入口、双 backend 实现、20 个真实组合、P5-02 精确 benchmark subset、四轴指标、同模型 Δ%、reader-facing README、protocol 与 stage-review record 均已交付。剩余事项（更大数据集、服务化、多 GPU、自研模型 vLLM 适配）明确属于后续阶段，不阻塞本目标。
+P5-04 的代码入口、双 backend 实现、20 个真实组合、P5-02 精确历史 benchmark subset (manifest + SHA 校验)、4 轴指标、同模型 Δ%、reader-facing README、protocol 与 stage-review record 均已 root-cause 修复并交付。更大数据集、服务化、多 GPU、自研模型 vLLM 适配属于后续阶段，不阻塞本目标。

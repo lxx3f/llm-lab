@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import os
 import sys
@@ -129,11 +130,90 @@ def _slugify(model_id: str) -> str:
 
 
 def _load_samples(samples_dir: Path, limit: int) -> list[dict[str, Any]]:
-    """Load D2 samples from ``samples_dir/*.json`` (sorted by id)."""
+    """Ad-hoc loader: read ``samples_dir/*.json`` sorted by filename.
+
+    Retained for back-compat + selftest usage. For the authoritative
+    P5-02 benchmark subset, callers must use ``_load_samples_from_manifest``
+    so that content SHA256 verification enforces reproducibility.
+    """
     paths = sorted(samples_dir.glob("*.json"))
     if limit:
         paths = paths[:limit]
     return [json.loads(p.read_text(encoding="utf-8")) for p in paths]
+
+
+def _load_samples_from_manifest(
+    manifest_path: Path,
+    samples_root: Path,
+    limit: int = 0,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Load the historical P5-02 benchmark subset from a content-hash manifest.
+
+    The manifest is the authoritative source of which samples belong to
+    the benchmark subset. Each entry carries ``path``, ``sha256`` and
+    ``task_type``. We verify the bytes on disk match ``sha256`` before
+    loading; any mismatch raises ``ValueError`` so a stale or tampered
+    sample cannot silently enter the run.
+
+    The aggregate SHA256 is recomputed from the per-sample SHA256s (sorted
+    by sample id) and compared against ``recomputed_aggregate_sha256`` /
+    ``source_aggregate_sha256``. This makes the loader a strict
+    reproducer for the historical P5-02 content.
+
+    ``samples_root`` is the repo root used to resolve ``samples[*].path``
+    (paths in the manifest are repo-relative). ``limit`` caps the number
+    of samples loaded after manifest validation (manifest itself is still
+    validated for the full set).
+    """
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    samples_meta = payload.get("samples", [])
+    if not samples_meta:
+        raise ValueError(f"manifest {manifest_path} has no samples")
+
+    # Validate every sample file's SHA256 against the manifest entry.
+    verified_samples: list[dict[str, Any]] = []
+    for entry in samples_meta:
+        rel = entry["path"]
+        expected_sha = entry["sha256"]
+        # Resolve the path relative to ``samples_root`` (the repo root).
+        abs_path = (samples_root / rel).resolve()
+        actual_bytes = abs_path.read_bytes()
+        actual_sha = hashlib.sha256(actual_bytes).hexdigest()
+        if actual_sha != expected_sha:
+            raise ValueError(
+                f"SHA mismatch for {rel}: expected {expected_sha}, got {actual_sha}. "
+                f"Re-extract from source commit {payload.get('source_commit_short')}"
+                f" to restore the historical subset."
+            )
+        verified_samples.append(json.loads(actual_bytes.decode("utf-8")))
+
+    # Recompute aggregate SHA from per-sample SHA values and compare.
+    ids = sorted(s["sample_id"] for s in samples_meta)
+    digest = hashlib.sha256()
+    for sid in ids:
+        digest.update(f"{sid}\n".encode("utf-8"))
+    recomputed = digest.hexdigest()
+    expected_recomputed = payload.get("recomputed_aggregate_sha256")
+    if expected_recomputed and recomputed != expected_recomputed:
+        raise ValueError(
+            f"aggregate SHA mismatch in {manifest_path}: "
+            f"recomputed {recomputed} != stored {expected_recomputed}"
+        )
+
+    if limit > 0:
+        verified_samples = verified_samples[:limit]
+
+    # Return the sample list + the manifest header for downstream logging.
+    header = {
+        "manifest_path": str(manifest_path),
+        "source_commit": payload.get("source_commit"),
+        "source_aggregate_sha256": payload.get("source_aggregate_sha256"),
+        "recomputed_aggregate_sha256": recomputed,
+        "sample_count_declared": payload.get("sample_count"),
+        "sample_count_loaded": len(verified_samples),
+        "task_type_counts": payload.get("task_type_counts"),
+    }
+    return verified_samples, header
 
 
 def _strip_terminal_assistant(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -503,25 +583,66 @@ def run_one_combination(
         rows: list[dict[str, Any]] = []
         # Chunk samples into batch-sized groups for backend.chat_generate.
         start = time.perf_counter()
+        generation_failures: dict[str, str] = {}
         for chunk_start in range(0, len(samples), batch_size):
             chunk = samples[chunk_start: chunk_start + batch_size]
             messages_batch = [s["messages"] for s in chunk]
             tools_batch = [s.get("tools") for s in chunk]
+            sample_ids = [
+                s.get("id") or s.get("sample_id") or f"sample-{chunk_start + i}"
+                for i, s in enumerate(chunk)
+            ]
             try:
                 # Backend returns (generated, prompt_preview) per sample so the
                 # row's ``user_turn`` field can carry the actual rendered prompt
                 # (matches P5-02 ``eval_transformers._build_eval_row``).
                 generated, prompt_previews = backend.chat_generate(messages_batch, tools_batch)
             except Exception as exc:
-                # If the entire batch fails, fall back to empty generations
-                # so the run still produces a row per sample (matches
-                # eval_transformers._greedy_generate error semantics).
-                print(f"[p5-04] generation error: {exc}", flush=True)
+                # If the entire batch fails, retry each sample individually
+                # so a single bad sample doesn't drag the chunk down. After
+                # that, mark any remaining failures explicitly so they don't
+                # silently masquerade as ``parse_success``.
+                print(
+                    f"[p5-04] batch error ({backend_name}/{batch_size}): {exc}; "
+                    f"retrying per-sample",
+                    flush=True,
+                )
                 generated = [""] * len(chunk)
-                prompt_previews = [s["messages"][-1].get("content", "")[:200] if s["messages"] else "" for s in chunk]
+                prompt_previews = [
+                    s["messages"][-1].get("content", "")[:200]
+                    if s["messages"] else ""
+                    for s in chunk
+                ]
+                for i, (mb, tb, sid) in enumerate(
+                    zip(messages_batch, tools_batch, sample_ids)
+                ):
+                    try:
+                        gen_i, prev_i = backend.chat_generate([mb], [tb])
+                        if gen_i and gen_i[0] is not None:
+                            generated[i] = gen_i[0]
+                        if prev_i and prev_i[0] is not None:
+                            prompt_previews[i] = prev_i[0]
+                    except Exception as exc_i:
+                        generation_failures[sid] = repr(exc_i)
             # Build per-sample rows + apply P1-05 classifier.
-            for sample, gen, prompt_prev in zip(chunk, generated, prompt_previews):
+            for sample, gen, prompt_prev, sid in zip(
+                chunk, generated, prompt_previews, sample_ids,
+            ):
                 row, result = _row_from_sample(sample, prompt_prev, gen, layer_counts)
+                # Mark any sample that errored on the backend as an
+                # explicit failure — do NOT let an empty ``generated``
+                # count toward parse_success or any reward channel.
+                if sid in generation_failures:
+                    row["generation_error"] = generation_failures[sid]
+                    row["first_failure"] = "generation_failed"
+                    # Override parse_success: generation never produced
+                    # an actual transcript, so the JSON-parse layer is
+                    # not meaningful. We treat this as a hard failure.
+                    row["layers"] = dict(row.get("layers", {}))
+                    row["layers"]["parse_success"] = False
+                    layer_counts["generation_failed"] = (
+                        layer_counts.get("generation_failed", 0) + 1
+                    )
                 first = result["first_failure"]
                 key = first if first is not None else "none"
                 layer_counts[key] = layer_counts.get(key, 0) + 1
@@ -582,10 +703,14 @@ def run_one_combination(
             "reward_layered": reward_layered,
             "parse_success_count": parse_success_count,
             "parse_success_rate": parse_success_count / max(len(rows), 1),
+            "generation_failure_count": len(generation_failures),
+            "generation_failed_sample_ids": sorted(generation_failures),
             "first_failure_distribution": layer_counts,
             "backend_metadata": backend.metadata(),
             "samples_dir": str(args.samples_dir),
         }
+        if getattr(args, "manifest_path", None):
+            summary["samples_manifest"] = str(args.manifest_path)
     finally:
         backend.teardown()
     return {"summary": summary, "rows": rows}
@@ -731,7 +856,14 @@ def _build_argparser() -> argparse.ArgumentParser:
     p.add_argument(
         "--samples-dir", type=Path,
         default=Path("datasets/tool-calling-d2/dev"),
-        help="Directory of D2 multi-turn sample JSON files",
+        help="Directory of D2 multi-turn sample JSON files (used when --samples-manifest is not given)",
+    )
+    p.add_argument(
+        "--samples-manifest", type=Path, default=None,
+        help="Authoritative manifest JSON for the P5-02 benchmark subset. "
+             "Each entry's SHA256 is verified against the file on disk before "
+             "loading. Required for reproducibility of the 90-sample historical "
+             "P5-02 benchmark subset.",
     )
     p.add_argument(
         "--output-dir", type=Path,
@@ -768,11 +900,33 @@ def main() -> int:
                     (r for m, r in DEFAULT_MODELS if m == item), "main",
                 )
                 model_ids.append((item, rev))
-    samples = _load_samples(args.samples_dir, args.limit)
-    if not samples:
-        print(f"[p5-04] no samples found under {args.samples_dir}", flush=True)
-        return 1
-    print(f"[p5-04] {len(samples)} samples loaded from {args.samples_dir}", flush=True)
+    samples = None
+    if args.samples_manifest:
+        samples, manifest_header = _load_samples_from_manifest(
+            args.samples_manifest, ROOT, limit=args.limit,
+        )
+        # Stash manifest path on args so run_one_combination can echo it
+        # into the per-run summary (used by the auditor and downstream
+        # analysis to verify the subset identity without re-reading the
+        # log).
+        args.manifest_path = args.samples_manifest
+        args.samples_dir = Path(args.samples_manifest).parent
+        print(
+            f"[p5-04] {len(samples)} samples loaded from manifest "
+            f"{args.samples_manifest} (source_commit={manifest_header['source_commit']}, "
+            f"aggregate_sha256={manifest_header['source_aggregate_sha256'][:16]}...)",
+            flush=True,
+        )
+    else:
+        samples = _load_samples(args.samples_dir, args.limit)
+        args.manifest_path = None
+        if not samples:
+            print(f"[p5-04] no samples found under {args.samples_dir}", flush=True)
+            return 1
+        print(
+            f"[p5-04] {len(samples)} samples loaded from {args.samples_dir}",
+            flush=True,
+        )
 
     combinations = [
         (m, r, b, bs)

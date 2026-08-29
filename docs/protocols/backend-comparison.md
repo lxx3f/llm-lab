@@ -1,6 +1,6 @@
 # P5-04 双后端基准对比协议 (Transformers vs vLLM)
 
-> 状态：阶段交付（2026-08-29，list item D round-6 correction）。
+> 状态：阶段交付（2026-08-29，list item D round-7）。Manifest-driven 90 样本 + per-sample batch retry + generation-failure tracking。
 
 本协议固定 `scripts/eval_backend_comparison.py` 的输入 / 输出契约、backend 接口、四轴对比指标与 reduced-precision 复用策略。
 
@@ -46,27 +46,39 @@ class Backend(Protocol):
 
 ```text
 .venv/python.exe scripts/eval_backend_comparison.py \\
-    --models <HF id 1> <HF id 2> ... \\
-    --backends transformers vllm \\
-    --samples-dir datasets/tool-calling-d2/dev \\
+    --samples-manifest docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json \\
     --output-dir artifacts/p5-04-backend-comparison/ \\
-    --batch-sizes 1 4 \\
-    [--limit N] [--max-new-tokens 256] [--dtype bf16|fp16|fp32]
+    --batch-sizes 1 4 [--limit N] [--max-new-tokens 64] [--dtype bf16]
 ```
 
 | Flag | 默认 | 含义 |
 |---|---|---|
+| `--samples-manifest` | 无（可选）| tracked manifest JSON;推荐走本路径以保证审计可复现 |
+| `--samples-dir` | `datasets/tool-calling-d2/dev` | 不推荐：仅供 smoke / ad-hoc 评测使用 |
 | `--models` | 5 个 P5-02 canonical models | Hugging Face model ids |
 | `--backends` | transformers, vllm | 启用的后端列表 |
 | `--batch-sizes` | 1 | 每个 backend 调用内部的 sample 数 |
-| `--samples-dir` | `datasets/tool-calling-d2/dev` | D2 多轮样本目录；只接受 `*.json` 文件 |
 | `--output-dir` | `artifacts/p5-04-backend-comparison/` | 写出 per-run + aggregate |
-| `--limit` | 0（=全部） | 评测样本上限（smoke 用） |
-| `--max-new-tokens` | 256 | greedy / vLLM sampling budget |
+| `--limit` | 0（=全部）| 评测样本上限（manifest 模式下默认取全部 90 个） |
+| `--max-new-tokens` | 256 | greedy / vLLM sampling budget；P5-04 实测 64 |
 | `--dtype` | bf16 | transformers 用 bf16/fp16/fp32；vLLM 用 bf16/fp16（不支持 fp32） |
 | `--device` | auto | transformers 用（cuda/cpu/auto）；vLLM 强制 cuda |
 | `--vllm-gpu-mem-util` | 0.85 | vLLM `gpu_memory_utilization` 参数 |
 | `--parallel` | off | 跨 model+backend 组合的线程并行（仅限组合之间；同一组合内 batch 仍走串行） |
+
+## 3.1 Manifest 路径与 SHA 校验（round-7 required）
+
+`--samples-manifest <path>` 加载逻辑：
+
+1. 读 manifest 为 JSON（schema 见 `docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json`）：
+   - `source_commit`：`b4fd879`（与 P5-02 §8 round-2 target-answer 修复同一提交）；
+   - `source_aggregate_sha256`：`d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282`（与 `b4fd879:MANIFEST-dev.json` 一致）；
+   - `samples[*]`：每行含 `sample_id` / `path` / `sha256` / `task_type`，共 90 条。
+2. 对每个 `path`，`hashlib.sha256` 读文件后与 manifest `sha256` 比对，**不匹配立即 `ValueError`**（防止任何 stale / 篡改样本进入）。
+3. 按 `sample_id` 排序后累加 `sha256(f"{sid}\n".encode())` 得到 aggregate，与 manifest `recomputed_aggregate_sha256` 比对。
+4. 校验通过后按 manifest 顺序返回 90 个 sample 对象。
+
+manifest 路径的 samples 文件位于 `datasets/tool-calling-d2/p5-02-benchmark/`，gitignored 但本地与 manifest 完全一致；本轮 runner 会以 `git show b4fd879:<path>` 提取（以 CRLF 规范化保存，因生成脚本 `_sha256_file` 是按 Windows CRLF 写入的）。
 
 ## 4. 输入数据契约
 
@@ -98,9 +110,12 @@ class Backend(Protocol):
     "reward_layered": <float 0..1>,
     "parse_success_count": <int>,
     "parse_success_rate": <float 0..1>,
+    "generation_failure_count": <int>,
+    "generation_failed_sample_ids": [<sample_id>...],
     "first_failure_distribution": {"<failure>": <count>, ...},
     "backend_metadata": {<version / dtype / device / max_new_tokens>},
-    "samples_dir": "<path>"
+    "samples_dir": "<path>",
+    "samples_manifest": "<optional manifest path>"
   },
   "rows": [
     {
@@ -138,7 +153,15 @@ HuggingFaceTB/SmolLM2-360M-Instruct,transformers,1,3,2.0,666.6,1.5,0.0,0.42,0.66
 HuggingFaceTB/SmolLM2-360M-Instruct,vllm,1,3,1.0,333.3,3.0,0.0,0.42,0.66
 ```
 
-## 6. 四轴对比指标
+## 6. Generation failure semantics (round-7)
+
+- 原来：batch 异常 → `generated = [""] * len(chunk)` → 该 row 被后续 P1-05 分类器当作 `parse_success=True`（因为 `tool_not_available` 样本正确生成就是空 JSON）。这遮蔽了 OOM / 内存碎片等真实生成错误。
+- 现在：batch 异常 → 逐 sample 用 batch=1 重试 → 仍失败的 row 写 `first_failure = "generation_failed"` + `layers.parse_success = False` + `row.generation_error = <repr>`；汇总中记录 `generation_failure_count` + `generation_failed_sample_ids`。
+- 该 round 20 个组合 × 90 样本实测 `generation_failure_count=0`。
+
+## 6.1 reward_layered 口径说明
+
+P5-04 采用的是 P5-02 §8 round-2 (commit `b4fd879`) 后脚本 `eval_transformers.py` 的 8 层口径；round-7 重跑结果与历史表格出现差异：所有 5 模型、4 个组合均为 `0.0`。这是 round-7 明确记录的异常发现，需要后续单独 root-cause（不在 P5-04 双后端对比范围内；详见 `docs/experiments/p5-04-backend-comparison/README.md` §关键发现 4）。
 
 | 指标 | 公式 | 含义 |
 |---|---|---|
