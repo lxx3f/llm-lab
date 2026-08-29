@@ -3,10 +3,17 @@
 - **Date**: 2026-08-29
 - **Author**: Minimax M3 (per `docs/plans/review-process.md`)
 - **Goal**: 验证 `llm-lab` 实验闭环各阶段的最终状态
-- **Audited snapshot**: working tree of `main` immediately before this
-  report was committed (the parent of the commit that adds this file).
-  In pointer notation: `HEAD~1` at the time the audit was added; this
-  pointer survives any number of audit-only commits added afterward.
+- **Audited snapshot**: the report was originally added in commit
+  `b1278c3` (round-8) and has been modified in subsequent audit
+  commits. The current commit `7771ca6` (round-17) modifies the
+  already-tracked report rather than adding it. The audited tree at
+  this point is `HEAD~1` of `7771ca6` = `3c9a475` (round-16, which
+  removed `git checkout HEAD~1` from audit-script docstrings).
+  Earlier rounds verified other audited parents (e.g., round-13
+  verified commit `afd579f`); see the per-round reviewer-evidence
+  documents for round-specific details.
+- **Round-17 reviewer evidence document**:
+  `docs/reports/final-audit/round-17-reviewer-evidence.md`
 - **Scope**: this audit verifies (a) tests pass, (b) schemas validate,
   (c) docs reconcile with artifacts, (d) sensitive files are gitignored,
   (e) reviewer evidence is saved, (f) working tree is clean. It does NOT
