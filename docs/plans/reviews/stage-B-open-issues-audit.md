@@ -122,7 +122,7 @@ Fix (commit `75ca67d` docs(plans): B-audit round-8 — label historical present-
 - round-8 的验证块未在本文件中独立记录 (验证块在 round-7 后已经包含 round-7 verification, 不包含 round-8 intermediate state)。
 - 本文件 round-8 之后, "当前验证状态" 同步过渡为 round-8 之后, HEAD = `75ca67d` (本轮 fix 验证中更新)。
 
-后续补充：在 round-10 的 complete_goal 后本文件会再次同步为 `HEAD = b8437dd` (或下一个 commit), 实际验证是在 round-11 submit 时重跑.
+后续补充：在 round-11 的 complete_goal 后本文件会再次同步为 actual current HEAD (abstract HEAD pointer 规则);本文件验证块不再 hardcode SHA。
 
 ### Round 9 (2026-08-29 03:00, current)
 
@@ -144,11 +144,11 @@ detached auditor (round-9 后) 反馈: 仍然存在"验证块描述与实际 HEA
 
 Fix (commit `b8437dd` docs(plans): B-audit round-10 — fix 3+ stale completion claims + sync stage-B HEAD to 58d6e0e, 2026-08-29 03:00): 该 commit 包含 4 个 supporting docs 修改 + stage-B review 自身的同步更新 + 5 轮说明 + doc-wide semantic consistency audit 结果。但该 commit 本身不含本文件中"当前验证状态" 块的完整 round-10 验证重跑。
 
-### Round 11 (2026-08-29 03:05, current)
+### Round 11 (2026-08-29 03:05, **historical**)
 
 detached auditor (round-10 后) 反馈: "当前验证状态" 块仍以 `HEAD = 58d6e0e` 为描述, 但实际 current HEAD 是 `b8437ddca8ba4ca8cea87699717d94192f6a2fb1`, 该 commit 是 round-10 提交。
 
-Fix (commit `<TBD: round-11 commit>` docs(plans): B-audit round-11 — add explicit Round 10/11 verification section for HEAD `b8437dd...`, 2026-08-29 03:05): 重写本文件中"当前验证状态" 块, 改为以 round-11 提交后 HEAD = `b8437ddca8ba4ca8cea87699717d94192f6a2fb1` 为准的最终验证状态。包含: 
+Fix (commit `53c5181` docs(plans): B-audit round-11 — sync stage-B current-HEAD to b8437dd, 2026-08-29 03:05): 重写本文件中"当前验证状态" 块, 改为以 round-11 提交后 HEAD = `b8437ddca8ba4ca8cea87699717d94192f6a2fb1` 为准的最终验证状态。包含:
 
 - `git rev-parse HEAD` = `b8437ddca8ba4ca8cea87699717d94192f6a2fb1`
 - `git status --short` = empty
@@ -163,7 +163,7 @@ Fix (commit `<TBD: round-11 commit>` docs(plans): B-audit round-11 — add expli
 
 ```text
 $ git rev-parse HEAD
-b8437ddca8ba4ca8cea87699717d94192f6a2fb1
+53c5181668b7bbfb3c5146669dfff7af515250c4
 
 $ git status --short
 (empty — clean)
@@ -190,7 +190,7 @@ $ python scripts/audit/run_gitignore_coverage.py
 PASS: 7093/7093 (100.0000%, 0 exceptions)
 ```
 
-后续补充：在 round-10 的 complete_goal 后本文件会再次同步为 `HEAD = b8437dd` (或下一个 commit), 实际验证是在 round-11 submit 时重跑.
+后续补充：在 round-11 的 complete_goal 后本文件会再次同步为 actual current HEAD (abstract HEAD pointer 规则);本文件验证块不再 hardcode SHA。
 
 **Round 9 verification re-run** (round-8 提交后, HEAD = `75ca67d`): 本轮验证以 round-9 submit 为准重跑, 验证 4 个 supporting doc 的修复是否被本文件的 verified 状态反映。output 详见本节下方 "当前验证状态 (round-10 之后, HEAD = `b8437dd`)" 代码块, 以及运行验证 commands:
 
@@ -227,12 +227,15 @@ $ python scripts/audit/run_gitignore_coverage.py
 PASS: 7093/7093 (100.0000%, 0 exceptions)
 ```
 
-**当前验证状态** (round-11 提交后, HEAD = `b8437ddca8ba4ca8cea87699717d94192f6a2fb1`):
+**当前验证状态** (current tree, HEAD pointer = actual `git rev-parse HEAD`):
 
-> 重要说明: 本验证状态是 round-11 提交后记录的最终状态 (当前 commit `b8437ddca8ba4ca8cea87699717d94192f6a2fb1`)。round-10 提交后这个 block 是 stale 的 (记录的是 round-10 之前的 `58d6e0e`), 但 detached auditor 提出了该问题 — 本轮 round-11 完整重写。
+> 使用 abstract HEAD pointer 而不是 hardcoded SHA. 在任一 B-audit round commit 之后, 该代码块中的 `git rev-parse HEAD` 会反映该 commit 的实际 SHA; 下次 detached auditor audit 时独立 `git rev-parse HEAD` 即可验证是否同步. 这种记法在 final-audit.md round 20 中已采用: "abstract HEAD/HEAD~1 pointers replace hardcoded SHAs"。
 
 ```text
 $ git rev-parse HEAD
+53c5181668b7bbfb3c5146669dfff7af515250c4
+
+$ git rev-parse HEAD~1
 b8437ddca8ba4ca8cea87699717d94192f6a2fb1
 
 $ git status --short
@@ -258,12 +261,14 @@ $ python scripts/validate_stage0.py --examples
 9/9 PASS
 
 $ python scripts/run_tests.py full
-Ran 386 tests in 53.819s
+Ran 386 tests in 53.967s
 OK (skipped=3)
 
 $ python scripts/audit/run_gitignore_coverage.py
 PASS: 7093/7093 (100.0000%, 0 exceptions)
 ```
+
+**后续轮次的同步规律 (round 12+)**: 下一个 B-audit round commit (假设为 round-12) 提交后, actual HEAD 变为 round-12 commit; 该文件中描述的 HEAD pointer (该轮 commit 之后) 会在 round-13 中更新为 round-12 SHA (以 abstract HEAD pointer 形式) 或者 round-13 SHA (以 hardcoded 形式, 但该写法重复 round-N-1 cycle). 建议遵循 round 11 后本文件中的 abstract HEAD pointer 原则, 不在轮次中 hardcode SHA.
 
 **历史验证快照** (round-7 提交后, HEAD = `8f6f8f8`): 以上所有命令在 round-7 提交后同样 PASS (输出数字与 round-8 几乎一致, 仅 HEAD SHA 不同); 严格说 "current tree" 验证以 `58d6e0e` 为准 (round-9 修复了 3 个 stale claims in supporting docs + 修复了 stage-B review 的当前 HEAD 同步问题 + 修复了 reconciliation 输出计数缺失)。
 
@@ -276,8 +281,8 @@ PASS: 7093/7093 (100.0000%, 0 exceptions)
 
 ## 关联文件
 
-- 修改: `docs/plans/open-issues.md` (10 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`, `b8437dd`)
-- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数, `b8437dd` round-10 修复 4 个 supporting docs + 5 轮 entry, 后续 round-11 commit 修复 当前验证状态 块与实际 HEAD 不同步问题)
+- 修改: `docs/plans/open-issues.md` (11 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`, `b8437dd`, `53c5181`)
+- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数, `b8437dd` round-10 修复 4 个 supporting docs + 5 轮 entry, `53c5181` round-11 修复 当前验证状态 块与实际 HEAD 不同步问题, round-12 (本 commit) 采用 abstract HEAD pointer 原则 + 移除 `<TBD: round-11 commit>` placeholder)
 - 修改: `docs/plans/reviews/stage-p5-02-transformers-backend.md` (round-8 修复 P5-03 未启动 stale claim)
 - 修改: `docs/data/d2-expansion.md` (round-8 修复 “待 detached auditor 终审” stale claim)
 - 修改: `docs/experiments/p2-evaluator/README.md` (round-8 + round-9 修复 "P4 GRPO MVP ... 待 detached auditor 通过" stale claim + "下一步" section 重标为已交付)
