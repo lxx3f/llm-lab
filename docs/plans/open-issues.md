@@ -20,7 +20,7 @@
 
 ## P0：架构实验基础问题
 
-### P0-01 Dense 基线尚未完成真实训练闭环
+### P0-01 Dense 基线真实训练闭环（已解决，2026-08-27 N11 / 2026-08-28 N12 交付后）
 
 **讨论结论（2026-08-25）**
 
@@ -137,14 +137,28 @@ BPE + tokenizer CLI tests: 7 passed
 ```text
 状态：已解决
 决策：Dense Transformer 真实训练闭环已通过 N4–N12 全部消融 + 长训练实验交付：
-  - N4 baseline + medium 5000 步曲线 (stage-n4-dense-formal-curve.md)
-  - N5 4 规模点 scale sweep (stage-n5-dense-scale-sweep.md)
-  - N6 dropout 消融 {0.0, 0.1, 0.2} (stage-n6-dense-dropout-sweep.md)
-  - N7 RoPE base 消融 {10k, 50k, 100k} (stage-n7-dense-rope-sweep.md)
-  - N8 n_heads 消融 {2, 4, 8} (stage-n8-dense-heads-sweep.md)
-  - N9 d_ff 消融 {256, 512, 1024} (stage-n9-dense-dff-sweep.md)
-  - N11 baseline + medium 各 50000 步长训练 (stage-n11-dense-long-curve.md)
-  - N12 dense ultra-curve (stage-n12-dense-ultra-curve.md)
+  - N4 baseline + medium 5000 步曲线
+      stage review: docs/plans/reviews/stage-n4-dense-formal-curve.md
+      commit: 45654f9 fix(n4): README 震荡下降而非单调下降 + 振荡 regression 断言
+  - N5 4 规模点 scale sweep
+      stage review: docs/plans/reviews/stage-n5-dense-scale-sweep.md
+      commit: 251489c feat(n5): dense scale sweep with 4 sizes
+  - N6 dropout 消融 {0.0, 0.1, 0.2}
+      stage review: docs/plans/reviews/stage-n6-dense-dropout-sweep.md
+  - N7 RoPE base 消融 {10k, 50k, 100k}
+      stage review: docs/plans/reviews/stage-n7-dense-rope-sweep.md
+  - N8 n_heads 消融 {2, 4, 8}
+      stage review: docs/plans/reviews/stage-n8-dense-heads-sweep.md
+  - N9 d_ff 消融 {256, 512, 1024}
+      stage review: docs/plans/reviews/stage-n9-dense-dff-sweep.md
+  - N11 baseline + medium 各 50000 步长训练
+      stage review: docs/plans/reviews/stage-n11-dense-long-curve.md
+      commits: 0e4e6e1 feat(n11): dense long training curve at 50000 steps
+               932e632 feat(n11-large): large 50000-step long training curve
+               297e6b6 feat(n11-large-multi-seed): 3-seed 50000-step large training
+  - N12 dense ultra-curve 100000 步
+      stage review: docs/plans/reviews/stage-n12-dense-ultra-curve.md
+      commit: 3f0cbe6 feat(n12): ultra 100000-step training
 所有实验均使用同一 OWT 正式 token cache + train/validation split + owt-bpe/v0.2.0 tokenizer。关键结论均通过 P1-03 多 seed 协议验证。
 改动：
   - architecture_lab/training/dense_training.py
@@ -631,7 +645,7 @@ P2 reward offline → SFT 5 ckpt MVP → D2 多轮数据集 → P4 GRPO MVP。
 改动：roadmap.md 与 stage-sft-tool-mvp.md 明确 P5-03 的模型范围和 WSL/Linux/Docker 环境目标。
 验证：SFT 阶段审查确认该范围与“自研模型完整 vLLM 适配”暂缓条目不冲突。
 结果：Windows 原生 vLLM 可用性不作为 P5-03 的前置假设；先完成 Transformers backend。
-遗留风险：仍需在 P5-03 实际确认 WSL/Linux/Docker 的 vLLM 版本、CUDA 和显存兼容性。
+遗留风险（已解决）：P5-03 vLLM 已在 WSL2 Ubuntu-22.04 验证 PASS（HEAD `bb61a3a` + `docs/plans/reviews/stage-p5-03-vllm-feasibility.md`），WSL2 workarounds（VLLM_WSL2_ENABLE_PIN_MEMORY=1、uninstall flashinfer-python 0.6.16、VLLM_USE_FLASHINFER_SAMPLER=0、VLLM_ATTENTION_BACKEND=TORCH_SDPA）已记录。
 ```
 
 ---
@@ -777,7 +791,8 @@ P3 已解决本条目的独立 IID held-out split 要求（**历史 MVP 样本�
 P3/P4 后续动作：
 
 - P3 D2 多轮对话数据集已交付，详见 `### P3-01` 决策记录 + `docs/protocols/d2-multi-turn.md` + `docs/plans/reviews/stage-p3-d2-multi-turn.md`；
-- P4 GRPO：等 P5-02 就位后实现 advantage 计算 + policy 更新；
+- P4 GRPO MVP：已交付（HEAD `1fae6f0` — 6 轮 audit 修复 + 真实 CPU+GPU smoke + nonzero update + state.pt invariant），详见 P4 GRPO MVP 条目；
+- P4 GRPO 小规模正确性实验：已交付（HEAD `99646fa` — round 9-11 修复，Qwen2.5-0.5B + D2 dev 750，4 个 Run 全 PASS），详见 P4 GRPO 小规模正确性实验条目；
 - P3/P4 的 P2 前置已全部满足（reward_signal schema v1.0 + offline reward CLI + 与 P1-05 classifier 一致性）。
 
 ### P3-01 D2 多轮对话数据集 + IID held-out split（2026-08-28）
@@ -960,7 +975,12 @@ vLLM 适配不在范围内（暂缓阶段）。
 
 ### P5-02 Transformers backend + 5 个公开 instruction-tuned 模型 × D2 dev reward 评测（2026-08-28）
 
-状态：已交付（2026-08-28 下午修正 target-answer 泄漏 bug 后重新验证；待 detached auditor + minimax-M3 subagent reviewer 联合复审）。
+状态：已交付（detached auditor PASS；stage review `docs/plans/reviews/stage-p5-02-transformers-backend.md` 已通过）。
+
+交付 commit：
+- `63cbd83` feat(p5-02): Transformers backend + 5 public models x D2 dev reward
+- `b4fd879` fix(p5-02): strip terminal gold assistant message to remove target-answer leakage
+- `66ff9eb` docs(p3): audit round 14 (15th pass) — remove HEAD SHA claims from active docs
 决策：实现 `scripts/eval_transformers.py` Transformers 推理后端，在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 benchmark 子集，benchmark 子集规模详见 `docs/protocols/transformers-backend.md` §3，**不是 D2 数据集规模或 split 契约**）上对 5 个公开 instruction-tuned 模型（SmolLM2-360M/1.7B-Instruct + Qwen2.5-0.5B/1.5B/3B-Instruct）跑真实推理 + reward_offline；修正后 5 模型 reward_binary 全部 = 0（诚实负结果），reward_layered 在 0.33–0.42 区间，仍显著高于自研 5 ckpt 的 0.0（自研评测在 **历史 MVP 样本版（详细数字见下方 round-13 归档）** dev 历史子集（详细数字见下方 round-13 归档） 上完成，见 `docs/experiments/p2-evaluator/README.md` §6）。
 
 改动（含 2026-08-28 下午修正）：
@@ -985,7 +1005,7 @@ vLLM 适配不在范围内（暂缓阶段）。
 
 遗留：
 - **reviewer dispatch（minimax-M3）**：将在下一轮 audit 时由 detached auditor 联动 minimax-M3 subagent reviewer 联合复审；持续证据入 `docs/plans/reviews/stage-p5-02-transformers-backend.md`。
-- P5-03 vLLM backend 未启动（硬件 / 环境需求超出当前阶段）；待 P5-02 audit 通过后启动。
+- P5-03 vLLM backend 已交付（HEAD `bb61a3a`，WSL2 Ubuntu-22.04 smoke PASS），详见 P5-03 vLLM 后端接入条目。
 - D2 数据集扩样到 5000+ **已完成**（见下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 段，HEAD：当前 main）：5000 samples（4×833 + 2×834）、train 3500 / dev 750 / test 750 严格命中、6 类 ≥833 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、datasets/ 已加入 `.gitignore` 并 `git rm --cached` 隔离。
 - 全部 5 模型 reward_binary=0 为诚实负结果：D2 expected_answer 与公开模型生成的 final_answer 字面不一致；如需严格一致，可加后处理归一化或引入轻量 evaluator prompt。
 
