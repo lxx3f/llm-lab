@@ -4,7 +4,9 @@
 - **Author**: Minimax M3 (per `docs/plans/review-process.md`)
 - **Goal**: 验证 `llm-lab` 实验闭环各阶段的最终状态
 - **Audited snapshot**: working tree of `main` immediately before this
-  report was committed (the parent of the commit that adds this file)
+  report was committed (the parent of the commit that adds this file).
+  In pointer notation: `HEAD~1` at the time the audit was added; this
+  pointer survives any number of audit-only commits added afterward.
 - **Scope**: this audit verifies (a) tests pass, (b) schemas validate,
   (c) docs reconcile with artifacts, (d) sensitive files are gitignored,
   (e) reviewer evidence is saved, (f) working tree is clean. It does NOT
@@ -52,7 +54,7 @@ git status --short
 | Tracked sensitive paths | empty | `git ls-files artifacts/`, `datasets/`, `.tmp/` all empty |
 | Per-file `.gitignore` audit | PASS | `python scripts/audit/run_gitignore_coverage.py` returns `Not ignored: 0` + semantic test PASS |
 | Doc ↔ artifact reconciliation | PASS | `python scripts/audit/run_doc_artifact_reconciliation.py` returns `MISSING_UNRESOLVABLE: 0` |
-| Reviewer evidence saved | 96 docs | `git ls-files docs/ \| wc -l` |
+| Reviewer / auditor evidence | PASS | `docs/reports/final-audit/round-13-reviewer-evidence.md` documents round-13 reproduction commands + outputs + objection handling. See the per-round evidence subdirectory. |
 
 **Note on host variability**: `skipped=N` and `Total sensitive files` vary
 by host (depends on whether D2/D1.1 are pre-generated and whether CUDA is
@@ -402,3 +404,23 @@ The audit verifies the following invariants via automated scripts:
 
 Out-of-scope items (e.g., `eval_transformers.py` exception handling)
 are explicitly excluded per Section 9.
+
+## 13. Reviewer / Auditor Evidence
+
+This report is the durable final-audit evidence. Per-round
+implementation details are documented separately:
+
+- **Round-13 evidence** (wildcard/brace/placeholder extraction):
+  `docs/reports/final-audit/round-13-reviewer-evidence.md`
+- **Round-12 evidence** (broad doc scan + directory kind):
+  captured in `docs/reports/final-audit.md` Section 4 round-13 fix
+  description and the JSON output of
+  `scripts/audit/run_doc_artifact_reconciliation.py`
+- **Round-10–11 evidence** (bounded gitignore audit + per-ref
+  reconciliation):
+  JSON outputs of `scripts/audit/run_gitignore_coverage.py` and
+  `scripts/audit/run_doc_artifact_reconciliation.py`
+
+Each round-13+ fix added a regression test in
+`tests/test_audit_reconciliation_extraction.py` to lock the
+correctness invariant. All reproductions are committed on `main`.
