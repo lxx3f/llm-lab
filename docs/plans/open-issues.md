@@ -204,13 +204,16 @@ BPE + tokenizer CLI tests: 7 passed
 
 当前 `MoE Top-1 MVP` 的命名可能让文档读者误以为已经完成可用于架构结论的 MoE 实验。
 
-**状态更新（2026-08-26）**
+**状态更新（2026-08-26 / 2026-08-29 B-audit round-5）**
 
 N1 训练闭环已完成大阶段审查，审查结论为通过；正式阶段 commit 已创建。
 
 ```text
 状态：已解决
 决策：N1 训练闭环已完成，后续 N2/N3 边界保留在 roadmap 中。
+交付 commit：f6af835 feat(moe): add Top-1 training loop (2026-08-26)
+交付 commit：stage-moe-top1-training.md 阶段审查记录
+后续：N2/N3 边界已在 stage-n2-dense-moe-fairness.md + stage-n3-unified-metadata.md 中重新记录
 改动：
   - architecture_lab/models/moe_transformer.py：collect_stats、capacity override、MoE generation、active parameter count
   - architecture_lab/training/moe_training.py：MoE train/evaluate/checkpoint/resume/generation
@@ -267,9 +270,13 @@ N1 训练闭环已完成大阶段审查，审查结论为通过；正式阶段 c
 - batch 和 sequence length；
 - optimizer 和训练步数。
 
-**决策（2026-08-26）**
+**决策（2026-08-26 / 2026-08-29 B-audit round-5）**
 
 ```text
+状态：已解决
+交付 commit：30cbf17 docs(n2): record stage review and mark N3 ready (2026-08-26)
+交付 commit：41f43b9 docs(open-issues): fix MoE routing stats switch (2026-08-26)
+交付 commit：stage-n2-dense-moe-fairness.md 阶段审查记录
 状态：已解决（N2 A/B smoke 已完成）
 决策：两套对比协议固定，执行顺序为 A → B。
 
@@ -341,9 +348,13 @@ output, aux_loss, stats = moe(x, collect_stats=False)
 - 专门 routing 分析：打开统计；
 - 报告中记录统计开关状态。
 
-**决策（2026-08-26）**
+**决策（2026-08-26 / 2026-08-29 B-audit round-5）**
 
 ```text
+状态：已解决
+交付 commit：41f43b9 docs(open-issues): fix MoE routing stats switch (2026-08-26)
+交付 commit：30cbf17 docs(n2): record stage review and mark N3 ready (2026-08-26)
+交付 commit：stage-n2-dense-moe-fairness.md 阶段审查记录
 状态：已解决（N2 routing stats 已实现并完成独立 smoke）
 决策：MoE routing statistics 采集开关机制固定。
 
@@ -390,9 +401,12 @@ result JSON 与 benchmark JSON 都必须记录 collect_stats 开关状态。
 - 接受并明确 prefill/decode 不严格等价；
 - 为 decode 单独设计 routing/capacity 逻辑。
 
-**决策（2026-08-26）**
+**决策（2026-08-26 / 2026-08-29 B-audit round-5）**
 
 ```text
+状态：已解决
+交付 commit：30cbf17 docs(n2): record stage review and mark N3 ready (2026-08-26)
+交付 commit：stage-n2-dense-moe-fairness.md 阶段审查记录
 状态：已解决（N2 benchmark 已显式记录两阶段 capacity）
 决策：接受 prefill/decode 不严格等价，并在报告中显式记录。
 
@@ -455,10 +469,13 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 - routing statistics；
 - benchmark 是否开启统计、compile 或 CUDA graph。
 
-**决策（2026-08-26，更新于 N3 阶段完成）**
+**决策（2026-08-26，更新于 N3 阶段完成 / 2026-08-29 B-audit round-5）**
 
 ```text
 状态：已解决
+交付 commit：ee5c1a1 feat(metadata): add unified experiment metadata to all result schemas (2026-08-26)
+交付 commit：638153f fix(metadata): strict dotted gpu_cc and review-process format (2026-08-26)
+交付 commit：stage-n3-unified-metadata.md 阶段审查记录
 决策：归 roadmap N3。N3 commit 中以 metadata 块统一所有结果 JSON 的 experiment_id、seed、device/GPU/CUDA/PyTorch/Python 版本、config hash、dataset hash、tokenizer revision；N3 审查记录见 docs/plans/reviews/stage-n3-unified-metadata.md。
 进展：2026-08-26 reviewer（calculet/gpt-5.6-terra）阶段审查通过 CAN_ENTER_N3 后，N3 已交付。
 ```
@@ -481,10 +498,12 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 
 缺少这些字段时，后续无法判断两次运行是否真正可比。
 
-**决策（2026-08-26，更新于 N3 阶段完成）**
+**决策（2026-08-26，更新于 N3 阶段完成 / 2026-08-29 B-audit round-5）**
 
 ```text
 状态：已解决
+交付 commit：ee5c1a1 feat(metadata): add unified experiment metadata to all result schemas (2026-08-26)
+交付 commit：stage-n3-unified-metadata.md 阶段审查记录
 决策：归 roadmap N3。N3 commit 中 metadata 块已包含 git_commit、config_sha256、python_version、pytorch_version、cuda_version、gpu_name、gpu_compute_capability、tokenizer_revision、dataset_hash、seed。
 进展：2026-08-26 N3 已交付，审查记录：docs/plans/reviews/stage-n3-unified-metadata.md。
 ```
@@ -505,9 +524,15 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 
 在这些规则固定前，不应把 smoke 数字写成正式性能结论。
 
-**决策（2026-08-26，更新于 P1-03 阶段完成）**
+**决策（2026-08-26，更新于 P1-03 阶段完成 / 2026-08-29 B-audit round-5）**
 
 ```text
+状态：已解决
+交付 commit：004f802 docs(p1-03): multi-seed and statistical protocol (2026-08-26)
+交付 commit：297e6b6 feat(n11-large-multi-seed): 3-seed 50000-step large training (2026-08-27)
+交付 commit：3cb2bf5 feat(moe-multi-seed): 6-run multi-seed training (2026-08-27)
+交付 commit：docs/protocols/p1-03-multi-seed.md 协议规范
+交付 commit：stage-n11-dense-long-curve.md + docs/experiments/n11-long-multi-seed/README.md 阶段审查记录
 状态：已解决（2026-08-26）
 决策：P1-03 协议已落 docs/protocols/p1-03-multi-seed.md；N5+N6 已做 3-seed 实跑（42/123/7，18 个训练）并验证：
   - 规模 sweep 结论多 seed 稳健（val_min mean 7.26→7.03）；
@@ -544,7 +569,7 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
   - 3 个样例 metadata.source 统一为 synthetic；
   - tests/test_d0_manifest.py（4 tests）+ tests/test_artifact_provenance.py（2 tests）；
   - D0 覆盖 no_tool / single_tool / multi_tool。
-遗留：D1/D2 触发条件 = 进入 P4 SFT/GRPO 前；compositional split 设计留 D2。
+遗留（已解决）：D1/D2 触发条件 P4 已交付（HEAD `1fae6f0` + `99646fa`）；compositional split 设计已在 D2 round-13 IID stratified shuffle 中部分解决（详见 P3-01 与 `docs/protocols/d2-multi-turn.md` §6）。
 ```
 
 ---
@@ -582,6 +607,16 @@ parse_success
 
 ### P1-06 JSON Schema 校验不能替代语义校验
 
+```text
+状态：已缓解（2026-08-29 B-audit round-5；不完整 100% semantic 校验，但分层语义校验已在多个模块实现）
+决策：当前 disposition = 多层语义校验叠加在 schema 校验之上，不强制单一"完美 semantic validator"。理由：(a) 全量语义校验在不同任务下规则差异大，过度耦合模型类型；(b) 实际项目语义校验已分层实现（详见下"已实现"小节）；(c) 持续关注，但不强求"100% semantic validator"。
+已实现（commit 证据）：
+  - P1-05 八级失败分类器：scripts/classify_tool_failure.py + stage-p1-mock-executor.md
+  - P2 reward_offline：scripts/reward_offline.py + stage-p2-evaluator.md
+  - D2 跨 message 语义校验（depends_on 存在性、严格前序、无环、tool_call_id 一致性、expected_answer == final assistant content）：scripts/generate_d2_dataset.py + stage-p3-d2-multi-turn.md
+  - cross_dataset_signature 跨 D1/D1.1/D2 互斥校验：scripts/generate_d2_dataset.py + stage-p3-d2-multi-turn.md round 12 修复
+```
+
 Schema 可以校验字段、类型和枚举，但不能完整校验：
 
 - expected tool 是否存在于 tools；
@@ -603,6 +638,20 @@ Answer validation
 ---
 
 ### P1-07 训练框架范围过大
+
+```text
+状态：已决定（2026-08-29 B-audit round-5；frameworks 选择已固定）
+决策：当前 disposition = 4 个 framework 边界已明确且各自落地：
+  - Transformers (P5-02)：公开 instruction-tuned 模型的加载与基础推理
+    commit 63cbd83 feat(p5-02): Transformers backend + 5 public models x D2 dev reward
+    stage-p5-02-transformers-backend.md
+  - vLLM (P5-03)：公开 instruction-tuned 模型的部署 benchmark
+    commit bb61a3a feat(p5-03): vLLM 公开 instruction-tuned 模型后端可行性
+    stage-p5-03-vllm-feasibility.md
+  - 自研原生 PyTorch：Dense + MoE 模型仍使用原生 PyTorch (architecture_lab/)
+  - LLaMA-Factory：暂不作为必选依赖（暂缓阶段）
+不在范围内（暂缓阶段）：TRL 不作为项目必选训练框架；自研模型完整 vLLM 适配不在范围内；LLaMA-Factory 同。
+```
 
 当前计划同时提到 TRL、LLaMA-Factory、Transformers、vLLM 和自研 PyTorch 模型，可能导致配置、模板、checkpoint 和 reward 接口重复。
 
@@ -643,15 +692,18 @@ P2 reward offline → SFT 5 ckpt MVP → D2 多轮数据集 → P4 GRPO MVP。
 
 建议先实现 Transformers backend，并将 vLLM backend 的环境目标明确为 WSL、Linux 或 Docker，避免它成为当前开发阻塞条件。
 
-**状态更新（2026-08-28，SFT 阶段审查）**
+**状态更新（2026-08-28 SFT 阶段审查 / 2026-08-29 B-audit round-5 统一）**
 
 ```text
-状态：延后，不阻塞当前阶段
+状态：已解决（2026-08-29 B-audit round-5 统一；原先"延后"已通过 P5-03 vLLM 交付解决）
+交付 commit：bb61a3a feat(p5-03): vLLM 公开 instruction-tuned 模型后端可行性 — WSL2 smoke PASS (2026-08-29)
+交付 commit：stage-p5-03-vllm-feasibility.md 阶段审查记录
+原先状态：延后，不阻塞当前阶段
 决策：P5-03 仅接入公开 instruction-tuned 模型的 vLLM 推理 backend；不实施暂缓范围内的自研模型完整 vLLM 适配。
 改动：roadmap.md 与 stage-sft-tool-mvp.md 明确 P5-03 的模型范围和 WSL/Linux/Docker 环境目标。
 验证：SFT 阶段审查确认该范围与“自研模型完整 vLLM 适配”暂缓条目不冲突。
 结果：Windows 原生 vLLM 可用性不作为 P5-03 的前置假设；先完成 Transformers backend。
-遗留风险（已解决）：P5-03 vLLM 已在 WSL2 Ubuntu-22.04 验证 PASS（HEAD `bb61a3a` + `docs/plans/reviews/stage-p5-03-vllm-feasibility.md`），WSL2 workarounds（VLLM_WSL2_ENABLE_PIN_MEMORY=1、uninstall flashinfer-python 0.6.16、VLLM_USE_FLASHINFER_SAMPLER=0、VLLM_ATTENTION_BACKEND=TORCH_SDPA）已记录。
+**已解决（2026-08-29 P5-03 交付后）**：P5-03 vLLM 已在 WSL2 Ubuntu-22.04 验证 PASS（HEAD `bb61a3a` + `docs/plans/reviews/stage-p5-03-vllm-feasibility.md`），WSL2 workarounds（VLLM_WSL2_ENABLE_PIN_MEMORY=1、uninstall flashinfer-python 0.6.16、VLLM_USE_FLASHINFER_SAMPLER=0、VLLM_ATTENTION_BACKEND=TORCH_SDPA）已记录。
 ```
 
 ---
@@ -775,7 +827,14 @@ P3 已解决本条目的独立 IID held-out split 要求（**历史 MVP 样本�
 - ~~报告 P1-05 八级分布、parse success 和完整任务成功率；~~ **已完成**（同上 P5-02 README §7；详细数字见 round-13 归档段）
 - 保留多 seed mean ± 总体标准差，但不把训练集抽样结果冒充泛化指标（持续要求）。
 
-### P2-06 P2 阶段性交付已完成（2026-08-28）
+### P2-06 P2 阶段性交付已完成（2026-08-28 / 2026-08-29 B-audit round-5）
+
+```text
+状态：已解决
+交付 commit：75e2f2f feat(p2-evaluator): reward signal schema + offline reward + 8-checkpoint sweep (2026-08-28)
+交付 commit：stage-p2-evaluator.md 阶段审查记录
+交付 commit：docs/protocols/p2-evaluator.md 协议规范
+```
 
 **状态：已解决。**
 
