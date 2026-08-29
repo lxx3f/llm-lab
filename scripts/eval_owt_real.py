@@ -337,13 +337,15 @@ class LossResult:
     seq_len: int
     cache_sha256: str
     source_sha256: str
+    source_bytes: int
+    evaluated_bytes: int  # bytes actually encoded from the source (prefix)
     encoded_tokens: int
     evaluated_tokens: int
     sum_loss_nats: float
     mean_loss_nats: float
     perplexity: float
-    source_bytes: int
     loss_nats_per_source_byte: float
+    loss_nats_per_evaluated_byte: float
     elapsed_seconds: float
     key_file_sha256: dict[str, str]
     owt_sha256: str = EXPECTED_OWT_SHA256
@@ -457,17 +459,49 @@ def safetensors_presence(model_dir: Path) -> dict[str, object]:
 # ---------------------------------------------------------------------------
 
 
-def _resolve_local_model_dir(model_dir: Path, model_id: str) -> Path:
-    """Pick the snapshot directory inside a ModelScope/HF cache layout."""
-    if model_dir.is_dir() and (model_dir / "config.json").exists():
-        return model_dir
-    # Try ``snapshots/<rev>`` subdirectory.
-    for sub in sorted(model_dir.glob("snapshots/*")):
-        if sub.is_dir() and (sub / "config.json").exists():
-            return sub
+def _resolve_local_model_dir(model_dir_root: Path, model_id: str) -> Path:
+    """Pick the snapshot directory under either HF or ModelScope layout.
+
+    Tries the following, in order:
+
+    1. ``<root>/<model_id>`` (HF layout with nested ``owner/name``).
+    2. ``<root>/models/<owner>--<name>/snapshots/<rev>/`` (ModelScope layout).
+    3. ``<root>/<owner>--<name>/snapshots/<rev>/`` (older ModelScope).
+
+    Returns the directory containing ``config.json``.
+    """
+    owner, name = model_id.split("/", 1)
+    candidates: list[Path] = []
+    candidates.append(model_dir_root / model_id)
+    candidates.append(
+        model_dir_root / "models" / f"{owner}--{name}" / "snapshots" / "master"
+    )
+    candidates.append(
+        model_dir_root / "models" / f"{owner}--{name}" / "snapshots" / "main"
+    )
+    candidates.append(
+        model_dir_root / f"{owner}--{name}" / "snapshots" / "master"
+    )
+    candidates.append(
+        model_dir_root / f"{owner}--{name}" / "snapshots" / "main"
+    )
+    # Also try any revision subdirectory.
+    for sub in model_dir_root.glob(f"models/{owner}--{name}/snapshots/*"):
+        candidates.append(sub)
+    for sub in model_dir_root.glob(f"{owner}--{name}/snapshots/*"):
+        candidates.append(sub)
+
+    seen: set[str] = set()
+    for cand in candidates:
+        cp = str(cand.resolve()) if cand.exists() else str(cand)
+        if cp in seen:
+            continue
+        seen.add(cp)
+        if cand.is_dir() and (cand / "config.json").exists():
+            return cand
     raise FileNotFoundError(
-        f"no config.json under {model_dir} (model_id={model_id}); "
-        f"pass --model-dir <snapshot-dir>"
+        f"no config.json under {model_dir_root} for {model_id!r}; tried "
+        f"{[str(c) for c in candidates[:5]]}"
     )
 
 
@@ -505,13 +539,8 @@ def cmd_build_cache(args: argparse.Namespace) -> int:
 
     failures: list[tuple[str, str]] = []
     for model_id, model_short, hf_revision in selected:
-        model_dir = Path(args.model_dir_root) / model_id
-        if not model_dir.exists():
-            print(f"  [skip] {model_short}: missing local dir {model_dir}", flush=True)
-            failures.append((model_short, f"missing local dir {model_dir}"))
-            continue
         try:
-            local_dir = _resolve_local_model_dir(model_dir, model_id)
+            local_dir = _resolve_local_model_dir(args.model_dir_root, model_id)
         except FileNotFoundError as exc:
             print(f"  [skip] {model_short}: {exc}", flush=True)
             failures.append((model_short, str(exc)))
@@ -581,9 +610,8 @@ def cmd_eval_loss(args: argparse.Namespace) -> int:
             )
             continue
 
-        model_dir = Path(args.model_dir_root) / model_id
         try:
-            local_dir = _resolve_local_model_dir(model_dir, model_id)
+            local_dir = _resolve_local_model_dir(args.model_dir_root, model_id)
         except FileNotFoundError as exc:
             print(f"  [skip] {model_short}: {exc}", flush=True)
             failures.append((model_short, str(exc)))
@@ -645,6 +673,7 @@ def cmd_eval_loss(args: argparse.Namespace) -> int:
         mean_loss = sum_loss / n_pred
         perplexity = float(np.exp(mean_loss))
         loss_per_byte = mean_loss / cache_info.source_size_bytes
+        loss_per_eval_byte = mean_loss / max(1, cache_info.encoded_bytes)
         result = LossResult(
             model_id=model_id,
             model_short=model_short,
@@ -664,7 +693,9 @@ def cmd_eval_loss(args: argparse.Namespace) -> int:
             mean_loss_nats=float(mean_loss),
             perplexity=perplexity,
             source_bytes=int(cache_info.source_size_bytes),
+            evaluated_bytes=int(cache_info.encoded_bytes),
             loss_nats_per_source_byte=float(loss_per_byte),
+            loss_nats_per_evaluated_byte=float(loss_per_eval_byte),
             elapsed_seconds=float(elapsed),
             key_file_sha256=fingerprint_local_model(local_dir),
         )
@@ -1089,6 +1120,55 @@ def _run_selftests(args: argparse.Namespace) -> int:
             "config.json" in fp,
             hint=f"keys={list(fp)}",
         )
+
+    # ------------------------------------------------------------------
+    # Aggregate JSON regression: load all per-model JSONs that exist on
+    # disk and verify the table is internally consistent. This guards
+    # against accidental edits to a single result JSON without
+    # regenerating the aggregate.
+    # ------------------------------------------------------------------
+    print("[selftest] aggregate regression", flush=True)
+    results_dir = args.results_dir
+    if results_dir.exists():
+        found = sorted(results_dir.glob("*.json"))
+        _expect(
+            "test_results_dir_count_5_or_skip",
+            len(found) == 5 or len(found) == 0,
+            hint=f"found {len(found)} results; expected 0 (no run yet) or 5",
+        )
+        if len(found) == 5:
+            import csv as _csv
+            csv_path = args.output_root / "comparison.csv"
+            _expect("test_comparison_csv_exists", csv_path.exists())
+            if csv_path.exists():
+                rows = list(_csv.DictReader(csv_path.open(encoding="utf-8")))
+                _expect("test_comparison_csv_rows_5", len(rows) == 5)
+                shorts = [r["model_short"] for r in rows]
+                _expect(
+                    "test_comparison_csv_has_all_5_short_names",
+                    set(shorts) == {
+                        "SmolLM2-360M",
+                        "SmolLM2-1.7B",
+                        "Qwen2.5-0.5B",
+                        "Qwen2.5-1.5B",
+                        "Qwen2.5-3B",
+                    },
+                    hint=f"shorts={shorts}",
+                )
+                # Each row's mean_loss and perplexity must be finite floats.
+                for r in rows:
+                    ml = float(r["mean_loss_nats"])
+                    pp = float(r["perplexity"])
+                    _expect(
+                        f"test_comparison_csv_{r['model_short']}_mean_loss_finite",
+                        ml == ml and ml > 0 and ml < 100,
+                        hint=f"mean_loss={ml}",
+                    )
+                    _expect(
+                        f"test_comparison_csv_{r['model_short']}_ppl_finite",
+                        pp == pp and pp > 0,
+                        hint=f"ppl={pp}",
+                    )
 
     print("[selftest] all tests PASSED", flush=True)
     return 0

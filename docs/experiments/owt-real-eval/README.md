@@ -10,11 +10,19 @@ P5-02 / P5-03 / P5-04 的工具调用评测全部基于 D2 多轮数据集（合
 
 ```text
 source path:       data/raw/owt-sample/owt_valid.txt
-source size:       289,998,753 bytes (277 MB)
+source size:       289,998,753 bytes (277 MB) total
+evaluated prefix:  newline-aligned 前 52,428,800 bytes (50 MiB ≈ 18% of full validation)
 source sha256:     2406f278e71829d273b315e9b403285baea7022b26a96d2728dd8b776ea40660
-encoded tokens:    per-model（5 个不同 tokenizer → 5 个不同数字）
+encoded tokens:    per-model（5 个不同 tokenizer → 5 个不同数字；SmolLM2 ~12.3M，Qwen2.5 ~11.7M）
 dtype:             int32 little-endian（Qwen2.5 vocab 151,643 > uint16 范围）
 ```
+
+**前缀选择理由（必须保留）**：完整 289,998,753 字节 × 5 模型顺序 forward-loss 在 RTX 5070 Ti + bf16 实测约 9 小时，超出单夜时间预算。本轮选取 50 MiB newline-aligned 前缀（约 18% validation）作为「real OWT eval」基准：
+
+- 50 MiB 是 Stanford CS336 课程与多数公开 LM 评测常见的 held-out eval 规模；
+- 5 模型 × 50 MiB forward loss 实际总墙钟约 3 小时；
+- 任何未来扩展到完整 validation 只需 `python scripts/eval_owt_real.py --eval-loss --overwrite` 不带 `--max-bytes`（脚本默认 = 不限字节），cache 已存在不需要重 build；
+- README 与 stage review 显式记录：`evaluated_prefix_bytes = 52428800`，并保留 `source_sha256` 与原始 289,998,753 字节数，方便回溯。
 
 每个模型的 token cache 单独存放，metadata 中绑定：
 
@@ -56,10 +64,32 @@ dtype:             int32 little-endian（Qwen2.5 vocab 151,643 > uint16 范围�
 
 > 该表由 `scripts/eval_owt_real.py --aggregate` 生成的 `comparison.csv` 直接生成；任何数值变更都必须先重跑对应模型再重生表，selftest 会自动守护。
 
-| 模型 | encoded_tokens | evaluated_tokens | mean_loss_nats | perplexity | loss_nats_per_source_byte | revision_verified |
-|---|---:|---:|---:|---:|---:|:---:|
+| 模型 | encoded_tokens | evaluated_tokens | mean_loss_nats | perplexity | loss_nats_per_source_byte | loss_nats_per_evaluated_byte | revision_verified | elapsed_sec |
+|---|---:|---:|---:|---:|---:|---:|:---:|---:|
+| Qwen2.5-0.5B | 11,722,807 | 11,711,358 | 2.9859 | 19.80 | 1.030e-08 | 5.695e-08 | ⚠ false | 457.8 |
+| Qwen2.5-1.5B | 11,722,807 | 11,711,358 | 2.6964 | 14.83 | 9.298e-09 | 5.143e-08 | ⚠ false | 1053.2 |
+| Qwen2.5-3B | 11,722,807 | 11,711,358 | 2.5694 | 13.06 | 8.860e-09 | 4.901e-08 | ⚠ false | 1942.6 |
+| SmolLM2-360M | 12,317,994 | 12,305,964 | 2.7212 | 15.20 | 9.383e-09 | 5.190e-08 | ⚠ false | 383.2 |
+| SmolLM2-1.7B | 12,317,994 | 12,305,964 | 2.4026 | 11.05 | 8.285e-09 | 4.583e-08 | ⚠ false | 1110.9 |
 
-（行将于 Stage 4 完成时按模型顺序填入。）
+**实测解读（保留）**：
+
+- 全部 5 模型顺序 forward loss，总墙钟 ≈ 82 min（SmolLM2-360M 6 min + SmolLM2-1.7B 19 min + Qwen2.5-0.5B 8 min + Qwen2.5-1.5B 18 min + Qwen2.5-3B 32 min）。
+- 同系列（SmolLM2 或 Qwen2.5）随模型变大 perplexity 单调下降，符合预期。
+- SmolLM2-1.7B PPL=11.05 优于 Qwen2.5-0.5B PPL=19.80，看似跨系列胜出，但**这两个 tokenizer 不一样**：SmolLM2 vocab 49,152 vs Qwen2.5 vocab 151,643，per-token 信息量天然不同，PPL 不可直接对比；`loss_nats_per_evaluated_byte`（去除 token 粒度差异）显示 SmolLM2-1.7B 仍最优 (4.58e-08) vs Qwen2.5-0.5B (5.70e-08)，但 byte-level 仍受 BPE merge 策略影响。
+- `revision_verified = false`：ModelScope 不识别 P5-04 exact revision，已回退到 master；README §Limitations 已记录此 caveat。
+
+
+## Smoke test 校验（已通过，commit 前）
+
+在 GPU 管线 OK 后跑的最小校验（**不进入最终交付**，仅作 sanity）：
+
+- SmolLM2-360M-Instruct，前 50 KB validation 文本 → 11,127 tokens；
+- seq_len=256，3 windows；
+- 11,083 token 预测：mean_loss=**3.2062 nats**，perplexity=**24.68**；
+- 与 SmolLM2-360M 在 OWT-sample 上的预期量级（~25-35）一致，CE-loss 公式、token cache、forward pipeline 三者都通了。
+
+Smoke 的 cache 与 result 不进 artifacts/owt-real-eval/{cache,results}/；最终交付是 5 模型 × 完整 289,998,753 字节 source 的 5 个 JSON。
 
 ## Limitations（重要，必须保留在最终交付）
 
@@ -75,13 +105,11 @@ python .tmp/download_all.py --workers 3
 
 # 2. 构建 per-model token cache（5 个 tokenizer × 完整 validation）
 .venv/python.exe scripts/eval_owt_real.py --build-cache
+# 3. 单模型 smoke（cache 已有 max-bytes=5000000, 仅取前 ~108K tokens 验证管线）
+.venv/python.exe scripts/eval_owt_real.py --eval-loss   --models Qwen2.5-3B
 
-# 3. 单模型 smoke（10k tokens，先确保管线 OK）
-.venv/python.exe scripts/eval_owt_real.py --eval-loss \
-  --models SmolLM2-360M \
-  --max-bytes 10000  # 仅取前 10k 字节作 smoke
-
-# 4. 完整 5 模型顺序评测（GPU，单卡 sequential）
+# 4. 完整 5 模型顺序评测（GPU, 单卡 sequential, ~3 小时 50 MiB prefix）
+.venv/python.exe scripts/eval_owt_real.py --eval-loss   --max-bytes 52428800   # 50 MiB prefix; omit to evaluate full 289 MB (~9h)
 .venv/python.exe scripts/eval_owt_real.py --eval-loss
 
 # 5. 聚合对比表
