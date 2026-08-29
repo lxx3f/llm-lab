@@ -559,17 +559,20 @@ Dense 和 MoE 当前输出字段不完全一致。后续 GQA、MLA、Top-2 如�
 
 建议同时设计 IID split 和 compositional split，避免工具调用准确率主要来自模板记忆。
 
-**决策（2026-08-26，更新于 P1-04 阶段完成）**
+**决策（2026-08-26 / 2026-08-29 B-audit round-6 重标）**
 
 ```text
-状态：已解决（2026-08-26，auditor 复核后）
-决策：D0/D1/D2 定义已落 docs/protocols/p1-04-data-version-d0.md；D0 已实现：
+状态：部分解决（2026-08-29 B-audit round-6 重标：版本协议 + IID split 已交付；compositional split 未交付，仍 open）
+决策：D0/D1/D2 版本协议已落 docs/protocols/p1-04-data-version-d0.md；D0 已实现：
   - scripts/build_d0_manifest.py（生成 + 校验 MANIFEST.json）；
   - examples/tool_calling/MANIFEST.json 已生成（3 样例 sha256 + 聚合 hash + metadata）；
   - 3 个样例 metadata.source 统一为 synthetic；
   - tests/test_d0_manifest.py（4 tests）+ tests/test_artifact_provenance.py（2 tests）；
   - D0 覆盖 no_tool / single_tool / multi_tool。
-遗留（已解决）：D1/D2 触发条件 P4 已交付（HEAD `1fae6f0` + `99646fa`）；compositional split 设计已在 D2 round-13 IID stratified shuffle 中部分解决（详见 P3-01 与 `docs/protocols/d2-multi-turn.md` §6）。
+遗留（**部分解决 / 部分 open**）：
+- D0/D1/D2 versioning + IID split 已交付：D0 MANIFEST 3 样例 (`f685601 feat(d1.1): real-LLM generated tool-calling dataset via MiniMax-M3 (126 samples)`);D1 模板 126 样例;D1.1 LLM 生成 1500 样例;D2 5000 样例 IID 3500/750/750 split(`34ffc84 docs(p3): audit round 14 (19th pass) — remove stale HEAD refs from stage-p3-d2-expansion-independent-audit.md` + `stage-p3-d2-multi-turn.md` + `stage-p3-d2-expansion-independent-audit.md`);docs/protocols/p1-04-data-version-d0.md。
+- **compositional split 未交付**（仍 open）：P1-04 原 requirements 明确要求 "同时设计 IID split 和 compositional split，避免工具调用准确率主要来自模板记忆"。D2 当前 split 是 IID stratified shuffle，不是 compositional split。compositional split 需要：(a) 按 task_type × tool_composition × domain 分组；(b) 保证 train/dev/test 中看到的 tool_composition 互斥（如 train 仅看 (tool_a, tool_b) 组合，dev 仅看 (tool_a, tool_c) 组合）。该项目当前未实现 compositional split。
+- **处理决策**：当前 disposition = 不阻塞 P5-02 / P5-03 / P4 GRPO 评测(这些都基于 IID split)；但 compositional split 作为完整 P1-04 验收条件仍 open，未来需要时（如 模型评测发现 IID 准确率主要来自模板记忆）实现。
 ```
 
 ---

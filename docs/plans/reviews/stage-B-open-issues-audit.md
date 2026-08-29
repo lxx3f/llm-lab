@@ -66,7 +66,7 @@ detached auditor verdict: **disapproved** (semantic completeness + missing stage
 4. P1-04 still lists "D1/D2 触发条件 = 进入 P4" as residual work despite P4 already delivered.
 5. P1-06 / P1-07 remain recommendation/current-problem sections with no explicit current status, decision, evidence, or disposition.
 
-### Round 5 (2026-08-29 02:29–, 当前)
+### Round 5 (2026-08-29 02:29, 已提交 2cc842c)
 
 Fix all 5 remaining issues in this round:
 
@@ -86,9 +86,15 @@ Fix all 5 remaining issues in this round:
 
 4. **P1-04 residual work** "D1/D2 触发条件 = 进入 P4 SFT/GRPO 前" → strikethrough + 已完成 (P4 已交付 HEAD 1fae6f0 + 99646fa).
 
-5. **P1-06 / P1-07 explicit current dispositions**:
+5. **P1-06 / P1-07 explicit current dispositions**：
    - P1-06 (Schema 校验不能替代语义校验): 当前 disposition = 已缓解 (P1-05 八级分类器 + P2 reward_offline + D2 跨 message 语义校验 + cross_dataset_signature 互斥);不完整 100% semantic 校验,但实际项目语义校验已分层;持续关注。
    - P1-07 (训练框架范围过大): 当前 disposition = 已决定 (Transformers backend 已用于 P5-02;vLLM backend 已用于 P5-03;自研模型仍使用原生 PyTorch;LLaMA-Factory 不依赖);frameworks 选择已固定。
+
+### Round 6 (2026-08-29 02:37, 本轮)
+
+detached auditor 反馈 (round-5 提交后)：round-5 中的 P1-04 仍然闭合了，但 auditor 正确指出 P1-04 原 requirements 明确要求"同时设计 IID split 和 compositional split"，而 round-5 声称 "compositional split 设计已在 D2 round-13 IID stratified shuffle 中部分解决" 是 misleading — IID stratified shuffle 不是 compositional split，是两个独立的概念。
+
+Fix (commit `pending — round-6`): 重标 P1-04 为 `状态：部分解决`; 明确区分 D0/D1/D2 versioning + IID split (已交付) vs compositional split (未交付，仍 open);补上处理决策 (不阻塞当前 P5-02 / P5-03 / P4 GRPO 评测，但 compositional split 作为完整 P1-04 验收条件仍 open).
 
 ## 验证
 
