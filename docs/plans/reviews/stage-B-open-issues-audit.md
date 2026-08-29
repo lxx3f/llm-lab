@@ -183,7 +183,7 @@ Fix (commit `b178434` docs(plans): B-audit round-16 — fix fabricated commit SH
 
 detached auditor (round-16 后) 反馈: 原任务明确要求 "不修改代码、不重跑训练"; commit `b178434` 添加 scripts/audit/validate_readme.py 违反该约束 (git diff f1fe61c..HEAD 在 b178434 之前含 `A scripts/audit/validate_readme.py`); 另 stage-B review 中 round-15/round-16 历史上下文 仍含 fabricated SHA 描述, duplicate Round 16 entry, 与 final current-tree verdict 需明确化; P1-04 / P2-01 / P2-03 / P2-04 接受残余未完成需明确列出。
 
-Fix (commit `<TBD: round-17 commit>` docs(plans): B-audit round-17 — revert scripts/audit/validate_readme.py + clean stage-B review + accept residual open items): `git rm scripts/audit/validate_readme.py` 还原代码修改; stage-B review 中两个 duplicate Round 16 entry 去重, 仅保留一个 unique entry; 区分 historical-context references (描述过去 auditor 反馈与虚构 SHA) vs active-section references (current HEAD evidence); 添加 "Final current-tree verdict" 段, 包含最后一次 detached auditor 验证结果记录; 添加 "Accepted residual scope" 段, 列出 P1-04 (compositional split) + P2-01 (planned directories) + P2-03 (dependency lock) + P2-04 (link maintenance) 明确 accepted as still-open / partial-resolution items。
+Fix (commit `9683505` docs(plans): B-audit round-17 — revert scripts/audit/validate_readme.py + clean stage-B review + accept residual open items, 2026-08-29 03:35): `git rm scripts/audit/validate_readme.py` 还原代码修改; stage-B review 中两个 duplicate Round 16 entry 去重, 仅保留一个 unique entry; 区分 historical-context references (描述过去 auditor 反馈与虚构 SHA) vs active-section references (current HEAD evidence); 添加 "Final current-tree verdict" 段, 包含最后一次 detached auditor 验证结果记录; 添加 "Accepted residual scope" 段, 列出 P1-04 (compositional split) + P2-01 (planned directories) + P2-03 (dependency lock) + P2-04 (link maintenance) 明确 accepted as still-open / partial-resolution items。
 
 **重要**: round-15 中我引用了虚构 commit 是错误 — 该 commit 当时不存在。后续 B-audit rounds 需严格遵循 "evidence SHA must be resolvable by git cat-file -t" 原则: 在 commit message 中引用 commit SHA 后, 需实际 git push 后检查 git cat-file -t <sha> 确认; 若 commit 尚未提交, 不得引用其 SHA。
 
@@ -250,7 +250,7 @@ $ python scripts/audit/run_gitignore_coverage.py
 
 **parent commit `f1fe61c`** (历史, 仅作 commit 起点标记, 不代表当前 tree 状态): 该 commit 是最终全链路审查 round-20 的 HEAD, 为本次 B-audit 的起点. 后续 round-1..round-N 提交均以 `f1fe61c` 为 base.
 
-## Final current-tree verdict (round-17 之后, HEAD = `<TBD: round-17 commit>`)
+## Final current-tree verdict (round-17 之后, HEAD = `9683505`)
 
 **detached auditor verification** for the current tree (round-17 commit 之后): README fenced JSON blocks 验证使用 inline python script (不修改代码; 该脚本是 one-shot invocation 仅用于验证) 证明 README 三个示例均与 schema 一致; 其余 commands (audit / validate_stage0 / run_tests / gitignore) 均为现有 tooling。
 
@@ -278,10 +278,10 @@ $ python scripts/audit/run_gitignore_coverage.py
 
 ## 关联文件
 
-- 修改: `docs/plans/open-issues.md` (16 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`, `b8437dd`, `53c5181`, `9e03cb4`, `11b6eb3`, `275a4a9`, `e7c6a16`, round-16)
-- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数, `b8437dd` round-10 修复 4 个 supporting docs + 5 轮 entry, `53c5181` round-11 修复 当前验证状态 块与实际 HEAD 不同步问题, `9e03cb4` round-12 采用 abstract HEAD pointer 原则 + 移除 `<TBD: round-11 commit>` placeholder, `11b6eb3` round-13 真正实现 live verification commands (无 hardcoded SHAs) + 删除 Round 9/11 historical re-run blocks 中的 hardcoded output, `275a4a9` round-14 修复 P2-02 README schema sync + P2-04 disposition, `e7c6a16` round-15 补正 schema_version const="1.0" + metadata 必填子字段 + messages minItems=1, 本 commit (round-16) 修复 P2-02 虚构 commit `8f3a2b1` → 真实 `e7c6a16` + 移动 validate_readme.py 到 tracked 路径 `scripts/audit/`)
+- 修改: `docs/plans/open-issues.md` (17 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`, `b8437dd`, `53c5181`, `9e03cb4`, `11b6eb3`, `275a4a9`, `e7c6a16`, `b178434`, `6bcb3a1`, `9683505`)
+- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数, `b8437dd` round-10 修复 4 个 supporting docs + 5 轮 entry, `53c5181` round-11 修复 当前验证状态 块与实际 HEAD 不同步问题, `9e03cb4` round-12 采用 abstract HEAD pointer 原则 + 移除 `<TBD: round-11 commit>` placeholder, `11b6eb3` round-13 真正实现 live verification commands (无 hardcoded SHAs) + 删除 Round 9/11 historical re-run blocks 中的 hardcoded output, `275a4a9` round-14 修复 P2-02 README schema sync + P2-04 disposition, `e7c6a16` round-15 补正 schema_version const="1.0" + metadata 必填子字段 + messages minItems=1, `b178434` round-16 修复 P2-02 虚构 commit + (intro: 添加 scripts/audit/validate_readme.py, by round-17 reverted), `6bcb3a1` round-16-postfix 填充 round-16 SHA, `9683505` round-17 revert 代码修改 + 清理 stage-B review + 列出 accepted residual scope)
 - 修改: `README.md` (round-14 + round-15: schema_version const 对齐 + metadata 必填子字段 + messages minItems=1)
-- 修改: `scripts/audit/validate_readme.py` (round-16: 从 gitignored `.tmp/validate_readme.py` 移动到 tracked `scripts/audit/validate_readme.py`, 作为 README examples 的 durable regression test)
+- 修改: `docs/plans/open-issues.md` (round-17: P2-02 evidence 中验证脚本路径从 scripts/audit/validate_readme.py → inline python -c '...' one-shot invocation, 不修改代码约束)
 - 修改: `docs/plans/reviews/stage-p5-02-transformers-backend.md` (round-8 修复 P5-03 未启动 stale claim)
 - 修改: `docs/data/d2-expansion.md` (round-8 修复 “待 detached auditor 终审” stale claim)
 - 修改: `docs/experiments/p2-evaluator/README.md` (round-8 + round-9 修复 "P4 GRPO MVP ... 待 detached auditor 通过" stale claim + "下一步" section 重标为已交付)
