@@ -62,8 +62,17 @@ detached auditor round-14 指出 round-13 重跑拆成 `--backends transformers`
 1. 不重跑 GPU: 20 个 `run_*.json` 完整无缺, 直接调用 `write_aggregate_comparison` + `compute_delta_percentages` + `write_delta_csv` 从 20 个 run JSON 重建 aggregates;
 2. 新 archive SHA256 = `05a38aacd6628448fec432c56219bbc33ea0fc425c9595441a23b81fef164d62`, aggregate SHA = `089450b551f0db6f77e565318492ad2db7561fc213d6d4be630206616f90fee5`;
 3. 验证 `comparison.csv rows=20` + `backends={transformers, vllm}`, `comparison.json runs=20`, `comparison_delta.csv rows=10` 全部非空 latency delta, `comparison_delta.json entries=10` 全部非空 latency delta;
-4. selftest 新增 6 个 full-aggregate 完整性断言 (test_full_aggregate_runs_count_20 / test_full_aggregate_both_backends / test_full_aggregate_both_batch_sizes / test_full_aggregate_delta_entries_10 / test_full_aggregate_delta_latency_non_null / test_full_aggregate_delta_throughput_non_null), 防止 20 个 run + both backends + both batch sizes + 10 non-null same-model Δ% 入口, 防止 vLLM-only aggregate, selftest 从 108 增至 114 PASS; 之后 round-15 README/CSV 同步再 +64 断言, 总计 178 PASS。
+4. selftest 新增 6 个 full-aggregate 完整性断言 (test_full_aggregate_runs_count_20 / test_full_aggregate_both_backends / test_full_aggregate_both_batch_sizes / test_full_aggregate_delta_entries_10 / test_full_aggregate_delta_latency_non_null / test_full_aggregate_delta_throughput_non_null), 防止 20 个 run + both backends + both batch sizes + 10 non-null same-model Δ% 入口, 防止 vLLM-only aggregate, selftest 从 108 增至 114 PASS (round-14 historical milestone); 之后 round-15 README/CSV 同步再 +64 断言, 达到 178 PASS; round-16 section-aware README/CSV row/column binding 再 +63 断言, 现总计 241 PASS。
 
+
+
+## Round-16 README sync 加固 (2026-08-30)
+
+detached auditor round-16 指出 round-15 README-sync 守护仅是 global numeric-substring 检查, 没有把每个 README cell 绑到特定 (model, backend, batch) CSV row; 只覆盖 latency/throughput, 不覆盖 reward_binary / reward_layered / delta columns。本轮 root-cause fix:
+
+1. 重写守护为 section-aware, row/column-specific: 自写 markdown table parser 按 `### heading` 分区 + 按 `| |` 行格式解析 header + rows; 把每个 model short name 映射回 HF model id, 把每列映射回 (backend, batch_size); 对 7 个表 (Latency / Throughput / reward_binary / reward_layered / Latency Δ% / Throughput Δ% / Reward layered Δ%) 逐 cell 验证等于 comparison.csv 或 comparison_delta.csv 的对应值; 对 Top-5 fastest 表逐行验证等于 (model, vllm, b=4) 的 throughput + latency。
+2. 加 4 个 NEGATIVE 测试 (`test_readme_negative_latency_mutation_caught` / `test_readme_negative_throughput_mutation_caught` / `test_readme_negative_reward_layered_mutation_caught` / `test_readme_negative_delta_mutation_caught`): 临时替换 README 中的某个 cell, 用 captured `_expect` 收集失败, 验证对应的 cell-binding 失败被捕获, 证明任何未来对 comparison.csv 的修改若未同步 README 都会让 selftest FAIL。
+3. selftest 从 178 增至 241 PASS (新增 63 个 section-aware binding + 4 个 negative): 80 个 latency/throughput cell binding (5 × 2 × 2 × 4 axes) + 30 个 delta cell binding (5 × 2 × 3 axes) + 10 个 Top-5 cell binding + 4 个 negative + section_exists + top5_cols + 其他。
 ## 4 轴对比结果（实测, 90 样本 / 组合, manifest-driven, round-14 重跑; 数值直接来自 tracked archive comparison.csv）
 
 ### Latency (ms / sample, 越低越好)
@@ -179,7 +188,7 @@ manifest 校验 + batch 重试到位后, 全部 20 个组合 1800 row 全部成�
 
 ## 测试覆盖 (`--selftest`, no GPU)
 
-覆盖 ~36 测试点, ~178 断言 (~5s, 含 round-12 manifest 干净 checkout 复原 + round-13 两后端 revision metadata 对称 + round-14 full-aggregate 完整性 6 个断言 + round-15 README/CSV 同步 65 个断言):
+覆盖 ~42 测试点, ~241 断言 (~6s, 含 round-12 manifest 干净 checkout 复原 + round-13 两后端 revision metadata 对称 + round-14 full-aggregate 完整性 6 个断言 + round-15 README/CSV 同步 65 个断言 + round-16 section-aware row/column binding + 负向 4 个断言):
 
 - Backend tuple 接口 + TransformersBackend / VLLMBackend metadata
 - terminal assistant removal + batched `_strip_terminal_assistant`
