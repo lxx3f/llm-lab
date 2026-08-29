@@ -132,11 +132,20 @@ BPE + tokenizer CLI tests: 7 passed
 
 当前记录的 loss 来自随机初始化模型和随机 token，只能证明计算链路可运行，不能作为模型效果基线。
 
-**状态更新（2026-08-26）**
+**状态更新（2026-08-27 / N11 长训练曲线交付后）**
 
 ```text
-状态：部分解决
-决策：最小训练闭环已就绪（BPE artifact + token cache + batch sampler + training loop + scheduler/AMP/梯度累积 + checkpoint/resume + generation + formal cache + 结果 schema）；正式 OWT 基线推迟到 roadmap N4，不关闭 P0-01。
+状态：已解决
+决策：Dense Transformer 真实训练闭环已通过 N4–N12 全部消融 + 长训练实验交付：
+  - N4 baseline + medium 5000 步曲线 (stage-n4-dense-formal-curve.md)
+  - N5 4 规模点 scale sweep (stage-n5-dense-scale-sweep.md)
+  - N6 dropout 消融 {0.0, 0.1, 0.2} (stage-n6-dense-dropout-sweep.md)
+  - N7 RoPE base 消融 {10k, 50k, 100k} (stage-n7-dense-rope-sweep.md)
+  - N8 n_heads 消融 {2, 4, 8} (stage-n8-dense-heads-sweep.md)
+  - N9 d_ff 消融 {256, 512, 1024} (stage-n9-dense-dff-sweep.md)
+  - N11 baseline + medium 各 50000 步长训练 (stage-n11-dense-long-curve.md)
+  - N12 dense ultra-curve (stage-n12-dense-ultra-curve.md)
+所有实验均使用同一 OWT 正式 token cache + train/validation split + owt-bpe/v0.2.0 tokenizer。关键结论均通过 P1-03 多 seed 协议验证。
 改动：
   - architecture_lab/training/dense_training.py
   - architecture_lab/training/results.py
@@ -586,18 +595,9 @@ Answer validation
 
 ---
 
-### P1-08 GRPO 依赖评测和执行器先稳定
+### P1-08 GRPO 依赖评测和执行器先稳定（已通过 P4 GRPO MVP 解决）
 
-GRPO 需要可靠的：
-
-- 工具执行器；
-- 确定性 evaluator；
-- reward 定义；
-- reward 离线验证；
-- 失败分类；
-- 防 reward hacking 检查。
-
-建议顺序为：
+原建议顺序：
 
 ```text
 工具执行器
@@ -605,6 +605,14 @@ GRPO 需要可靠的：
 → SFT
 → reward 离线验证
 → GRPO
+```
+
+实际已实现顺序：MockExecutor → D1/D1.1 模板数据集 → P1-05 八级分类器 →
+P2 reward offline → SFT 5 ckpt MVP → D2 多轮数据集 → P4 GRPO MVP。
+
+```text
+状态：已解决（2026-08-29，P4 GRPO MVP HEAD `1fae6f0` + P4 GRPO 小规模正确性实验 HEAD `99646fa`）
+决策：见 P4-01 + P4-02 新条目。
 ```
 
 ---
@@ -726,9 +734,16 @@ docs/
 └── environment.md
 ```
 
-### P2-05 SFT held-out 评测 split 仍然偏小
+### P2-05 SFT held-out 评测 split 仍然偏小（已通过 P3-01 D2 多轮 IID held-out split 解决）
 
-D1 dev 当前只有 13 个样例。D1.1 train 的 50-sample 聚合可以用于探索性诊断，但不是独立 held-out split，不能作为正式泛化质量结论。
+原状态：D1 dev 只有 13 个样例；D1.1 train 50-sample 聚合仅用于探索性诊断。
+
+```text
+状态：已解决（2026-08-28，D2 IID 5000 样本契约 round 14 HEAD `34ffc84`）
+交付：D2 train 3500 / dev 750 / test 750 IID stratified split；750-sample dev
+是首个有统计意义的 held-out reward split。P5-02 已在该 750 dev 上跑 5 个公开
+instruction-tuned 模型（详见 P5-02 条目与 docs/experiments/p2-evaluator/README.md §7）。
+```
 
 - **P3 交付摘要**：D2 多轮对话数据集当前为 **5000 样本**（round 14，HEAD：当前 main），train/dev/test = 3500/750/750 IID split（4 类 833 + 2 类 834 unique canonical variants）；P3 专项测试当前为 49 个，使用独立 D2 schema、真实 `MockExecutor.execute_sequence()`、依赖图语义校验、canonical semantic uniqueness 校验、IID stratified shuffle、跨 split canonical disjointness 与 D2-vs-D1/D1.1 cross_dataset disjointness。~~历史 MVP 样本版（数字见下方 round-13 归档）~~：在 `21d1d7e` 交付，已于 `c6eac20` 扩样到 5000 取代。
 
@@ -841,6 +856,105 @@ P3/P4 后续动作：
 - **测试**：`scripts/run_tests.py full` → Ran 历史 test 数（详细见下方 round-13 归档） (skipped=0)；stage0 9/9；D2 专项 49 tests OK (skipped=0)；全部 `expected_answer == final assistant content` 校验通过（详细数字见下方 round-13 归档）；重生成数据集 + 5 ckpt × D2 dev reward 重跑（reward_signal 数量详见下方 round-13 归档 schema 合法，large-v1 历史 reward_layered 数字（见下方 round-13 归档）、其余 4 ckpt 0、全部 binary=0，数字与 round 12 一致）。
 
 ---
+
+
+### P4 GRPO MVP（2026-08-29，HEAD `1fae6f0`，11 轮 audit 修复完成）
+
+```text
+状态：已解决
+决策：基于 P1-05 + P2 reward offline + D2 多轮数据集实现 GRPO MVP。
+交付：
+  - scripts/grpo_train.py（~1100 行，K=16 默认组采样 + group-relative advantage
+    + token-level policy 更新 + resume/complete 双路径）；
+  - scripts/grpo_mocks.py（确定性 mock rollout + reward 生成器 + RNG seeding）；
+  - scripts/grpo_experiment/{run_experiment.py, run_real_update.py,
+    analyze_experiment.py}（4 个 tracked 实验脚本：A fresh / B det-seed /
+    C resume / D real update）；
+  - schemas/grpo_step_result.schema.json（v1.0）；
+  - docs/protocols/grpo.md（运行顺序、resume 语义、reward 边界、a/b/c/d
+    invariant 列表）；
+  - 11 轮 audit 修复全部完成（schema validation, extracted_calls
+    normalization, BPE-boundary policy update, hard jsonschema failure,
+    save_every knob 移除, real CPU+GPU smoke, nonzero update,
+    state.pt invariant, cursor exhaustion rc=4, scripts to tracked,
+    analyzer hard-fail, README from state.json, natural advantages）。
+  - 62 单测 (test_grpo_mvp.py)，含 2 个 GRPO_SMOKE=1 跳过。
+验证：
+  - scripts/run_tests.py full → Ran 386 tests OK (skipped=1) at HEAD f1fe61c
+  - scripts/validate_stage0.py --examples → 9/9 PASS
+  - detached auditor + minimax-M3 reviewer 联合复审通过
+```
+
+### P4 GRPO 小规模正确性实验（2026-08-29，HEAD `99646fa`，round 9-11 修复完成）
+
+```text
+状态：已解决
+决策：用 Qwen2.5-0.5B + D2 dev 750 跑 4 个真实 GRPO 实验，验证 policy update 真
+实发生 + natural advantages（非 synthetic）+ resume 完整执行。
+交付：
+  - Run A (fresh): seed=2027, max_new_tokens=256, T=1.0, K=16, 3 步
+  - Run B (det-seed): 同 seed 复现 Run A；state.pt/RNG byte-equal
+  - Run C (resume): from Run A state.json 续训，验证 missing steps 真执行
+  - Run D (real update): natural group-relative advantages via D2 dev 750
+    reward_layered ∈ [0.18, 0.40]（非零方差）；policy delta 真实 > 0
+  - artifacts/grpo-experiment/{run-A-fresh,run-B-det-seed,run-C-resume,
+    run-D-real-update}/{state.json,summary.json}（gitignored）
+  - Round 9+10+11 修复：synthetic advantages path 移除、resume source 必须
+    from own state.json、resume check 验证 completeness（不仅比较 state.pt）、
+    analyzer hard-fail on every contract violation。
+验证：
+  - scripts/run_tests.py full → Ran 386 tests OK (skipped=1)
+  - detached auditor round 9-11 全部通过
+```
+
+### P5-03 vLLM 后端接入（2026-08-29，HEAD `bb61a3a`，WSL2 smoke PASS）
+
+```text
+状态：已解决
+决策：仅针对公开 instruction-tuned 模型接入 vLLM 推理后端；自研模型完整
+vLLM 适配不在范围内（暂缓阶段）。
+交付：
+  - scripts/vllm_smoke/smoke.py（WSL2 Ubuntu-22.04 vLLM 推理 smoke）
+  - artifacts/vllm-smoke/summary.json（gitignored）
+  - 3 个 WSL2 workarounds（VLLM_WSL2_ENABLE_PIN_MEMORY=1；
+    uninstall flashinfer-python 0.6.16（PEP-585 generic subscripting
+    在 Python 3.10 失败）；VLLM_USE_FLASHINFER_SAMPLER=0；
+    VLLM_ATTENTION_BACKEND=TORCH_SDPA）
+  - docs/plans/reviews/stage-p5-03-vllm-feasibility.md
+验证：WSL2 vLLM 0.27.1 + PyTorch 2.13.0+cu130 上 5 个公开模型可推理
+（throughput 未要求 P5-02 同等水平）；detached auditor PASS
+```
+
+### 最终全链路审查 round 1-20（2026-08-29，HEAD `f1fe61c`）
+
+```text
+状态：已解决（20 轮 detached auditor 修复全部完成）
+决策：执行最终全链路审查 + 清理，确保：
+  - run_tests.py full / validate_stage0.py --examples 全部 PASS
+  - doc / artifact 对账 0 MISSING_UNRESOLVABLE
+  - 数据集 / checkpoint / JSON 产物全部被 .gitignore 覆盖（7093/7093）
+  - reviewer / auditor evidence 落盘到 docs/reports/final-audit/ + per-round reviewer evidence docs
+  - main 工作树保持 clean
+交付：
+  - docs/reports/final-audit.md（round-15 重写后稳定；round-20 abstract HEAD/HEAD~1 pointers）
+  - docs/reports/final-audit/round-13-reviewer-evidence.md
+  - docs/reports/final-audit/round-17-reviewer-evidence.md
+  - scripts/audit/run_gitignore_coverage.py（bounded Python + JSON output）
+  - scripts/audit/run_doc_artifact_reconciliation.py（broad scan + directory + brace/glob/placeholder classification）
+  - tests/test_audit_reconciliation_extraction.py（26 regression tests）
+  - 最终 HEAD f1fe61c: 28 test targets / 386 tests OK (skipped=1)
+  - gitignore coverage: 7093/7093 PASS, semantic dataset checks PASS
+  - doc/artifact reconciliation: 60 active docs / 175 refs / 34 globs FOUND
+    / 0 MISSING_UNRESOLVABLE, exit 0
+  - working tree clean at HEAD f1fe61c
+验证：
+  - scripts/run_tests.py full → Ran 386 tests OK (skipped=1)
+  - scripts/validate_stage0.py --examples → 9/9 PASS
+  - python scripts/audit/run_gitignore_coverage.py → PASS: 7093/7093
+  - python scripts/audit/run_doc_artifact_reconciliation.py → PASS (60/175/34/0)
+  - git status --short → empty
+  - detached auditor round 20 PASS
+```
 
 ## P5：公开 instruction-tuned 模型推理后端接入
 
