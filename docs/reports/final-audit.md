@@ -46,13 +46,19 @@ git status --short
 
 | 检查 | 结果 | 证据 |
 |---|---|---|
-| `scripts/run_tests.py full` | PASS | `running 27 test targets`, `Ran 360 tests OK (skipped=1)`, exit 0 |
+| `scripts/run_tests.py full` | PASS | `running 27 test targets`, `Ran 360 tests OK (skipped=N)`, exit 0 |
 | `scripts/validate_stage0.py --examples` | PASS | 9/9 PASS, exit 0 |
 | Working tree | clean | `git status --short` empty |
 | Tracked sensitive paths | empty | `git ls-files artifacts/`, `datasets/`, `.tmp/` all empty |
 | Per-file `.gitignore` audit | PASS | `python scripts/audit/run_gitignore_coverage.py` returns `Not ignored: 0` + semantic test PASS |
 | Doc ↔ artifact reconciliation | PASS | `python scripts/audit/run_doc_artifact_reconciliation.py` returns `MISSING_UNRESOLVABLE: 0` |
 | Reviewer evidence saved | 96 docs | `git ls-files docs/ \| wc -l` |
+
+**Note on host variability**: `skipped=N` in the test suite and `Total
+sensitive files` in the gitignore audit vary by host (depends on
+whether D2/D1.1 are pre-generated and whether CUDA is available).
+The durable invariants are: `exit 0`, `OK (skipped=...)`, `Not ignored:
+0`, and `MISSING_UNRESOLVABLE: 0`.
 
 ## 1. Test suite — `scripts/run_tests.py full`
 
@@ -68,7 +74,15 @@ git status --short
 - First lines: `[test] running 27 test targets` (the actual count from
   `scripts/run_tests.py:FAST_MODULES + MODULES['full']`)
 - Last lines: `Ran 360 tests in N.NNNs`
-- Status: `OK (skipped=1)`
+- Status: `OK (skipped=N)` — N is **host-dependent**:
+  - On this host (D2 + D1.1 present, CUDA not used by GRPO tests):
+    `skipped=1` (only the GRPO subprocess smoketest gated by
+    `GRPO_SMOKE=1`)
+  - On a host without D2: `skipped=10` (1 D2 class + 1 method
+    skipped, plus other skipUnless tests may activate)
+  - On a host without CUDA: additional `test_n2_benchmark` tests skip
+- The durable invariant is `exit 0` and `OK (skipped=...)`. Any
+  skipped count from 1 to ~13 is acceptable.
 
 ## 2. Stage 0 / Schema 验证 — `scripts/validate_stage0.py --examples`
 
@@ -93,8 +107,8 @@ either. **All datasets are gitignored** and regenerated locally on demand.
 
 ### Comprehensive `.gitignore` coverage
 
-The `.gitignore` rules now include a broad `datasets/` rule (line 81)
-that catches any dataset path under `datasets/`, not just the named D1/
+The `.gitignore` rules include a broad `datasets/` rule (line 81) that
+catches any dataset path under `datasets/`, not just the named D1/
 D1.1/D2 paths:
 
 ```
@@ -105,7 +119,7 @@ datasets/tool-calling-d2/
 datasets/tool-calling-d2-*/
 ```
 
-This ensures semantic coverage: **any** future `datasets/<name>/*`
+This ensures **semantic coverage**: any future `datasets/<name>/*`
 artifact is gitignored. The audit script verifies this with a
 semantic-coverage test (3 synthetic test paths: `unlisted-dataset`,
 `future-experiment`).
@@ -134,28 +148,56 @@ git ls-files datasets/tool-calling-d2/        | wc -l   # → 0
 python scripts/audit/run_doc_artifact_reconciliation.py
 ```
 
-### What it does
+### Classification methodology
 
-For each `docs/experiments/*/README.md`:
+Each `artifacts/...` reference extracted from a README is classified
+into one of four kinds, with **different existence checks per kind**:
 
-1. Extract `artifacts/...` references
-2. Check on-disk existence (with extension fallback `.json`, `.png`,
-   `.md`, `.txt`, `.csv`, `.yaml`, `.pt`)
-3. For MISSING refs, search for a documented regeneration command
-   (a `scripts/...py` invocation line that mentions the artifact)
-4. Categorize each ref as:
-   - **FOUND** (exists on disk)
-   - **MISSING_RESOLVABLE** (doesn't exist but has documented regen cmd)
-   - **MISSING_UNRESOLVABLE** (doesn't exist AND no regen cmd — AUDIT FAIL)
-5. Emit per-doc, per-ref JSON evidence
-6. Exit 0 if no MISSING_UNRESOLVABLE; exit 1 otherwise
+| Kind | Definition | Existence check |
+|---|---|---|
+| **exact_file** | Reference ends in a known file extension (e.g., `.json`, `.png`) | Try exact path; if not found, try extension fallback |
+| **glob_pattern** | Reference contains `*` | Expand via pathlib `glob`; require ≥1 match |
+| **directory** | Reference ends in `/` | Check if the directory exists |
+| **placeholder** | Reference ends in `-`, `_`, `/`, `...` (truncated category reference) | **Excluded from existence check** — describes a category/directory, not a specific file |
+
+Per-reference resolution:
+
+- **FOUND** (kind=exact_file|glob_pattern|directory, exists on disk)
+- **MISSING_RESOLVABLE** (not found but has documented regen cmd)
+- **MISSING_UNRESOLVABLE** (not found AND no regen cmd) — **AUDIT FAIL**
+- **PLACEHOLDER** (kind=placeholder) — excluded from existence check
 
 ### Expected outcome
 
 - Exit code: **0**
-- Output: `Total docs: 24, Docs with refs: 21, Total refs: 77,
-  FOUND: 77, MISSING_RESOLVABLE: 0, MISSING_UNRESOLVABLE: 0`
-- JSON: `artifacts/audits/doc-artifact-reconciliation.json`
+- Output includes:
+  - `Total docs: 24`
+  - `Docs with artifact refs: 21`
+  - `Total artifact references: 77`
+  - `Placeholders (excluded from check): ~20`
+  - `References FOUND on disk: ~56`
+  - `References MISSING (resolvable): 0-2`
+  - `References MISSING (unresolvable): 0`
+- JSON: `artifacts/audits/doc-artifact-reconciliation.json` with full
+  per-doc, per-ref evidence
+
+### What this round-11 fix addresses
+
+The round-10 script had a defect: `check_artifact_exists()` returned
+True whenever a reference's parent directory existed, which led to
+false-positive FOUND classifications for placeholder references like
+`artifacts/sft-`, `artifacts/moe-owt-formal-curve-`, and trailing
+hyphen patterns. Round-11 fix:
+
+1. Classifies each reference by kind (exact_file / glob_pattern /
+   directory / placeholder)
+2. **Excludes placeholders from existence check** (they're category
+   references, not specific files)
+3. Glob patterns use `pathlib.glob` (not parent-dir check)
+4. Per-reference JSON includes `kind`, `matched_paths`, `regen_command`
+
+This host (this audit): 77 total refs, 20 placeholders excluded,
+56 FOUND, 1 MISSING_RESOLVABLE, 0 MISSING_UNRESOLVABLE → exit 0.
 
 ## 5. Intentionally Tracked JSON Files
 
@@ -178,19 +220,28 @@ python scripts/audit/run_gitignore_coverage.py
 
 ### What it does
 
-- Collects every file under `datasets/`, `artifacts/`, `.tmp/` (~7K files)
-- Runs **one** `git check-ignore --no-index --stdin --verbose --non-matching`
-  subprocess with all paths batched via stdin (NOT one subprocess per file)
+- Collects every file under `datasets/`, `artifacts/`, `.tmp/`
+- Runs **one** `git check-ignore --no-index --stdin --verbose
+  --non-matching` subprocess with all paths batched via stdin (NOT one
+  subprocess per file)
 - Parses output to determine gitignored vs not-ignored
 - Runs a **semantic coverage test** (3 synthetic `datasets/*` paths) to
   confirm the broad `datasets/` rule catches future unlisted datasets
 - Writes machine-readable JSON to `artifacts/audits/gitignore-coverage.json`
-- Exit 0 if `Not ignored == 0` AND semantic test PASSES; exit 1 otherwise
+- Exit 0 if `Not ignored == 0` AND semantic test passes; exit 1 otherwise
 
 ### Bounded runtime
 
-- Per-file check via batched subprocess: ~7 seconds for ~7K files
+- ~7 seconds for ~7K files (host-dependent)
 - No subprocess-per-file (that would take many minutes)
+
+### Expected outcome
+
+- `Total sensitive files: N` (varies by host; this host has 7093)
+- `Gitignored: N`
+- `Not ignored: 0`
+- `PASS: N/N (100.0000%, 0 exceptions)`
+- JSON: `artifacts/audits/gitignore-coverage.json`
 
 ### `.gitignore` rules summary
 
@@ -251,8 +302,11 @@ git ls-files docs/protocols/ | wc -l       # → 24
 ## 10. 已知非阻塞项
 
 - `jsonschema.RefResolver is deprecated as of v4.18.0` warning (cosmetic)
-- `test_grpo_mvp.py::TestGrpoSubprocessSmoke` `skipped=1` (gated by
-  `GRPO_SMOKE=1`; correct by-design)
+- `test_grpo_mvp.py::TestGrpoSubprocessSmoke` may skip on hosts without
+  CUDA or `GRPO_SMOKE=1`
+- `test_d2_dataset.py` may skip classes if D2 not pre-generated
+- `test_d1_llm.py` may skip if D1.1 not pre-generated
+- `test_n2_benchmark.py` may skip CUDA-dependent tests without CUDA
 - `scripts/eval_transformers.py` exception path: out-of-scope
 - `artifacts/` size varies by host; all files gitignored
 
@@ -265,7 +319,8 @@ git checkout HEAD~1
 
 # ---- 1. Tests ----
 .venv/python.exe scripts/run_tests.py full
-# Expected: "[test] running 27 test targets", "OK (skipped=1)", exit 0
+# Expected: "[test] running 27 test targets", "OK (skipped=N)", exit 0
+# N varies by host (1-13 depending on which optional datasets/CUDA are present)
 
 # ---- 2. Schema validation ----
 .venv/python.exe scripts/validate_stage0.py --examples
@@ -283,11 +338,11 @@ git ls-files '*.env'                # → empty
 
 # ---- 5. Bounded per-file .gitignore audit ----
 python scripts/audit/run_gitignore_coverage.py
-# Expected: "PASS: N/N (100%, 0 exceptions)" + JSON to artifacts/audits/
+# Expected: "PASS: N/N (100%, 0 exceptions)" + JSON
 
 # ---- 6. Doc <-> artifact reconciliation ----
 python scripts/audit/run_doc_artifact_reconciliation.py
-# Expected: "PASS: all references resolved" + JSON to artifacts/audits/
+# Expected: "PASS: all non-placeholder references resolved" + JSON
 
 # ---- 7. Intentionally tracked JSON ----
 git ls-files '*.json' | wc -l       # → 28
@@ -311,13 +366,15 @@ git config user.email               # → "agent@local"
 `llm-lab` audit state satisfies all in-scope items in the objective.
 The audit verifies the following invariants via automated scripts:
 
-1. **Tests pass**: 27 test targets, 360 tests, OK (skipped=1), exit 0.
+1. **Tests pass**: 27 test targets, 360 tests, OK (skipped=host-dependent),
+   exit 0.
 2. **Schemas validate**: 9/9 examples PASS, exit 0.
-3. **Doc ↔ artifact reconciliation**: 24 docs, 77 references, 77 FOUND,
-   0 MISSING_UNRESOLVABLE, exit 0.
-4. **All sensitive paths gitignored**: 7096/7096 gitignored, 0
-   exceptions, semantic coverage test PASSES, exit 0. Bounded runtime
-   ~7 seconds.
+3. **Doc ↔ artifact reconciliation**: 24 docs, 77 references; of which
+   ~20 are placeholders (category refs, excluded from check), ~56
+   FOUND, ≤2 MISSING_RESOLVABLE, 0 MISSING_UNRESOLVABLE, exit 0.
+4. **All sensitive paths gitignored**: N/N gitignored (host-dependent,
+   ~7K on this host), 0 exceptions, semantic coverage test PASSES,
+   bounded runtime ~7s.
 5. **No tracked weight files, secrets, or artifacts**: empty results.
 6. **Working tree clean**: empty `git status --short`.
 7. **Identity not modified**: `agent <agent@local>` is project-level.
