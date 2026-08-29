@@ -65,7 +65,18 @@
 
 任一子阶段失败必须先更新本路线图和 `open-issues.md`。
 
-## 下一阶段：P4 GRPO + P5 后端
+## 已交付阶段：P4 GRPO + P5 后端（2026-08-29）
+
+> 本节“下一阶段”原是 P2/P3 阶段交付时的未来计划; 实际状态（2026-08-29）：下列 4 项均已交付, detailed evidence 见各自 stage review。
+
+| 阶段 | 状态 | 交付 commit | stage review |
+|---|---|---|---|
+| P4 GRPO | ✅ 已交付 (MVP + 小规模正确性实验 round 9/10/11) | `1fae6f0` + `99646fa` | `stage-p4-grpo-mvp.md` + `stage-p4-grpo-smoketest.md` |
+| P5-01 开源 instruction-tuned 模型选定 | ✅ 已交付 | `bb61a3a` (与 P5-03 同交付) | `stage-p5-03-vllm-feasibility.md` |
+| P5-02 Transformers 后端接入（公开模型） | ✅ 已交付 (round 2 修复 target-answer 泄泄后) | `63cbd83` + `b4fd879` + `66ff9eb` | `stage-p5-02-transformers-backend.md` |
+| P5-03 vLLM 后端接入（公开模型） | ✅ 已交付 (WSL2 smoke PASS) | `bb61a3a` | `stage-p5-03-vllm-feasibility.md` |
+
+历史表（P2/P3 阶段交付时的未来计划，已 supersede）：
 
 | 阶段 | 范围 | 触发条件 |
 |---|---|---|

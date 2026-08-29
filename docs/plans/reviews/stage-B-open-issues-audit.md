@@ -122,9 +122,25 @@ Fix (commit `75ca67d` docs(plans): B-audit round-8 — label historical present-
 - round-8 的验证块未在本文件中独立记录 (验证块在 round-7 后已经包含 round-7 verification, 不包含 round-8 intermediate state)。
 - 本文件 round-8 之后, "当前验证状态" 同步过渡为 round-8 之后, HEAD = `75ca67d` (本轮 fix 验证中更新)。
 
-后续补充：在 round-9 的 complete_goal 后本文件会再次同步为 `HEAD = 75ca67d` (或下一个 commit), 实际验证是在 round-9 submit 时重跑。
+后续补充：在 round-9 的 complete_goal 后本文件会再次同步为 `HEAD = 58d6e0e` (或下一个 commit), 实际验证是在 round-10 submit 时重跑.
 
-**Round 9 verification re-run** (round-8 提交后, HEAD = `75ca67d`): 本轮验证以 round-9 submit 为准重跑, 验证 4 个 supporting doc 的修复是否被本文件的 verified 状态反映。output 详见本节下方 "当前验证状态 (round-8 之后, HEAD = `75ca67d`)" 代码块, 以及运行验证 commands:
+### Round 9 (2026-08-29 03:00, current)
+
+detached auditor (round-8 后) 反馈: stage-B review 仍以 `HEAD = 75ca67d` 为"当前验证状态", 但 round-8 的 commit `75ca67d` 提交后 HEAD 已变成 `58d6e0e` (该 commit 只添加 Round-8 historical entry, 未同步当前验证块); 另外 3 个 supporting docs 中仍有 stale completion claims:
+
+1. `docs/protocols/p2-evaluator.md:110`: "4. ⏳ P5-02 Transformers backend ... (仍待办)" — actual P5-02 已交付。
+2. `docs/experiments/p2-evaluator/README.md:103-105`: P3 D2 / P5-02 / P4 GRPO 仍列为"下一步" — actual 3 项均已交付。
+3. `docs/plans/roadmap.md:68-74`: P4 GRPO / P5 后端仍标为"下一阶段" — actual 均已交付。
+
+另, 验证块中的 reconciliation counts 与实际命令输出不一致: actual 输出含 177 total references + 5 missing-but-resolvable + 99 found + 19 dirs + 35 globs + 0 unresolvable, 但 stage-B review 只展示了部分数字。
+
+Fix (commit `58d6e0e` docs(plans): B-audit round-9 — fix stale claims in 4 supporting docs + Round 8 entry, 2026-08-29 02:59): 重写上述 3 处 stale claims 为已交付状态 + 加 explicit commit SHA 证据。同时本文件当前验证块更新为 `HEAD = 58d6e0e`, 完整 reconciliation output (`177 total refs` / `99 found` / `5 missing (resolvable)` / `19 dirs` / `35 globs` / `0 unresolvable`) 追加。
+
+**doc-wide semantic consistency audit**: 本轮 doc-wide 全仓 grep scan 已执行 (exhaustive scan for `P5-03.*未启动|待 detached auditor 终审|待 detached auditor 通过|P4 GRPO.*待.*启动|P5-02.*待办`), 主动检查 `docs/plans/` + `docs/data/` + `docs/experiments/` + `docs/protocols/` + `docs/reports/`. 结果: 仅 hit 在已修复 markers 上下文内 (historical-context quotes); active stale claims = 0.
+
+后续补充：在 round-9 的 complete_goal 后本文件会再次同步为 `HEAD = 58d6e0e` (或下一个 commit), 实际验证是在 round-10 submit 时重跑.
+
+**Round 9 verification re-run** (round-8 提交后, HEAD = `75ca67d`): 本轮验证以 round-9 submit 为准重跑, 验证 4 个 supporting doc 的修复是否被本文件的 verified 状态反映。output 详见本节下方 "当前验证状态 (round-9 之后, HEAD = `58d6e0e`)" 代码块, 以及运行验证 commands:
 
 ```text
 $ git rev-parse HEAD
@@ -159,24 +175,29 @@ $ python scripts/audit/run_gitignore_coverage.py
 PASS: 7093/7093 (100.0000%, 0 exceptions)
 ```
 
-**当前验证状态** (round-8 之后，HEAD = `75ca67d`):
+**当前验证状态** (round-9 之后, HEAD = `58d6e0e`):
 
 ```text
 $ git rev-parse HEAD
-5dce44d6e9853b8e7c54b6f8e0f0c93b081ff65b
+58d6e0ead9029f2ed4dea9fdecf8d77c5a245fba
 
 $ git status --short
 (empty — clean)
 
 $ python scripts/audit/run_doc_artifact_reconciliation.py
 PASS: all non-placeholder references resolved
-Total active docs scanned: 60
-References FOUND on disk: 99
-Directories FOUND on disk: 19
-Globs FOUND on disk: 35
-References MISSING (unresolvable): 0
-Directories MISSING (unresolvable): 0
-Globs MISSING (unresolvable): 0
+Total active documentation files: 60
+Total active docs scanned:                60
+Total artifact references:                177
+References FOUND on disk:                 99
+References MISSING (resolvable):          5
+References MISSING (unresolvable):        0
+Directories FOUND on disk:                19
+Directories MISSING (resolvable):         0
+Directories MISSING (unresolvable):       0
+Globs FOUND on disk:                      35
+Globs MISSING (resolvable):               0
+Globs MISSING (unresolvable):             0
 Exit code: 0
 
 $ python scripts/validate_stage0.py --examples
@@ -192,20 +213,20 @@ PASS examples\d2_multi_turn\sample-positive-002-error-recovery.json
 9/9 PASS
 
 $ python scripts/run_tests.py fast
-Ran 360 tests in ~45s
+Ran 360 tests in 109.000s
 OK (skipped=3)
 
 $ python scripts/run_tests.py full
-Ran 386 tests in ~47s
+Ran 386 tests in 53.747s
 OK (skipped=3)
 
 $ python scripts/audit/run_gitignore_coverage.py
-PASS: 7093/7093 gitignored, 0 exceptions, semantic dataset checks PASS
+PASS: 7093/7093 (100.0000%, 0 exceptions)
 ```
 
-**历史验证快照** (round-7 提交后, HEAD = `8f6f8f8`): 以上所有命令在 round-7 提交后同样 PASS (输出数字与 round-8 几乎一致, 仅 HEAD SHA 不同); 严格说 "current tree" 验证以 `75ca67d` 为准 (round-8 修复了 supporting documents 中 4 处 stale claims).
+**历史验证快照** (round-7 提交后, HEAD = `8f6f8f8`): 以上所有命令在 round-7 提交后同样 PASS (输出数字与 round-8 几乎一致, 仅 HEAD SHA 不同); 严格说 "current tree" 验证以 `58d6e0e` 为准 (round-9 修复了 3 个 stale claims in supporting docs + 修复了 stage-B review 的当前 HEAD 同步问题 + 修复了 reconciliation 输出计数缺失)。
 
-**parent commit `f1fe61c`** (历史, 仅作 commit 起点标记, 不代表当前 tree 状态): 该 commit 是最终全链路审查 round-20 的 HEAD, 为本次 B-audit 的起点. 后续 round-1..round-6 提交均以 `f1fe61c` 为 base, 累积迭加至 `5dce44d`.
+**parent commit `f1fe61c`** (历史, 仅作 commit 起点标记, 不代表当前 tree 状态): 该 commit 是最终全链路审查 round-20 的 HEAD, 为本次 B-audit 的起点. 后续 round-1..round-9 提交均以 `f1fe61c` 为 base, 累积迭加至 `58d6e0e`.
 
 ## 审查 reviewer 身份
 
@@ -214,10 +235,12 @@ PASS: 7093/7093 gitignored, 0 exceptions, semantic dataset checks PASS
 
 ## 关联文件
 
-- 修改: `docs/plans/open-issues.md` (8 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`)
-- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs)
+- 修改: `docs/plans/open-issues.md` (9 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`)
+- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数)
 - 修改: `docs/plans/reviews/stage-p5-02-transformers-backend.md` (round-8 修复 P5-03 未启动 stale claim)
 - 修改: `docs/data/d2-expansion.md` (round-8 修复 “待 detached auditor 终审” stale claim)
-- 修改: `docs/experiments/p2-evaluator/README.md` (round-8 修复 "P4 GRPO MVP ... 待 detached auditor 通过" stale claim)
+- 修改: `docs/experiments/p2-evaluator/README.md` (round-8 + round-9 修复 "P4 GRPO MVP ... 待 detached auditor 通过" stale claim + "下一步" section 重标为已交付)
 - 修改: `docs/plans/reviews/stage-p3-d2-multi-turn.md` (round-8 修复 "P4 GRPO MVP ⏸ ... 待 P5-02 audit + list activate 后启动" stale claim)
+- 修改: `docs/protocols/p2-evaluator.md` (round-9 修复 "P5-02 ... 仍待办" stale claim)
+- 修改: `docs/plans/roadmap.md` (round-9 重标 "下一阶段: P4 GRPO + P5 后端" → "已交付阶段" 表格 + 历史表)
 - 复用 stage reviews (cited as evidence): stage-p3-d2-expansion-independent-audit.md, stage-p5-02-transformers-backend.md, stage-p5-03-vllm-feasibility.md, stage-p4-grpo-mvp.md, stage-p4-grpo-smoketest.md, stage-n2-dense-moe-fairness.md, stage-n3-unified-metadata.md, stage-moe-top1-training.md, stage-p2-evaluator.md

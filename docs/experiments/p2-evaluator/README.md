@@ -100,9 +100,11 @@
 
 ## 5. 下一步
 
-1. **P3 数据版本 D2 多轮对话**：当前活跃契约为 5000/3500/750/750（HEAD：见当前 main；stage review 通过）；自研 5 ckpt 的 D2 dev 真实推理评测历史归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
-2. **P5-02 Transformers backend**：让公开 instruction-tuned 模型跑同一 reward signal，做公平对比；本 README §7 描述。
-3. **P4 GRPO**：当 P3 + P5-02 就位后，把 `reward_binary` / `reward_layered` 作为 GRPO advantage 计算的输入。
+> 本节“下一步”是 P2 阶段交付时的 plan 项描述。实际状态（2026-08-29）：下列 3 项**均已交付**, 后续另可启动 P5-04 双后端对比 / 架构扩展 / 公开模型 GRPO 扩展等新项。
+
+1. **P3 数据版本 D2 多轮对话**：✅ **已交付** - 当前活跃契约为 5000/3500/750/750（HEAD `34ffc84`; stage review 通过）；自研 5 ckpt 的 D2 dev 真实推理评测历史归档于 `docs/plans/open-issues.md` P3-01 段（line 769-841）。
+2. **P5-02 Transformers backend**：✅ **已交付** - 让公开 instruction-tuned 模型跑同一 reward signal，做公平对比；详见 `docs/plans/reviews/stage-p5-02-transformers-backend.md` + `docs/experiments/p5-03-vllm-feasibility/`。
+3. **P4 GRPO**：✅ **已交付** - P3 + P5-02 均已就位；`reward_binary` / `reward_layered` 已作为 GRPO advantage 计算的输入使用；详见 `docs/plans/reviews/stage-p4-grpo-mvp.md` + `docs/plans/reviews/stage-p4-grpo-smoketest.md`。
 
 ## 6. 自研 5 ckpt × D2 dev 真实推理 reward 评测（归档索引）
 
