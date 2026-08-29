@@ -207,6 +207,12 @@ detached auditor (round-19 后) 反馈: stage-B review 的 abstract pointer fix 
 
 Fix (commit `ac3b4fb` B-audit round-20: mark final-audit.md historical snapshots + add Current live-verification section, 2026-08-29 03:55): (1) `docs/reports/final-audit.md` 头部加 "Historical snapshot note (B-audit round-19, 2026-08-29)" 说明原报告中 175/98/34 是 final-audit round-20 commit `f1fe61c` 时点的 historical snapshot, 非当前状态; (2) 新增 "## Current live-verification (auditor runs against current tree)" 章节, 使用 abstract pointer notation + expected output 形式: auditor 独立运行 4 个 live commands (reconciliation / gitignore / validate_stage0 / run_tests) + 1 个 diff constraint check, 输出比对 abstract expected output; (3) 后续任何 final-audit.md 的 "current tree" 计数 引用 都使用上述 live-verification section (该 section 自维护)。
 
+### Round 21 (2026-08-29 04:00, **historical**, comprehensive current-HEAD/current-tree claim cleanup)
+
+detached auditor (round-20-postfix 后) 反馈: final-audit.md Section 4 仍含 "**These numbers reflect the current tree state at HEAD**" 与 "**Result (current HEAD): 175 total refs ... 34 globs FOUND**" 表述, 与该文件顶部新增的 Historical snapshot note + Current live-verification section 内部矛盾; open-issues.md "最终全链路审查 round 1-20" section 同样以 `HEAD f1fe61c` 旧 `175/98/34` snapshot 呈现, 未标记为 historical。
+
+Fix (本 commit, round-21): (1) final-audit.md Section 4 子标题 "### Active documentation scope (round-12 fix)" 后面新增 Historical snapshot note 段 (本 section 描述的是 final-audit round-20 时点的状态; 后 section "Real results from this audit" 同样加 historical snapshot note); (2) final-audit.md 子标题 "### Real results from this audit (this host)" 改为 "(historical snapshot from final-audit round-20, commit `f1fe61c`; see Current live-verification above for current HEAD counts)"; (3) final-audit.md Section 4 "**Result (current HEAD)**" 改为 "(historical snapshot from final-audit round-20, commit `f1fe61c`; see Current live-verification above for current HEAD counts)"; (4) final-audit.md Section 4 文中 "58 active docs scanned" 加 historical snapshot note; (5) open-issues.md "### 最终全链路审查 round 1-20" 标题改为 "(historical snapshot from `HEAD f1fe61c`)" + section 顶部加 Historical snapshot note 段 + 指向 Current live-verification sections; (6) open-issues.md 该 section 验证 block + 最终 HEAD f1fe61c 行 + gitignore + reconciliation 行均加 "historical snapshot" label。
+
 ```text
 <abstract — this Round 11 historical re-run block was replaced with abstract pointer notation; auditor runs the live commands in "当前验证状态" (live verification commands — to be re-run by auditor against current tree) block below.>
 ```

@@ -1051,7 +1051,14 @@ vLLM 适配不在范围内（暂缓阶段）。
 （throughput 未要求 P5-02 同等水平）；detached auditor PASS
 ```
 
-### 最终全链路审查 round 1-20（2026-08-29，HEAD `f1fe61c`）
+### 最终全链路审查 round 1-20（2026-08-29，historical snapshot from `HEAD f1fe61c`）
+
+**Historical snapshot note (B-audit round-20, 2026-08-29)**: 本 section 描述的状态 captured at original final-audit round-20 (commit `f1fe61c`); 该 commit 为本次 B-audit 的起点, 非 actual current HEAD。actual current HEAD 与 live verification 结果请查阅:
+- `docs/plans/reviews/stage-B-open-issues-audit.md` "Final current-tree verdict" 段 (round-19 abstract HEAD pointer)
+- `docs/reports/final-audit.md` "## Current live-verification (auditor runs against current tree)" 段
+- `docs/plans/open-issues.md` "## Accepted residual scope" 段 (P1-04 / P2-01 / P2-03 / P2-04)
+
+**以下为 historical snapshot from `HEAD f1fe61c`**（不被解释为 current state）:
 
 ```text
 状态：已解决（20 轮 detached auditor 修复全部完成）
@@ -1068,12 +1075,12 @@ vLLM 适配不在范围内（暂缓阶段）。
   - scripts/audit/run_gitignore_coverage.py（bounded Python + JSON output）
   - scripts/audit/run_doc_artifact_reconciliation.py（broad scan + directory + brace/glob/placeholder classification）
   - tests/test_audit_reconciliation_extraction.py（26 regression tests）
-  - 最终 HEAD f1fe61c: 28 test targets / 386 tests OK (skipped=1)
+  - 最终 HEAD f1fe61c (本 section historical snapshot 起点): 28 test targets / 386 tests OK (skipped=1)
   - gitignore coverage: 7094/7094 PASS, semantic dataset checks PASS
   - doc/artifact reconciliation: 60 active docs / 175 refs / 34 globs FOUND
-    / 0 MISSING_UNRESOLVABLE, exit 0
-  - working tree clean at HEAD f1fe61c
-验证：
+    / 0 MISSING_UNRESOLVABLE, exit 0 (historical snapshot)
+  - working tree clean at HEAD f1fe61c (本 section historical snapshot 起点)
+验证 (historical snapshot from final-audit round-20, commit `f1fe61c`; see Current live-verification section in docs/reports/final-audit.md for current HEAD counts):
   - scripts/run_tests.py full → Ran 386 tests OK (skipped=1)
   - scripts/validate_stage0.py --examples → 9/9 PASS
   - python scripts/audit/run_gitignore_coverage.py → PASS: 7094/7094

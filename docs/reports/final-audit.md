@@ -217,6 +217,8 @@ python scripts/audit/run_doc_artifact_reconciliation.py
 
 ### Active documentation scope (round-12 fix)
 
+**Historical snapshot note (final-audit round-20, commit `f1fe61c`; see Current live-verification above for current HEAD counts)**: the numbers reported in the original "Real results from this audit" subsections (175 total refs, 98 found, 34 globs, 60 active docs, etc.) describe the state captured at the original final-audit round-20 audit time, NOT current HEAD state. Subsequent B-audit rounds (round-1..round-20) and other project commits have added docs and changed the artifact set; the live current-tree counts differ from these historical numbers.
+
 The script scans every active `.md` file under `docs/`. **Exclusions**:
 
 - `docs/licenses/` — third-party license text (not project docs)
@@ -229,7 +231,7 @@ The script scans every active `.md` file under `docs/`. **Exclusions**:
 On this audit at the audited parent (`HEAD~1`, before the
 round-14 reviewer-evidence doc was added): 92 total docs, 34
 excluded (1 license + 1 final-audit + 32 stage reviews + 1 other),
-**58 active docs scanned**. The current HEAD shows 60 active docs
+**58 active docs scanned** (historical snapshot from final-audit round-20, commit `f1fe61c`; see Current live-verification above for current HEAD counts). The current HEAD shows 60 active docs
 (after round-14 added the round-13 reviewer-evidence doc and
 round-18 added the round-17 reviewer-evidence doc, each contributing
 one additional active doc); the round-13 implementation itself was
@@ -259,7 +261,7 @@ The regen-cmd detector joins multi-line shell invocations (lines ending
 in `\`) before searching, so an artifact ref on a continuation line is
 matched to its script.
 
-### Real results from this audit (this host)
+### Real results from this audit (historical snapshot from final-audit round-20, commit `f1fe61c`; see Current live-verification above for current HEAD counts)
 
 - Total active docs scanned: **60**
 - Docs with artifact refs: **50**
@@ -324,7 +326,7 @@ to be silently dropped from the audit.
    (26 tests) verify the regex captures all reference forms
    including the auditor-cited brace/wildcard examples.
 
-**Result (current HEAD)**: 175 total refs captured (was 141 in
+**Result (historical snapshot from final-audit round-20, commit `f1fe61c`; see Current live-verification above for current HEAD counts)**: 175 total refs captured (was 141 in
 round-12; +34 vs round-12; +8 vs round-13 because the round-14 +
 round-18 reviewer-evidence docs add 11 refs between them). 34
 globs FOUND on disk (was 0 in round-12; +5 vs round-13 from the
@@ -485,6 +487,8 @@ git config user.email               # → "agent@local"
 ## 12. Conclusion
 
 `llm-lab` audit state satisfies all in-scope items in the objective.
+### Audit invariants (historical snapshot from final-audit round-20, commit `f1fe61c`; see Current live-verification above for current HEAD counts)
+
 The audit verifies the following invariants via automated scripts:
 
 1. **Tests pass**: 28 test targets, 386 tests, OK (skipped=host-dependent),
