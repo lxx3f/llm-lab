@@ -66,7 +66,7 @@ git status --short
 | Tracked sensitive paths | empty | `git ls-files artifacts/`, `datasets/`, `.tmp/` all empty |
 | Per-file `.gitignore` audit | PASS | `python scripts/audit/run_gitignore_coverage.py` returns `Not ignored: 0` + semantic test PASS |
 | Doc ↔ artifact reconciliation | PASS | `python scripts/audit/run_doc_artifact_reconciliation.py` returns `MISSING_UNRESOLVABLE: 0` |
-| Reviewer / auditor evidence | PASS | `docs/reports/final-audit/round-13-reviewer-evidence.md` documents round-13 reproduction commands + outputs + objection handling. See the per-round evidence subdirectory. |
+| Reviewer / auditor evidence | PASS | `docs/reports/final-audit/round-17-reviewer-evidence.md` documents round-17 reproduction commands + outputs + objection handling (current durable evidence). Round-13 evidence in `docs/reports/final-audit/round-13-reviewer-evidence.md` is preserved as historical evidence. |
 
 **Note on host variability**: `skipped=N` and `Total sensitive files` vary
 by host (depends on whether D2/D1.1 are pre-generated and whether CUDA is
@@ -163,12 +163,13 @@ The script scans every active `.md` file under `docs/`. **Exclusions**:
 On this audit at the audited parent (`HEAD~1`, before the
 round-14 reviewer-evidence doc was added): 92 total docs, 34
 excluded (1 license + 1 final-audit + 32 stage reviews + 1 other),
-**58 active docs scanned**. The current HEAD shows 59 active docs
-(after round-14 added the round-13 reviewer-evidence doc which
-contributes one additional active doc); the round-13 implementation
-itself was verified at 58 active docs, and the current "Real
-results from this audit (this host)" section below uses the current
-59-doc tree state.
+**58 active docs scanned**. The current HEAD shows 60 active docs
+(after round-14 added the round-13 reviewer-evidence doc and
+round-18 added the round-17 reviewer-evidence doc, each contributing
+one additional active doc); the round-13 implementation itself was
+verified at 58 active docs, and the current "Real results from
+this audit (this host)" section below uses the current 60-doc
+tree state.
 
 ### Classification methodology (round-12 fix)
 
@@ -194,31 +195,36 @@ matched to its script.
 
 ### Real results from this audit (this host)
 
-- Total active docs scanned: **59**
-- Docs with artifact refs: **49**
+- Total active docs scanned: **60**
+- Docs with artifact refs: **50**
 - Docs without artifact refs: **10**
-- Total artifact references: **173**
+- Total artifact references: **175**
 - **Placeholders excluded**: **19**
-- **References FOUND**: **97**
+- **References FOUND**: **98**
 - **References MISSING (resolvable)**: **5**
 - **References MISSING (unresolvable)**: **0**
 - **Directories FOUND**: **19**
 - **Directories MISSING (resolvable)**: **0**
 - **Directories MISSING (unresolvable)**: **0**
-- **Globs FOUND**: **33**
+- **Globs FOUND**: **34**
 - **Globs MISSING (resolvable)**: **0**
 - **Globs MISSING (unresolvable)**: **0**
 - Exit code: **0**
 
 These numbers reflect the **current** tree state at HEAD (including
-the `docs/reports/final-audit/round-13-reviewer-evidence.md` doc
-added in round-14, which itself contains 9 artifact references).
-The round-13 implementation commit `afd579f` was verified at that
-commit with 58/167/29 counts (historical evidence; see
-`docs/reports/final-audit/round-13-reviewer-evidence.md` for the
-exact round-13 reproduction). The current HEAD shows 59/173/33 (the
-+1 doc / +6 refs / +4 globs come from the round-14 reviewer-evidence
-doc itself).
+both `docs/reports/final-audit/round-13-reviewer-evidence.md`
+(added in round-14, contributes 9 refs + 4 globs) AND
+`docs/reports/final-audit/round-17-reviewer-evidence.md`
+(added in round-18, contributes 2 refs + 1 glob)).
+
+Historical evidence (preserved for round traceability):
+
+- Round-13 implementation commit `afd579f` was verified at that
+  commit with 58/167/29 counts (see
+  `docs/reports/final-audit/round-13-reviewer-evidence.md`).
+- Round-17 implementation commit `7771ca6` was verified at that
+  commit with 59/173/33 counts (see
+  `docs/reports/final-audit/round-17-reviewer-evidence.md`).
 
 ### What round-13 fix addresses
 
@@ -252,11 +258,12 @@ to be silently dropped from the audit.
    (26 tests) verify the regex captures all reference forms
    including the auditor-cited brace/wildcard examples.
 
-**Result**: 173 total refs captured at the current HEAD (was 141 in
-round-12; +32 vs round-12; +6 vs round-13 because the round-14
-reviewer-evidence doc itself adds 9 refs). 33 globs FOUND on disk
-(was 0 in round-12; +4 vs round-13 from the new doc's globs). 0
-MISSING_UNRESOLVABLE across all kinds.
+**Result (current HEAD)**: 175 total refs captured (was 141 in
+round-12; +34 vs round-12; +8 vs round-13 because the round-14 +
+round-18 reviewer-evidence docs add 11 refs between them). 34
+globs FOUND on disk (was 0 in round-12; +5 vs round-13 from the
+two reviewer-evidence docs' globs). 0 MISSING_UNRESOLVABLE
+across all kinds.
 
 ## 5. Intentionally Tracked JSON Files
 
@@ -417,12 +424,12 @@ The audit verifies the following invariants via automated scripts:
 1. **Tests pass**: 28 test targets, 386 tests, OK (skipped=host-dependent),
    exit 0.
 2. **Schemas validate**: 9/9 examples PASS, exit 0.
-3. **Doc ↔ artifact reconciliation** (broad scan over 59 active docs):
-   - 173 total refs (including wildcards + brace-expansions +
-     placeholders); 19 placeholders excluded; 97 references FOUND;
+3. **Doc ↔ artifact reconciliation** (broad scan over 60 active docs):
+   - 175 total refs (including wildcards + brace-expansions +
+     placeholders); 19 placeholders excluded; 98 references FOUND;
      5 MISSING_RESOLVABLE; 0 MISSING_UNRESOLVABLE
    - 19 directories FOUND; 0 directories missing
-   - 33 globs FOUND; 0 globs missing
+   - 34 globs FOUND; 0 globs missing
    - 26 regression tests in
      `tests/test_audit_reconciliation_extraction.py` verify regex
      captures all reference forms
