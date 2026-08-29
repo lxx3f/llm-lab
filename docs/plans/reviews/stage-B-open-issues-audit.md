@@ -304,7 +304,7 @@ abstract HEAD pointer (auditor 独立验证 current value via `git rev-parse HEA
 | P2-03 缺少依赖锁定文件 | 部分解决 (2026-08-26) | 当前项目未使用 pyproject.toml / requirements.txt / environment.yml / lockfile;依赖版本记录在 `docs/environment.md` (PyTorch / CUDA / cuDNN / jsonschema / PyYAML + RTX 5070 Ti sm_120 架构);推迟到 roadmap N3 之前的工程改进阶段 |
 | P2-04 文档产物目录统一 + 链接维护 | 部分解决 (2026-08-29 B-audit round-14) | 目录结构已统一; 跨文件链接需随项目发展持续维护; B-audit 轮次作为统一同步检查点 |
 | P3 D2 compositional split | 同 P1-04 | 同上 |
-| P5-04 双后端基准对比 | 未交付 (planned) | roadmap 候选, 不在本次 B-audit 范围内 |
+| P5-04 双后端基准对比 | ✅ 已交付（历史 P5-02 固定 90 样本 benchmark subset；20 个真实 GPU 组合；当前状态见 `stage-p5-04-backend-comparison.md`） | 已超出本次 B-audit 原始范围，但已在后续 list item D 完成；不再是当前 open item |
 
 **verdict: PASS for B-audit** — 上述 items 明确定位为 accepted residual scope; 本次 B-audit 完成范围是 P0/P1/P2/P3 中已交付 items 的 close-out + 新增 sections (P4 GRPO MVP / P5-02 / P5-03 / 最终全链路审查 round-20) 反映真实 open items。
 

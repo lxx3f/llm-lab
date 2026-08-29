@@ -181,15 +181,20 @@ python scripts/run_tests.py full
   3. README / protocol / stage review still described the work as "round-7" while the committed root-cause fix is round-8 and the audit history shows prior rounds were disapprovals.
 - **Auditor verified substantive items**: 20 runs / 1800 rows / 0 empty generations / 0 SHA mismatches / 96 selftest assertions PASS / independently recomputed `reward_binary` and `reward_layered` from the manifest samples matched all 20/20 summaries bit-for-bit.
 
-### round-9 doc sync (this commit)
+### round-9 doc sync (commit bbb6e75; subsequently superseded by round-10 scope resolution)
 
 - Protocol §9 "Full" command now uses `--samples-manifest docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json` (the actual command used to produce the 20 published runs); also adds the WSL2 offline-friendly form with the same flag.
 - README status header + 5 inline references switched "round-7" → "round-8" (or split into round-7 / round-8 contributions where the fix spans two rounds).
 - Protocol status header + §3.1 / §6 / §6.1 sub-section titles + §6.1 wording sync'd.
 - Stage review §7 rewritten to accurately describe the round-8 fix (passing `args.samples_by_id` directly to `compute_reward()`; `args.samples_dir` is retained for log path only — NOT used by the reward code path).
-- Round-7 audit block retained as historical evidence (auditor's repro is the contract we satisfied in round-8).
+- Round-7 audit block retained as historical evidence (auditor's repro is the contract satisfied in round-8).
 
-### round-7 audit (calculet/gpt-5.6-terra)
+### Stage reviewer historical status
+
+- round-7 reviewer: PASS
+- round-8 reviewer: PASS (`PI_PROVIDER=minimax-cn`, `PI_MODEL=MiniMax-M3`)
+- round-9 doc sync: no separate reviewer verdict was recorded; the detached auditor disapproved the round-9 completion claim on the 90-vs-750 scope interpretation, which was resolved by the user decision recorded above.
+- round-10 scope resolution: user-confirmed historical 90-sample objective; current stage review is no longer pending on round-9 audit.
 
 - **Verdict**: disapproved
 - **Blocking**: 全部 20 run `reward_layered = 0.0` 是 root-cause bug — 原代码从 `args.samples_dir` (=manifest 父目录) `glob("*.json")` 读样本，该目录里只有 manifest 本身，故 `samples_by_id={}` → signals=[] → silent 0。
@@ -207,7 +212,9 @@ python scripts/run_tests.py full
 
 - round-7 reviewer: PASS
 - round-8 reviewer: PASS (subagent dispatched, `PI_PROVIDER=minimax-cn`, `PI_MODEL=MiniMax-M3`)
-- round-9 (this commit) reviewer: 待本轮 detached auditor 核验
+- round-9 (commit `bbb6e75`) was a historical doc-sync pass; its detached audit later identified the 90-vs-750 objective ambiguity.
+- round-10 (current commit) records the user's explicit decision to retain the historical 90-sample scope; no 750-sample rerun is part of this objective.
+- current stage-review status: complete for the user-confirmed scope; no pending reviewer wording remains.
 
 ## 9. Final disposition
 
