@@ -207,12 +207,18 @@ class TransformersBackend:
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_id, cache_dir=cache_dir,
         )
+        # Decoder-only architecture (SmolLM2 / Qwen2.5) requires
+        # left-padding for correct batched greedy generation. The HF
+        # warning ("right-padding was detected") indicates the batch
+        # would otherwise produce garbage because new tokens are
+        # generated right-to-left.
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+        self.tokenizer.padding_side = "left"
         self.model = AutoModelForCausalLM.from_pretrained(
             model_id, torch_dtype=torch_dtype, cache_dir=cache_dir,
         ).to(device)
         self.model.eval()
-        if self.tokenizer.pad_token_id is None:
-            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
     def chat_generate(
         self,
@@ -327,6 +333,9 @@ class VLLMBackend:
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_id, revision=revision, cache_dir=cache_dir,
         )
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+        self.tokenizer.padding_side = "left"
         self.llm = LLM(
             model=model_id,
             revision=revision,

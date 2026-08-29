@@ -27,12 +27,20 @@ class Backend(Protocol):
         self,
         messages_batch: list[list[dict[str, Any]]],
         tools_batch: list[list[dict[str, Any]] | None],
-    ) -> list[str]: ...
+    ) -> tuple[list[str], list[str]]:
+        """Run chat completion for each sample.
+
+        Returns ``(generations, prompt_previews)``:
+        - ``generations[i]``: full generated text for sample ``i`` (NOT truncated).
+        - ``prompt_previews[i]``: rendered prompt's first 200 chars for sample ``i``;
+          the comparison CLI uses this to populate the ``user_turn`` field of
+          the persisted row so artifacts match ``eval_transformers._build_eval_row`` exactly.
+        """
     def teardown(self) -> None: ...
     def metadata(self) -> dict[str, Any]: ...
 ```
 
-两个真实实现：`TransformersBackend`（封装 `eval_transformers._greedy_generate` 等价逻辑）与 `VLLMBackend`（封装 vLLM `LLM.generate` + 同一 chat template 渲染）；测试 `tests/test_eval_backend_comparison.py` 提供 `MockBackend` 用于无 GPU 单测。
+两个真实实现：`TransformersBackend`（封装 `eval_transformers._greedy_generate` 等价逻辑 + left-padding 适配 batched generation）与 `VLLMBackend`（封装 vLLM `LLM.generate` + 同一 chat template 渲染 + P5-03 WSL2 workarounds）；测试 `tests/test_eval_backend_comparison.py` 提供 `MockBackend` 用于无 GPU 单测。
 
 ## 3. CLI 接口
 
