@@ -70,6 +70,7 @@ checkpoints/
 *.pt
 *.bin
 *.onnx
+*.lock
 
 # Local/raw data; keep schemas and committed examples under version control
 data/raw/
@@ -88,6 +89,8 @@ artifacts/huggingface/
 artifacts/multi-seed-configs/
 artifacts/**/*.json
 artifacts/*.png
+# OWT real eval: per-model token caches, GPU results, model snapshots
+artifacts/owt-real-eval/
 
 # Local pi session/runtime state
 .pi-glla/
