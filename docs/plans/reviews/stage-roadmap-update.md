@@ -68,3 +68,5 @@ verification（abstract HEAD pointer — auditor runs `git rev-parse HEAD` to ve
 
 - detached auditor: project-level subagent reviewer, MiniMax-M3 (per AGENTS.md "审查模型固定使用 minimax-cn/MiniMax-M3")
 - author self-review: this stage review record
+- **detached auditor verdict**: **PENDING independent review** (status: stage review record created, awaiting detached auditor subagent dispatch)
+- **detached auditor provider/model**: not yet invoked; per `docs/plans/review-process.md` "提交后触发 stage review" 流程, detached auditor is dispatched after commit. Current commit `b6f8e74`; pending independent review will verify roadmap update is semantically consistent with actual delivered state, with required reviewer verdict (pass / conditional / fail) + provider/model field 填充 in this section once independent review completes.

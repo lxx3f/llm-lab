@@ -118,19 +118,19 @@ P5 阶段（P5-01/P5-02/P5-03）已 100% delivered，**P5-04 双后端基准对�
 
 **风险**：vLLM 在小 batch / small model 上可能不显著优于 Transformers；建议同时跑 batch=1 与 batch=4 两组。
 
-### 候选 4: 长训练曲线（100k+ 步，n12+ 后续）
+### 候选 4: N12 3-seed 复现 + 超长曲线（200k 步，N13）
 
-**动机**：N11 已跑 50k 步 baseline + medium；100k 步尚未尝试。可验证 transformer 是否仍在改进还是 plateau。
+**动机**：N12 已交付 100k 步单 seed baseline + medium（`docs/experiments/n12-dense-ultra-curve/README.md`），验证了 val_min 仍可改善 -0.31 至 -0.33 nats。但 N12 是单 seed，统计意义受限。本候选把 N12 单 seed 扩展为 3-seed 复现（验证 val_min 改善是否为单 seed noise）；另外 N13 可进一步尝试 200k 步超长曲线，观察 transformer 是否进入 plateau。
 
 **范围**（候选，**未启动**）：
-- 复用 N11 dense 长曲线协议；增加 100000 步 baseline + medium 双点；
+- 复用 N11/N12 dense 长曲线协议；增加 100000 步 baseline + medium × 3 seed (= N12 3-seed follow-up)；
 - log_interval=1000 / validation_interval=5000（避免 validation 过密）；
-- 100k 步 val_min 与 50k 步 val_min 对比：是否仍在改善；
-- 与 N12 ultra curve（100k 已交付）交叉验证：N12 是单 seed，N11 100k 应做 3-seed。
+- 3-seed val_min aggregation：mean / std / per-seed 改善；与 N12 单 seed 数字交叉对比，判断单 seed 是否为 noise；
+- 可选 N13 追加 200000 步 baseline 单点（如 GPU 资源允许；参考 N12 100k 3.5 小时表动，200k 预估 7 小时）；不需 3-seed，只验证 plateau 假设。
 
-**退出条件**：`docs/experiments/n13-dense-100k-curve/` + `docs/protocols/n13-dense-100k-curve.md` + stage review。
+**退出条件**：`docs/experiments/n13-dense-100k-3seed/` + `docs/protocols/n13-dense-100k-3seed.md` + stage review (N12 当前缺 stage review，本次 N13 提交时同时为 N12 补交 stage review)。
 
-**风险**：100k 步 baseline 训练时长显著（参考 N12 100k large ~3-4 小时）；需先评估 GPU 资源预算。
+**风险**：100k 步 × 3 seed × 2 规模点 (baseline + medium) = 6 个长 run，总时长预估 3-4 × 6 ≈ 20 小时；需先评估 host GPU 时间预算。200k 步超长曲线（若推进）需提前评估是否值得。
 
 ### 候选 5: 真实 OWT 评测（不是 D2 sampling 子集）
 
