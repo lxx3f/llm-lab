@@ -75,6 +75,10 @@ checkpoints/
 data/raw/
 data/interim/
 data/processed/
+# All datasets under datasets/ are gitignored (regenerated locally on demand).
+# Currently tracked datasets: NONE (all paths here are generated outputs).
+# To track a specific dataset, add an explicit `!datasets/<name>/` unignore rule.
+datasets/
 datasets/tool-calling-d1/
 datasets/tool-calling-d1-*/
 datasets/tool-calling-d2/
