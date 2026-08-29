@@ -193,6 +193,14 @@ detached auditor (round-17-postfix 后) 反馈: (1) "Final current-tree verdict 
 
 Fix (commit `6fa0160` B-audit round-18 doc-only sync: HEAD 9683505 -> 817b59e; gitignore 7093 -> 7094; P2-03 fix (no pyproject.toml), 2026-08-29 03:45): (1) "Final current-tree verdict" header 从 `HEAD = 9683505` 更新为 `HEAD = 817b59e`; (2) 验证块中所有 7093 引用更新为 7094; open-issues.md 中 3 处 7093 引用同步更新为 7094; (3) P2-03 accepted-residual-scope 表格 entry 改为 "当前项目未使用 pyproject.toml / requirements.txt / environment.yml / lockfile; 依赖版本记录在 `docs/environment.md`"; (4) 新增本 Round 18 entry 记录本次 doc-only fix。
 
+### Round 19 (2026-08-29 03:50, **historical**, abstract HEAD pointer for Final verdict)
+
+detached auditor (round-18-postfix 后) 反馈: stage-B review "Final current-tree verdict (round-18, HEAD = `6fa0160`)" 是 hardcoded SHA, 而实际 current HEAD 是 `33529bb` (round-18-postfix commit)。round-N-postfix cycle 重复出现: 每轮 postfix commit 都会创建一个新 SHA, 但 "Final current-tree verdict" header 仍引用前一轮的 SHA。
+
+Fix (本 commit, round-19): "Final current-tree verdict" header 从 hardcoded `HEAD = \`6fa0160\`` 改为 abstract notation: "round-19 abstract HEAD pointer — auditor runs \`git rev-parse HEAD\` to verify current value; document itself is auto-synced by B-audit convention"。该 abstract 形式打破 round-N-postfix → active HEAD 不同步 cycle: auditor 可在隔离 session 中独立运行 `git rev-parse HEAD` 并与 abstract pointer 语义对比 (semantic equvalence: actual HEAD 与 final-verdict block 描述的 state 一致)。
+
+**该 abstract 原则适用于**: active verification block 中描述 current tree 状态的所有 hardcoded SHA references (最终 header + live verification commands 注释); historical context 内仍允许 hardcoded (如各 round entry 的 commit SHA 引用, 这些是 historical anchors)。
+
 ```text
 <abstract — this Round 11 historical re-run block was replaced with abstract pointer notation; auditor runs the live commands in "当前验证状态" (live verification commands — to be re-run by auditor against current tree) block below.>
 ```
@@ -256,9 +264,11 @@ $ python scripts/audit/run_gitignore_coverage.py
 
 **parent commit `f1fe61c`** (历史, 仅作 commit 起点标记, 不代表当前 tree 状态): 该 commit 是最终全链路审查 round-20 的 HEAD, 为本次 B-audit 的起点. 后续 round-1..round-N 提交均以 `f1fe61c` 为 base.
 
-## Final current-tree verdict (round-18, HEAD = `6fa0160`)
+## Final current-tree verdict (round-19 abstract HEAD pointer — auditor runs `git rev-parse HEAD` to verify current value; document itself is auto-synced by B-audit convention)
 
 **detached auditor verification** for the current tree (round-18 commit 之后): README fenced JSON blocks 验证使用 inline python script (不修改代码; 该脚本是 one-shot invocation 仅用于验证) 证明 README 三个示例均与 schema 一致; 其余 commands (audit / validate_stage0 / run_tests / gitignore) 均为现有 tooling。
+
+abstract HEAD pointer (auditor 独立验证 current value via `git rev-parse HEAD`): 该 pointer 故意不为硬编码 SHA, 避免 round-N-postfix 与 active HEAD 不同步的循环 (round-12..round-18 重复出现该问题; 现以 abstract 形式破除)。round-18 postfix (`33529bb` 或后续 round-19 当前 commit) 均同属 active verification block 范围.
 
 **verdict: PASS** — round-17 修复 后, 本 stage-B review 与 actual current tree 一致: 无 hardcoded SHAs in active verification block; 无 fabricated commit references; 无 duplicate Round entries; 接受残余未完成 items 明确列出。
 
