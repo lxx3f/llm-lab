@@ -62,7 +62,7 @@
 - `artifacts/d2-mock-reward-d2dev.json`（mock transcript 全 reward_binary=1.0）仅验证 reward_offline 能消费 D2 dev 多轮 transcript 的**管线兼容性**，不等同于模型推理 reward 评测。
 - D1.1 train 50-sample 聚合不是 held-out split，不能用于正式 reward 分布对比。
 - 5 ckpt 之外的多 seed 聚合（d256 5k × 3 seeds）属 SFT MVP 阶段的多 seed 协议（P1-03）产出，本表不重复列举。
-- 下一阶段：P4 GRPO MVP（list queue item #3，待 detached auditor 通过当前阶段后激活）。
+- 下一阶段：P4 GRPO MVP + P4 GRPO 小规模正确性实验均已交付（HEAD `1fae6f0` + `99646fa`；详见 `docs/plans/reviews/stage-p4-grpo-mvp.md` + `docs/plans/reviews/stage-p4-grpo-smoketest.md`；detached auditor + minimax-M3 subagent reviewer 联合复审均已 PASS）。本行原始 "P4 GRPO MVP（list queue item #3，待 detached auditor 通过当前阶段后激活）" 为 P2 阶段交付时的 plan 项描述；现在已 multiple commits 完成。
 
 ## 3. 文件
 

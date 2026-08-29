@@ -71,6 +71,6 @@ Done when：
 
 ### 遗留风险
 
-- P5-03 vLLM backend 未启动；硬件 / 环境需求超出当前阶段，待 P5-02 终审通过后启动。
+- P5-03 vLLM backend **已交付**（HEAD `bb61a3a` + `docs/plans/reviews/stage-p5-03-vllm-feasibility.md`，WSL2 Ubuntu-22.04 smoke PASS，3 个 WSL2 workarounds 已记录）。P5-02 阶段交付时该 review 记录的当时状态是“未启动”，此后 round 已交付并独立 audit PASS。
 - 当前 D2 契约 5000/3500/750/750 已稳定（HEAD：见当前 main；见 `docs/plans/reviews/stage-p3-d2-expansion.md` round 14）：6 类各 833/834 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、MANIFEST 含 `build_count` 字段、`datasets/tool-calling-d2/` 加入 `.gitignore` 并 `git rm --cached` 隔离。
 - 5 个公开模型 `reward_binary=0` 为诚实负结果：D2 expected_answer 与公开模型生成的 final_answer 字面不一致；如需严格一致，可加后处理归一化或引入轻量 evaluator prompt。这是 D2 eval 设计（`expected_answer == final assistant content`）的固有约束，不应在 P5-02 范围修改。

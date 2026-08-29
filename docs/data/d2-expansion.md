@@ -1,7 +1,7 @@
 # D2 数据集扩样记录（5000 样本，2026-08-28 round 14 修订）
 
 > 阶段：P3 D2 数据集扩样（接续 P3 D2 多轮数据集交付）。
-> 状态：已交付 5000 样本 + 3500/750/750 split 契约；测试已参数化；待 detached auditor 终审。
+> 状态：已交付 5000 样本 + 3500/750/750 split 契约；测试已参数化；已通过 detached auditor + minimax-M3 subagent reviewer 联合复审（10/10 PASS, `docs/plans/reviews/stage-p3-d2-expansion-independent-audit.md`）。本段 "待 detached auditor 终审" 为 round 14 交付时的中间状态描述。
 > 关键变更（round 14）：从 5004 样本修订为 5000 样本以严格命中目标 `train=3500 / dev=750 / test=750`。
 
 ## 1. 背景

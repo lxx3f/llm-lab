@@ -50,7 +50,7 @@
 ### 下一步（当前活跃契约）
 
 1. P5-02 Transformers backend + 公开 instruction-tuned 模型 ✅（见 `docs/plans/reviews/stage-p5-02-transformers-backend.md`，HEAD：见当前 main）。
-2. P4 GRPO MVP ⏸（list queue item #3，待 P5-02 audit + list activate 后启动）；policy 将基于当前扩样版 D2 train (3500) + reward_signal。
+2. P4 GRPO MVP ✅（HEAD `1fae6f0` + `99646fa`；详见 `docs/plans/reviews/stage-p4-grpo-mvp.md` + `docs/plans/reviews/stage-p4-grpo-smoketest.md`；detached auditor + minimax-M3 subagent reviewer 联合复审均已 PASS）；policy 已基于当前扩样版 D2 train (3500) + reward_signal 验证 natural advantages + real CPU+GPU smoke。
 3. 自研模型加 multi-turn training（messages 含 assistant + tool）后，回填多轮 SFT checkpoint 在当前扩样版 D2 dev 750 上评测。
 
 ### durable 证据
