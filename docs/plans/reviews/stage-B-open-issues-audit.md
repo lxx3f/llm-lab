@@ -201,6 +201,12 @@ Fix (本 commit, round-19): "Final current-tree verdict" header 从 hardcoded `H
 
 **该 abstract 原则适用于**: active verification block 中描述 current tree 状态的所有 hardcoded SHA references (最终 header + live verification commands 注释); historical context 内仍允许 hardcoded (如各 round entry 的 commit SHA 引用, 这些是 historical anchors)。
 
+### Round 20 (2026-08-29 03:55, **historical**, final-audit.md live-verification section)
+
+detached auditor (round-19 后) 反馈: stage-B review 的 abstract pointer fix 解决了自身 SHA-staleness cycle, 但 supporting doc `docs/reports/final-audit.md` 仍有 stale 当前树计数 (175/98/34) 与 actual current 命令输出 (177/99/35) 不一致; 该 doc 反复说"current HEAD"/"current tree", 实际是 historical snapshot from final-audit round-20 (commit `f1fe61c`)。
+
+Fix (本 commit, round-20): (1) `docs/reports/final-audit.md` 头部加 "Historical snapshot note (B-audit round-19, 2026-08-29)" 说明原报告中 175/98/34 是 final-audit round-20 commit `f1fe61c` 时点的 historical snapshot, 非当前状态; (2) 新增 "## Current live-verification (auditor runs against current tree)" 章节, 使用 abstract pointer notation + expected output 形式: auditor 独立运行 4 个 live commands (reconciliation / gitignore / validate_stage0 / run_tests) + 1 个 diff constraint check, 输出比对 abstract expected output; (3) 后续任何 final-audit.md 的 "current tree" 计数 引用 都使用上述 live-verification section (该 section 自维护)。
+
 ```text
 <abstract — this Round 11 historical re-run block was replaced with abstract pointer notation; auditor runs the live commands in "当前验证状态" (live verification commands — to be re-run by auditor against current tree) block below.>
 ```

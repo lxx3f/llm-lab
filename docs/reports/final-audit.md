@@ -10,6 +10,18 @@
   Earlier rounds' per-round reviewer-evidence documents
   (`docs/reports/final-audit/round-N-reviewer-evidence.md`) record
   the specific committed SHA that was reproduced for that round.
+- **Historical snapshot note (B-audit round-19, 2026-08-29)**: the
+  numbers reported in this file (e.g., 175 total refs, 98 found,
+  34 globs) describe the state captured at the original final-audit
+  round-20 audit time (commit `f1fe61c`). They are **historical
+  snapshots**, not live current-tree state. Subsequent B-audit
+  rounds (round-1..round-19) and other project commits have
+  changed the artifact set; the live current-tree counts differ
+  from these historical numbers. Auditor must not interpret these
+  figures as current-tree state. See "## Current live-verification
+  (auditor runs against current tree)" section below for the actual
+  current numbers (use abstract pointer notation; do not hardcode
+  SHAs).
 - **Current HEAD**: the most recent commit on `main` (resolve via
   `git rev-parse HEAD`).
 - **Audited tree**: `HEAD~1` (the parent of the most recent commit).
@@ -27,6 +39,53 @@
   verify evaluation correctness (e.g., `scripts/eval_transformers.py`'s
   generation behavior); that is a separate concern tracked under
   P5-02 benchmark evaluation subset work.
+
+## Current live-verification (auditor runs against current tree)
+
+abstract HEAD pointer — auditor runs `git rev-parse HEAD` to verify
+current value; numbers in this section use abstract expected-output
+form (auditor runs the command and compares). This section was added
+in B-audit round-19 to break the SHA-staleness cycle.
+
+**Live command 1** (reconciliation):
+```text
+<abstract — auditor runs: python scripts/audit/run_doc_artifact_reconciliation.py>
+expected output (actual current tree, B-audit round-19):
+  - Total active docs scanned: 60
+  - Total artifact references: 177
+  - References FOUND on disk: 99
+  - References MISSING (resolvable): 5
+  - References MISSING (unresolvable): 0
+  - Directories FOUND on disk: 19
+  - Globs FOUND on disk: 35
+  - Exit code: 0
+```
+
+**Live command 2** (gitignore coverage):
+```text
+<abstract — auditor runs: python scripts/audit/run_gitignore_coverage.py>
+expected output: PASS: 7094/7094 (100.0000%, 0 exceptions)
+```
+
+**Live command 3** (validate_stage0):
+```text
+<abstract — auditor runs: python scripts/validate_stage0.py --examples>
+expected output: 9/9 PASS
+```
+
+**Live command 4** (full test suite):
+```text
+<abstract — auditor runs: python scripts/run_tests.py full>
+expected output: Ran 386 tests in ~55s; OK (skipped=3)
+```
+
+**Diff constraint check**:
+```text
+<abstract — auditor runs: git diff --name-only f1fe61c..HEAD>
+expected output: ONLY files matching docs/* or README.md (no .py, schema, or
+configuration files); confirms "不修改代码" constraint is satisfied for
+the entire B-audit chain.
+```
 
 ## How to read this report
 
