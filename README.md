@@ -73,13 +73,13 @@ llm-lab/
 
 ```json
 {
-  "schema_version": "model_output/v1",
+  "schema_version": "1.0",
   "model": "model-name",
   "prompt": "...",
   "response": "...",
   "generation_config": {},
-  "timestamp": "...",
-  "experiment_id": "..."
+  "timestamp": "2026-08-29T00:00:00Z",
+  "experiment_id": "exp-2026-08-29-001"
 }
 ```
 
@@ -87,23 +87,35 @@ llm-lab/
 
 ```json
 {
-  "schema_version": "tool_calling/v1",
+  "schema_version": "1.0",
   "id": "sample-001",
-  "messages": [],
+  "messages": [
+    {
+      "role": "user",
+      "content": "..."
+    }
+  ],
   "tools": [],
   "expected_tool_calls": [],
   "expected_answer": "",
-  "metadata": {}
+  "metadata": {
+    "source": "synthetic",
+    "license": "MIT",
+    "task_type": "single_tool",
+    "data_version": "v1",
+    "pipeline_version": "v1",
+    "created_at": "2026-08-29T00:00:00Z"
+  }
 }
 ```
 
-建议在 `metadata` 中保存数据来源、许可证、原始样本 ID、任务类型、处理版本和校验结果。
+`metadata` 必填子字段（见 `schemas/tool_calling_sample.schema.json` `$defs/metadata`）：`source`、`license`、`task_type`、`data_version`、`pipeline_version`、`created_at`；可选：`original_sample_id`、`validation`。
 
 ### 评测结果
 
 ```json
 {
-  "schema_version": "evaluation_result/v1",
+  "schema_version": "1.0",
   "model": "base-model",
   "task": "tool_calling",
   "metrics": {
@@ -113,8 +125,8 @@ llm-lab/
     "format_error_rate": 0.0
   },
   "failures": [],
-  "experiment_id": "...",
-  "timestamp": "..."
+  "experiment_id": "exp-2026-08-29-001",
+  "timestamp": "2026-08-29T00:00:00Z"
 }
 ```
 

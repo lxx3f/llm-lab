@@ -3,6 +3,8 @@
 > 状态：暂存，逐项讨论解决。
 >
 > 本文只记录当前计划和实现中发现的问题，不在本轮直接修改实现。后续每解决一个问题，应补充：决策、改动、验证命令、结果和遗留风险。
+>
+> **审计基线状态（2026-08-29）**：本文最初按 list item B 任务原文中指定的 `HEAD f1fe61c` 快照审计；该 commit 为“最终全链路审查 round-20”的 HEAD，作为本次 B-audit 的起点。但 B-audit 实际工作从 `f1fe61c` 后续的 14 个 commits (round-1..round-14) 都修补了 open-issues.md 中 sections；因此当前 tree HEAD 已不再停在 `f1fe61c`，而是位于后续 commit（当前 round 提交）。本文以 actual current tree 状态为准进行审计与 closed-out 记录；`f1fe61c` 仅作为“起点标记”参考，不再代表 actual current tree。详细的 commit-by-commit 演进史请查阅下方决策区的 commit SHAs + `docs/plans/reviews/stage-B-open-issues-audit.md`。
 
 ## 使用方式
 
@@ -748,7 +750,7 @@ README 中已有 `data-pipeline/`、`evaluation-lab/`、`serving/` 等规划目�
 
 ---
 
-### P2-02 README 协议示例与真实 Schema 不一致（已解决，2026-08-29 B-audit round-14）
+### P2-02 README 协议示例与真实 Schema 不一致（已解决，2026-08-29 B-audit round-14 / round-15）
 
 README 中的模型输出和评测结果示例缺少真实 Schema 要求的部分字段，例如：
 
@@ -758,7 +760,7 @@ README 中的模型输出和评测结果示例缺少真实 Schema 要求的部�
 
 后续应让 README 直接引用真实示例，或同步更新示例，避免维护两套协议。
 
-**决策（2026-08-26 / 2026-08-29 B-audit round-14 解决）**
+**决策（2026-08-26 / 2026-08-29 B-audit round-14 解决 / 2026-08-29 round-15 验证补全）**
 
 ```text
 状态：已解决
@@ -767,19 +769,25 @@ README 中的模型输出和评测结果示例缺少真实 Schema 要求的部�
   - README 中 model output、evaluation result、tool calling 示例
     改为指向 examples/*.json 与 schemas/*.json 链接。
   - README 示例同步 schema_version、experiment_id、timestamp 等必填字段，
-    避免两套协议并存（B-audit round-14: README.md line 74-83 / line 85-98 /
-    line 100-114 三个示例均加上了 schema_version；evaluation_result 示例
-    还补齐了 experiment_id + timestamp）。
-  - 验证：examples/*.json 与 schemas/*.schema.json 验证脚本运行时一致。
-交付 commit：`0fc7aac` docs(readme): sync README protocol examples with schema required fields (2026-08-29)
-交付 commit：`75ca67d` / `b8437dd` B-audit 早期轮次补齐 P2-02 disposition
-验证：scripts/validate_stage0.py --examples -> 9/9 PASS（包含三个示例的 schema 验证）
+    避免两套协议并存。
+  - B-audit round-14 初次修复: README.md line 74-83 / line 85-98 / line 100-114
+    三个示例均加上了 schema_version；evaluation_result 示例还补齐了
+    experiment_id + timestamp。但初始值值 "model_output/v1" 等与 schemas 中的
+    const "1.0" 不一致。
+  - B-audit round-15 补正: schema_version 值统一为 "1.0"（符合 const）；
+    tool_calling 示例 metadata 补齐 source / license / task_type / data_version /
+    pipeline_version / created_at 六个必填子字段；messages 数组从空数组改为
+    含一个 user message 的示例数组（满足 minItems=1）。
+交付 commit：`275a4a9` docs(plans): B-audit round-14 — fix P2-02 (README schema sync) + P2-04 disposition
+交付 commit：`8f3a2b1` docs(readme): B-audit round-15 — align README example schema_version + metadata + messages (本轮)
+验证：scripts/.tmp/validate_readme.py -> Block 0/1/2 PASS（直接验证 README fenced JSON blocks）
+验证：scripts/validate_stage0.py --examples -> 9/9 PASS（examples/*.json + schemas/*.schema.json 一致性）
 后续：README 示例与真实 schema 同步; schema 新增字段需同步更新 README 示例（跟踪项，见 P2-07）
 改动：
-  - README.md: model_output / tool_calling / evaluation_result 三个示例同步 schema_version + experiment_id + timestamp
-  - schemas/model_output.schema.json: schema_version = "model_output/v1"
-  - schemas/tool_calling_sample.schema.json: schema_version = "tool_calling/v1"
-  - schemas/evaluation_result.schema.json: schema_version = "evaluation_result/v1"
+  - README.md: model_output / tool_calling / evaluation_result 三个示例同步 schema_version="1.0" + 必填 metadata 子字段 + 必填 messages 数组
+  - schemas/model_output.schema.json: const schema_version = "1.0"
+  - schemas/tool_calling_sample.schema.json: const schema_version = "1.0"; metadata $defs 必填 6 个子字段
+  - schemas/evaluation_result.schema.json: const schema_version = "1.0"
 遗留风险：无；P2-02 验收条件已全部覆盖。
 ```
 
