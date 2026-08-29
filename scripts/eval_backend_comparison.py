@@ -1213,7 +1213,7 @@ def _self_make_sample(idx: int, task_type: str = "echo") -> dict[str, Any]:
 
 
 def _run_selftests() -> int:
-    """Run all 24 embedded unit tests; return 0 on success, 1 on failure."""
+    """Run all embedded unit tests; return 0 on success, 1 on failure."""
     import argparse as _ap
     import csv as _csv
     import json as _json

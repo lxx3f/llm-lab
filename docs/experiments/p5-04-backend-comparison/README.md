@@ -53,7 +53,7 @@ detached auditor round-13 指出 round-12 的 archive (sha256=d2c85e48...) 生�
 2. 重生成 `p5-04-runs.tar.gz` + `p5-04-runs.archive-manifest.json`；
 3. 新 archive SHA256 = `ffd8e0471f28332cd66a413e7ba02aec76b84326abe9b7a28583c76463bc9e1a`, aggregate SHA = `572c499756b0a506f333608cc2a4f0957d021e75743d48d89ccacb87a4beab1e`;
 4. 验证 `runs_with_revision=20/20` + `entry_sha_match=24/24`, 同一个模型的 transformers / vllm 两条 run 携带完全相同的 canonical revision;
-5. vLLM selftest 强化为真正的 setup() 调用 (patch vllm.LLM + AutoTokenizer.from_pretrained), 取代之前对 `vb.revision` 的直接赋值, selftest 从 106 增至 108 PASS。
+5. vLLM selftest 强化为真正的 setup() 调用 (patch vllm.LLM + AutoTokenizer.from_pretrained), 取代之前对 `vb.revision` 的直接赋值, selftest round-13 阶段增加 vLLM 真正 setup() 调用测试 2 个; 之后的 round-14/15/16 累计贡献如本段前文所述 (round-14 +6 full-aggregate 完整性断言, round-15 +64 README/CSV substring 守护断言, round-16 +63 section-aware binding + 4 负向断言, 现总计约 240 断言 PASS)。
 
 ## Round-14 aggregate 补齐 (2026-08-30)
 
@@ -202,7 +202,7 @@ manifest 校验 + batch 重试到位后, 全部 20 个组合 1800 row 全部成�
 
 ```text
 $ python scripts/eval_backend_comparison.py --selftest
-... 178 [PASS] lines ...
+... 240 [PASS] lines + 1 [selftest] all tests PASSED summary ...
 [selftest] all tests PASSED
 ```
 
