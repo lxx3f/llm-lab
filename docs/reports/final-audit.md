@@ -3,17 +3,24 @@
 - **Date**: 2026-08-29
 - **Author**: Minimax M3 (per `docs/plans/review-process.md`)
 - **Goal**: 验证 `llm-lab` 实验闭环各阶段的最终状态
-- **Audited snapshot**: the report was originally added in commit
+- **Audited snapshot**: this report was originally added in commit
   `b1278c3` (round-8) and has been modified in subsequent audit
-  commits. The current commit `7771ca6` (round-17) modifies the
-  already-tracked report rather than adding it. The audited tree at
-  this point is `HEAD~1` of `7771ca6` = `3c9a475` (round-16, which
-  removed `git checkout HEAD~1` from audit-script docstrings).
-  Earlier rounds verified other audited parents (e.g., round-13
-  verified commit `afd579f`); see the per-round reviewer-evidence
-  documents for round-specific details.
-- **Round-17 reviewer evidence document**:
+  commits. Each audit-only commit's parent (`HEAD~1`) is the
+  audited tree that the report's "Real results" numbers describe.
+  Earlier rounds' per-round reviewer-evidence documents
+  (`docs/reports/final-audit/round-N-reviewer-evidence.md`) record
+  the specific committed SHA that was reproduced for that round.
+- **Current HEAD**: the most recent commit on `main` (resolve via
+  `git rev-parse HEAD`).
+- **Audited tree**: `HEAD~1` (the parent of the most recent commit).
+  All counts in this report's "Real results" section describe the
+  state after `git checkout HEAD~1` would land — i.e., the working
+  tree at the audited parent, before the current audit-only commit's
+  changes were applied.
+- **Round-17 reviewer evidence document (current durable evidence)**:
   `docs/reports/final-audit/round-17-reviewer-evidence.md`
+- **Round-13 reviewer evidence document (historical evidence)**:
+  `docs/reports/final-audit/round-13-reviewer-evidence.md`
 - **Scope**: this audit verifies (a) tests pass, (b) schemas validate,
   (c) docs reconcile with artifacts, (d) sensitive files are gitignored,
   (e) reviewer evidence is saved, (f) working tree is clean. It does NOT
