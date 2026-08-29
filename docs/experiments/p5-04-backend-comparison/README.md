@@ -1,10 +1,13 @@
 # P5-04 双后端基准对比实验 (Transformers vs vLLM)
 
-> **状态**: ✅ 完成 (list item D round-8)。20 组合 (5 模型 × 2 后端 × 2 batch sizes) × **90 样本** (历史 P5-02 benchmark evaluation subset, manifest-driven + SHA256 校验 + reward 计算以 manifest sample 为准) 全部跑完, 4 轴对比表 + 同模型 Δ% 已落盘。
+> **状态**: ✅ 完成 (list item D round-10)。20 组合 (5 模型 × 2 后端 × 2 batch sizes) × **90 样本** (历史 P5-02 benchmark evaluation subset, manifest-driven + SHA256 校验 + reward 计算以 manifest sample 为准) 全部跑完, 4 轴对比表 + 同模型 Δ% 已落盘。
+>
+> **范围决策（2026-08-29，用户确认）**：本交付中的 “P5-02 benchmark evaluation subset” 明确定义为 P5-02 阶段真实运行并冻结的 **90 样本**（6 task type × 15，source commit `b4fd879`），不是当前扩样版 D2 dev 父 split 的全部 750 样本。750 是父 split 规模；若未来评测全部 750，应作为独立新实验，不改写本历史 benchmark。
 
 ## 范围
 
 - **评测样本**: P5-02 benchmark evaluation subset (历史 90 样本: 6 task_type × 15, source commit `b4fd879`)
+- **父数据集关系**: 当前 D2 dev split 有 750 样本；本 benchmark 是该父 split 的固定历史子集，而非全 split 运行。历史五个 P5-02 transcript 均有 90 rows (`d2-dev-0001`…`d2-dev-0090`)；`b4fd879:datasets/tool-calling-d2/MANIFEST-dev.json` 的 `count=90`。
 - **样本 manifest**: `docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json` (tracked; 90 个 `path+sha256` 条目 + 聚合 SHA)
 - **样本文件**: `datasets/tool-calling-d2/p5-02-benchmark/` (gitignored local-only, 与 manifest 同步)
 - **aggregate SHA256**: `d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282` (per-sample sorted-id concat, 与 P5-02 历史 `MANIFEST-dev.json` 一致)

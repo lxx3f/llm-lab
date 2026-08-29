@@ -1,7 +1,7 @@
 # Stage Review — P5-04 双后端基准对比（Transformers vs vLLM）
 
 - **List item**: D
-- **状态**: ✅ PASS；本记录为 round-8 的最终 stage-review record（manifest-driven + batch retry + generation-failure tracking + reward 计算以 manifest sample 为准）
+- **状态**: ✅ PASS；本记录为 round-10 的最终 stage-review record（用户明确确认历史 P5-02 90 样本范围；manifest-driven + batch retry + generation-failure tracking + reward 计算以 manifest sample 为准）
 - **日期**: 2026-08-29
 - **当前提交指针**: 使用抽象 HEAD 指针；审核时运行 `git rev-parse HEAD` 核验
 - **Canonical reviewer**: `minimax-cn/MiniMax-M3` (per `docs/plans/review-process.md`)
@@ -9,6 +9,19 @@
 ## 1. Objective 与本轮范围
 
 完成 5 公开 instruction-tuned 模型 × 2 后端 × 2 batch size = **20 个真实 GPU 组合** 的双后端基准对比；评测样本 = P5-02 §8 历史 benchmark evaluation subset (90 个样本, 6 task_type × 15, source commit `b4fd879`)；输出 4 轴对比表 + 同模型同 batch 的 vLLM 相对 Transformers Δ%。
+
+### 1.1 90/750 范围决策（round-10，用户确认）
+
+用户已在 goal decision 中明确选择：本目标按**历史 P5-02 benchmark evaluation subset 的 90 个 manifest + SHA 校验样本**完成，不扩展为 D2 dev 全部 750 样本。
+
+证据与术语：
+
+- 当前扩样版 **D2 dev split = 750**，这是父 split 数据集规模；
+- 历史 **P5-02 benchmark evaluation subset = 90**，五个已交付 P5-02 transcript 均有 90 rows (`d2-dev-0001`…`d2-dev-0090`)；
+- `git show b4fd879:datasets/tool-calling-d2/MANIFEST-dev.json` 返回 `count=90`、aggregate SHA `d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282`；
+- P5-04 复用该历史 baseline 才能保证同样本公平比较；全 750 评测属于独立的新实验，不能覆盖或 relabel 现有历史结果。
+
+本 decision 解决了 objective 旧括号“D2 dev 750 采样”的歧义：含义是“90 benchmark subset 来源于 750 父 dev split”，不是“本阶段每个组合运行 750 rows”。
 
 ## 2. Round-7 主要修复（针对前几轮 audit blockers）
 
@@ -136,12 +149,29 @@ python scripts/run_tests.py full
 | 3 | `3f95bbe` | dtype/offline revision/HF cache/left-padding |
 | 4 | `cea6850` | README + protocol + stage-review 初稿 |
 | 5 | `41e4641` | 删除越界 test file + `--selftest` 嵌入 + 90 样本重跑 |
-| 6 | `06889a6` / `40bcdb3` | 抽象 HEAD pointer + manifest 路径同步 |
-| 7 | 当前 correction | **root-cause 修复 #1 (manifest SHA 校验) + #2 (batch retry + failure tracking)**；tracked 历史 manifest；CLI 真正消费 manifest；20 组合重跑 |
+| 6 | `06889a6` / `40bcdb3` | 抽象 HEAD pointer + 历史 90 样本 subset 路径同步 |
+| 7 | `8c868a6` | **root-cause 修复 #1 (manifest SHA 校验) + #2 (batch retry + failure tracking)**；tracked 历史 manifest；CLI 真正消费 manifest；20 组合重跑 |
+| 8 | `b14e732` | **root-cause 修复 #3 (reward wiring)**；`args.samples_by_id` 直传 `compute_reward()`；重算 20 个 run 的 reward metrics |
+| 9 | `bbb6e75` | doc-only：protocol Full command 改用 manifest；round/status/fix description 同步 |
+| 10 | 当前 correction | doc-only：用户确认 90/750 范围术语；roadmap 状态同步；明确 90 是历史 P5-02 benchmark，750 是父 split |
 
 历史提交 SHA 仅用于描述变更；当前状态由本文件中的 live commands 实时核验。
 
-## 7. Detached auditor verdict (round-9 doc sync)
+## 7. Detached auditor history and round-10 scope resolution
+
+### round-9 audit (calculet/gpt-5.6-terra)
+
+- **Verdict**: disapproved; auditor interpreted objective parenthetical “D2 dev 750 采样” as requiring 20 × 750 rows.
+- **Independent repository evidence**: all five historical P5-02 transcripts have exactly 90 rows; `b4fd879:MANIFEST-dev.json` has count=90; the published P5-02 benchmark is therefore a 90-sample child subset of the current 750-sample dev split.
+- **User decision**: explicitly selected the historical 90-sample interpretation and requested continuation on that path. This is now the authoritative goal scope; no 750-sample rerun is required for this list item.
+
+### round-10 doc sync (this commit)
+
+- README / protocol / stage review all state the user-confirmed 90/750 terminology contract;
+- roadmap no longer says P5-04 is “尚未启动”; it records P5-04 as delivered and distinguishes parent split 750 from benchmark subset 90;
+- full repository stale-prose scan performed (`.tmp/p5-04-round10-stale-scan.txt`); relevant roadmap stale text corrected.
+
+## 8. Prior detached auditor history
 
 ### round-8 audit (calculet/gpt-5.6-terra)
 
@@ -179,6 +209,6 @@ python scripts/run_tests.py full
 - round-8 reviewer: PASS (subagent dispatched, `PI_PROVIDER=minimax-cn`, `PI_MODEL=MiniMax-M3`)
 - round-9 (this commit) reviewer: 待本轮 detached auditor 核验
 
-## 8. Final disposition
+## 9. Final disposition
 
 P5-04 的代码入口、双 backend 实现、20 个真实组合、P5-02 精确历史 benchmark subset (manifest + SHA 校验)、4 轴指标、同模型 Δ%、reader-facing README、protocol 与 stage-review record 均已 root-cause 修复并交付。更大数据集、服务化、多 GPU、自研模型 vLLM 适配属于后续阶段，不阻塞本目标。

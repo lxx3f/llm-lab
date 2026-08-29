@@ -69,8 +69,16 @@
 | P5-01 开源 instruction-tuned 模型选定 | ✅ 已交付 | `63cbd83` feat(p5-02): Transformers backend + 5 public models x D2 dev reward (含 model selection + model 卡 + LICENSE) | `stage-p5-02-transformers-backend.md` |
 | P5-02 Transformers 后端接入（公开模型） | ✅ 已交付 (round 2 修复 target-answer 泄漏后) | `63cbd83` + `b4fd879` + `66ff9eb` | `stage-p5-02-transformers-backend.md` |
 | P5-03 vLLM 后端接入（公开模型） | ✅ 已交付 (WSL2 smoke PASS) | `bb61a3a` | `stage-p5-03-vllm-feasibility.md` |
+| P5-04 双后端基准对比（Transformers vs vLLM） | ✅ 已交付（历史 P5-02 固定 90 样本 benchmark subset；20 个真实 GPU 组合） | 当前状态以 `git rev-parse HEAD` 为准 | `stage-p5-04-backend-comparison.md` |
 
-P5 阶段（P5-01/P5-02/P5-03）已 100% delivered，**P5-04 双后端基准对比尚未启动**（planned only）。
+P5 阶段（P5-01/P5-02/P5-03/P5-04）已完成当前 roadmap 规定的公开模型推理后端闭环。
+
+### P5 benchmark 术语契约（2026-08-29 用户确认）
+
+- **D2 dev split**：当前扩样版数据集的父 split，共 **750** 个样本；这是数据集规模，不等于 P5-02/P5-04 已发布 benchmark 的运行规模。
+- **P5-02 benchmark evaluation subset**：从 D2 dev 派生并在 P5-02 阶段冻结的历史固定子集，共 **90** 个样本（6 task type × 15）；source commit `b4fd879`，aggregate SHA256 `d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282`。
+- **P5-04 对比口径**：严格复用上述 90 样本的内容、顺序和 SHA，不把当前 D2 dev 全部 750 样本重新定义为历史 P5-02 benchmark。750 样本全量评测如需开展，应作为独立的新实验和新 manifest，不覆盖 P5-02/P5-04 历史结果。
+
 
 ## 下一阶段：5 个候选（按推荐顺序）
 
@@ -82,7 +90,7 @@ P5 阶段（P5-01/P5-02/P5-03）已 100% delivered，**P5-04 双后端基准对�
 
 **范围**（候选，**未启动**）：
 - 选定 1-2 个 GQA-only 模型（候选：Qwen2.5 系列已用 GQA，可与 LLaMA-3 系列 MHA-only 对比；或同 base 模型用 GQA vs MHA 两版）；
-- 在 P5-02 benchmark evaluation subset（同 D2 dev 750 采样的子集）上评测；复用 P1-05 8 级分类器 + P2 reward offline；与 P5-02 round 2 结果并列对比；
+- 在历史 P5-02 benchmark evaluation subset（D2 dev 750 父 split 中冻结的固定 **90 样本子集**）上评测；复用 P1-05 8 级分类器 + P2 reward offline；与 P5-02 round 2 结果并列对比；
 - 输出 GQA vs MHA 4 轴对比表（latency / throughput / reward_binary / reward_layered）；
 - 不修改自研模型；不重跑训练。
 
@@ -104,19 +112,20 @@ P5 阶段（P5-01/P5-02/P5-03）已 100% delivered，**P5-04 双后端基准对�
 
 **风险**：MLA 在 2.10M 规模收益可能不显著；建议在 5.11M（large N5）规模再做一次。
 
-### 候选 3: P5-04 双后端基准对比（Transformers vs vLLM）
+### 候选 3: P5-04 双后端基准对比（Transformers vs vLLM）— 已交付
 
-**动机**：P5-02（Transformers） + P5-03（vLLM） 已交付；缺**同一 baseline**对比。P5-04 是 roadmap 原计划但**尚未启动**。
+**状态**：✅ 已交付。P5-04 复用 P5-02/P5-03 后端，在历史 P5-02 固定 90 样本 benchmark subset 上完成 5 模型 × 2 后端 × 2 batch size = 20 个真实 GPU 组合。
 
-**范围**（候选，**未启动**）：
-- 同一样本（P5-02 benchmark evaluation subset，D2 dev 750 采样）+ 同一 P1-05 分类器 + P2 reward offline；
-- 5 个公开模型（SmolLM2-360M/1.7B + Qwen2.5-0.5B/1.5B/3B）× 2 后端（Transformers greedy bf16 + vLLM 0.27.1）= 10 组合；
+**已交付范围**：
+- 同一固定样本集：P5-02 benchmark evaluation subset（D2 dev 750 父 split 中冻结的 **90 样本子集**；不是全 750 split）；
+- 5 个公开模型（SmolLM2-360M/1.7B + Qwen2.5-0.5B/1.5B/3B）× 2 后端（Transformers greedy bf16 + vLLM 0.27.1）× batch size {1, 4}；
 - 4 轴：latency (ms/sample) + throughput (samples/s) + reward_binary + reward_layered；
-- 输出双后端 4 轴对比表 + 同模型 Δ%。
+- 双后端 4 轴对比表 + 同模型 Δ%；
+- manifest 逐文件 SHA256 + aggregate 校验；batch generation failure 显式失败语义；reward 直接使用 manifest-derived `samples_by_id`。
 
-**退出条件**：`scripts/eval_backend_comparison.py` CLI + `docs/experiments/p5-04-backend-comparison/README.md` 落盘；`docs/protocols/backend-comparison.md` 协议 + stage review。
+**退出条件**：✅ `scripts/eval_backend_comparison.py` CLI + `docs/experiments/p5-04-backend-comparison/README.md` + `docs/protocols/backend-comparison.md` + stage review 全部落盘。
 
-**风险**：vLLM 在小 batch / small model 上可能不显著优于 Transformers；建议同时跑 batch=1 与 batch=4 两组。
+**结论**：10/10 `(model, batch_size)` pairs 中 vLLM latency 更低、throughput 更高；reward 指标由同一 manifest sample + P1-05/P2 pipeline 复算。详见 `docs/experiments/p5-04-backend-comparison/README.md`。
 
 ### 候选 4: N12 3-seed 复现 + 超长曲线（200k 步，N13）
 
@@ -134,7 +143,7 @@ P5 阶段（P5-01/P5-02/P5-03）已 100% delivered，**P5-04 双后端基准对�
 
 ### 候选 5: 真实 OWT 评测（不是 D2 sampling 子集）
 
-**动机**：当前所有 P5-02/P5-03 评测都在 P5-02 benchmark evaluation subset（**D2 dev 750 采样的子集**，不是 D2 全集），**从未在真实 OWT 上评测**。OWT 是真实分布的预训练数据；模型在 OWT 上 evaluate 是大模型常用做法。
+**动机**：当前所有 P5-02/P5-03/P5-04 tool-calling 评测都在历史 P5-02 benchmark evaluation subset（D2 dev 750 父 split 中冻结的固定 **90 样本子集**，不是 D2 全 split）上完成，**从未在真实 OWT 上评测**。OWT 是真实分布的预训练数据；模型在 OWT 上 evaluate 是大模型常用做法。
 
 **范围**（候选，**未启动**）：
 - 在 `datasets/owt-sample/` 或 `owt-formal/` 上评估公开模型；
@@ -150,13 +159,13 @@ P5 阶段（P5-01/P5-02/P5-03）已 100% delivered，**P5-04 双后端基准对�
 
 按"实现路径连续性 + 已交付基础复用率"排序：
 
-1. **候选 3 (P5-04 双后端基准对比)** — 直接复用 P5-02/P5-03 已交付的 eval scripts，仅补一个对比 CLI。**最高优先级**，可在 1-2 个 list item 内完成。
+1. **候选 3 (P5-04 双后端基准对比)** — ✅ **已交付**；历史 P5-02 固定 90 样本 subset × 5 模型 × 2 后端 × batch {1,4}。
 2. **候选 1 (GQA 公开模型对比)** — 同样复用 P5-02 eval script + P1-05 + P2。**次高优先级**，但依赖"找得到 GQA vs MHA 同 base 对"先决条件。
 3. **候选 5 (真实 OWT 评测)** — 简单独立任务，可作为候选 3 完成后补充。**低-中优先级**。
 4. **候选 4 (N12 3-seed 复现 + 可选 N13 200k)** — 需要 GPU 资源预算；**中优先级**，建议先评估 host 资源。N12 当前缺 stage review，N13 提交时同时为 N12 补交。
 5. **候选 2 (简化 MLA)** — 涉及自研模型架构改动，工作量最大；**最低优先级**，且 MLA 在 2.10M 是否有效尚不确定。
 
-如 list item 决策推进，建议从候选 3 启动。
+如 list item 决策推进，P5-04 已完成；下一项按当前队列推进真实 OWT 评测。
 
 ## 暂缓阶段（明确不在 roadmap）
 

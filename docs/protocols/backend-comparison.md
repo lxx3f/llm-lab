@@ -1,6 +1,8 @@
 # P5-04 双后端基准对比协议 (Transformers vs vLLM)
 
-> 状态：阶段交付（2026-08-29，list item D round-8）。Manifest-driven 90 样本 + per-sample batch retry + generation-failure tracking + reward 计算以 manifest sample 为准。
+> 状态：阶段交付（2026-08-29，list item D round-10）。Manifest-driven 90 样本 + per-sample batch retry + generation-failure tracking + reward 计算以 manifest sample 为准。
+>
+> 范围决策（用户确认）：P5-02 benchmark evaluation subset = P5-02 历史真实运行并冻结的 90 样本（6 task type × 15，source commit `b4fd879`）。当前 D2 dev split 的 750 是父 split 总规模，不是本阶段已发布 benchmark 的运行规模。
 
 本协议固定 `scripts/eval_backend_comparison.py` 的输入 / 输出契约、backend 接口、四轴对比指标与 reduced-precision 复用策略。
 
@@ -66,7 +68,13 @@ class Backend(Protocol):
 | `--vllm-gpu-mem-util` | 0.85 | vLLM `gpu_memory_utilization` 参数 |
 | `--parallel` | off | 跨 model+backend 组合的线程并行（仅限组合之间；同一组合内 batch 仍走串行） |
 
-## 3.1 Manifest 路径与 SHA 校验（round-7 required，round-8 保留）
+## 3.1 Manifest 路径、SHA 校验与 90/750 术语契约
+
+- **D2 dev split = 750**：当前扩样版数据集父 split 的总样本数。
+- **P5-02 benchmark evaluation subset = 90**：P5-02 阶段从 D2 dev 冻结并真实运行的固定子集（6 task type × 15）；五个历史 P5-02 transcript 均为 90 rows，`b4fd879:MANIFEST-dev.json` 的 `count=90`。
+- **P5-04 = 复用上述 90**：本阶段按内容、顺序、逐文件 SHA 和 aggregate SHA 严格复用 P5-02 baseline。评测全部 750 样本会形成新实验，不能被 relabel 为历史 P5-02/P5-04 benchmark。
+
+### Manifest 校验步骤
 
 `--samples-manifest <path>` 加载逻辑：
 
