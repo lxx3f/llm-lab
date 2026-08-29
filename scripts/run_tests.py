@@ -38,6 +38,7 @@ COMMON_TESTS = (
     ("tests", "test_artifact_provenance.py"),
     ("tests", "test_token_cache.py"),
     ("tests", "test_grpo_mvp.py"),
+    ("tests", "test_audit_reconciliation_extraction.py"),
 )
 
 FAST_MODULES = COMMON_TESTS + (

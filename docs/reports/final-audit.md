@@ -46,7 +46,7 @@ git status --short
 
 | 检查 | 结果 | 证据 |
 |---|---|---|
-| `scripts/run_tests.py full` | PASS | `running 27 test targets`, `Ran 360 tests OK (skipped=N)`, exit 0 |
+| `scripts/run_tests.py full` | PASS | `running 28 test targets`, `Ran 386 tests OK (skipped=N)`, exit 0 |
 | `scripts/validate_stage0.py --examples` | PASS | 9/9 PASS, exit 0 |
 | Working tree | clean | `git status --short` empty |
 | Tracked sensitive paths | empty | `git ls-files artifacts/`, `datasets/`, `.tmp/` all empty |
@@ -70,9 +70,9 @@ available). The durable invariants are: `exit 0`, `OK (skipped=...)`,
 ### Expected outcome
 
 - Exit code: **0**
-- First lines: `[test] running 27 test targets` (the actual count from
+- First lines: `[test] running 28 test targets` (the actual count from
   `scripts/run_tests.py:FAST_MODULES + MODULES['full']`)
-- Last lines: `Ran 360 tests in N.NNNs`
+- Last lines: `Ran 386 tests in N.NNNs`
 - Status: `OK (skipped=N)` — N is **host-dependent**
 
 ## 2. Stage 0 / Schema 验证 — `scripts/validate_stage0.py --examples`
@@ -174,32 +174,56 @@ matched to its script.
 ### Real results from this audit (this host)
 
 - Total active docs scanned: **58**
-- Docs with artifact refs: **44**
-- Docs without artifact refs: **14**
-- Total artifact references: **141**
+- Docs with artifact refs: **48**
+- Docs without artifact refs: **10**
+- Total artifact references: **167**
 - **Placeholders excluded**: **18**
-- **References FOUND**: **98**
-- **References MISSING (resolvable)**: **6**
+- **References FOUND**: **96**
+- **References MISSING (resolvable)**: **5**
 - **References MISSING (unresolvable)**: **0**
 - **Directories FOUND**: **19**
 - **Directories MISSING (resolvable)**: **0**
 - **Directories MISSING (unresolvable)**: **0**
+- **Globs FOUND**: **29**
+- **Globs MISSING (resolvable)**: **0**
+- **Globs MISSING (unresolvable)**: **0**
 - Exit code: **0**
 
-### What this round-12 fix addresses
+### What round-13 fix addresses
 
-Auditor round-11 found 2 defects:
+Auditor round-12 found that the artifact-reference regex
+`[A-Za-z0-9_./-]+` excluded wildcards (`*`), brace-expansions
+(`{a,b,c}`), and angle-bracket placeholders (`<foo>`), causing
+references like:
 
-1. **Reconciliation scope too narrow**: round-11 only scanned
-   `docs/experiments/*/README.md` (24 files), missing artifact refs in
-   protocols, plans, and review evidence. Round-12 scans all active
-   docs (58 on this audit).
+- `artifacts/*-result.json` (truncated to `artifacts/`)
+- `artifacts/{qwen2.5,huggingfacetb-smollm2}-*-eval-d2dev.json`
+  (not extracted at all)
+- `artifacts/grpo-experiment/*/state.json` (truncated)
+- `artifacts/<model>`, `artifacts/<ckpt>` (not extracted)
 
-2. **Missing `directory` classification**: round-11 classified all
-   trailing-slash paths as `placeholder` and excluded them, even when
-   they pointed to concrete directories like `artifacts/checkpoints/`
-   or `artifacts/huggingface/`. Round-12 implements the documented
-   `directory` kind with on-disk existence check.
+to be silently dropped from the audit.
+
+**Round-13 fixes**:
+
+1. **Regex extended** to capture `*`, `{`, `}`, `<`, `>`, `,`, `=`
+   inside the artifact path reference.
+2. **Brace expansion** added: `expand_brace()` recursively expands
+   `{a,b,c}` to `[a, b, c]`.
+3. **Glob expansion** added: `expand_glob()` uses `pathlib.glob` to
+   match `*` patterns after brace expansion.
+4. **Angle-bracket placeholders** classified as `placeholder`
+   (excluded from existence check) — these are template references,
+   not concrete paths.
+5. **Trailing `*/` (directory with wildcard)**: `classify_ref()`
+   checks if any brace-expanded candidate exists as a directory.
+6. **New regression tests** in `tests/test_audit_reconciliation_extraction.py`
+   (26 tests) verify the regex captures all reference forms
+   including the auditor-cited brace/wildcard examples.
+
+**Result**: 167 total refs captured (was 141 in round-12; +26 refs
+that were previously truncated or not extracted). 29 globs FOUND on
+disk. 0 MISSING_UNRESOLVABLE across all kinds.
 
 ## 5. Intentionally Tracked JSON Files
 
@@ -311,7 +335,7 @@ git checkout HEAD~1
 
 # ---- 1. Tests ----
 .venv/python.exe scripts/run_tests.py full
-# Expected: "[test] running 27 test targets", "OK (skipped=N)", exit 0
+# Expected: "[test] running 28 test targets", "OK (skipped=N)", exit 0
 
 # ---- 2. Schema validation ----
 .venv/python.exe scripts/validate_stage0.py --examples
@@ -357,13 +381,18 @@ git config user.email               # → "agent@local"
 `llm-lab` audit state satisfies all in-scope items in the objective.
 The audit verifies the following invariants via automated scripts:
 
-1. **Tests pass**: 27 test targets, 360 tests, OK (skipped=host-dependent),
+1. **Tests pass**: 28 test targets, 386 tests, OK (skipped=host-dependent),
    exit 0.
 2. **Schemas validate**: 9/9 examples PASS, exit 0.
 3. **Doc ↔ artifact reconciliation** (broad scan over 58 active docs):
-   - 141 total refs; 18 placeholders excluded; 98 FOUND; 6
-     MISSING_RESOLVABLE; 0 MISSING_UNRESOLVABLE
+   - 167 total refs (including wildcards + brace-expansions +
+     placeholders); 18 placeholders excluded; 96 references FOUND;
+     5 MISSING_RESOLVABLE; 0 MISSING_UNRESOLVABLE
    - 19 directories FOUND; 0 directories missing
+   - 29 globs FOUND; 0 globs missing
+   - 26 regression tests in
+     `tests/test_audit_reconciliation_extraction.py` verify regex
+     captures all reference forms
    - Exit 0
 4. **All sensitive paths gitignored**: ~7K gitignored (host-dependent),
    0 exceptions, semantic coverage test PASSES, bounded runtime ~7s.
