@@ -629,6 +629,16 @@ def run_one_combination(
                 chunk, generated, prompt_previews, sample_ids,
             ):
                 row, result = _row_from_sample(sample, prompt_prev, gen, layer_counts)
+                # Test hook: a _MockBackend with a ``payloads`` queue can
+                # inject pre-built rows so selftests can assert on
+                # round-8 reward semantics without depending on
+                # reward_offline's classifier output. Production backends
+                # (``self.payloads is None``) ignore this branch.
+                injected = getattr(backend, "take_payload", None)
+                if callable(injected):
+                    p = injected()
+                    if p is not None:
+                        row = {**row, **p}
                 # Mark any sample that errored on the backend as an
                 # explicit failure — do NOT let an empty ``generated``
                 # count toward parse_success or any reward channel.
@@ -657,14 +667,26 @@ def run_one_combination(
         )
         # Compute reward via reward_offline on the produced rows so the
         # numbers in this script's summary match what the comparison
-        # table reports.
+        # table reports. The auditor requires that we feed reward_offline
+        # the *exact* manifest-listed sample objects rather than loading
+        # them from any on-disk directory (which may be a documentation
+        # directory or a stale tree). ``args.samples_by_id`` is populated
+        # by ``main()`` from the manifest loader; the ``--samples-dir``
+        # fallback path builds the same ``samples_by_id`` map from the
+        # glob loader.
         try:
-            from scripts.reward_offline import (
-                load_samples as _load_samples_for_reward,  # type: ignore[attr-defined]
-                compute_reward, _to_transcript,  # type: ignore[attr-defined]
-            )
-            samples_dir_for_reward = Path(args.samples_dir).resolve()
-            samples_by_id = _load_samples_for_reward(samples_dir_for_reward)
+            from scripts.reward_offline import compute_reward  # type: ignore[attr-defined]
+            samples_by_id = getattr(args, "samples_by_id", None)
+            if not samples_by_id:
+                # No samples_by_id available (e.g. legacy path) — this
+                # should not happen post round-7 because both CLI paths
+                # populate the map. We refuse to silently zero out.
+                raise RuntimeError(
+                    "args.samples_by_id is empty; refusing to compute "
+                    "reward against an empty sample set. Pass "
+                    "--samples-manifest (or --samples-dir with the exact "
+                    "P5-02 subset directory)."
+                )
             transcript_by_id = {r["sample_id"]: r for r in rows if r["sample_id"]}
             signals = []
             for sid, sample in samples_by_id.items():
@@ -676,11 +698,24 @@ def run_one_combination(
                     transcript_kind="model_generated",
                     checkpoint=model_id,
                 ))
-            reward_binary = sum(1 for s in signals if s["reward_binary"]) / max(len(signals), 1)
-            reward_layered = sum(s["reward_layered"] for s in signals) / max(len(signals), 1)
+            if not signals:
+                raise RuntimeError(
+                    "no sample/transcript id overlaps — refusing to "
+                    "report reward=0.0 (would mask a wiring bug)."
+                )
+            reward_binary = sum(1 for s in signals if s["reward_binary"]) / len(signals)
+            reward_layered = sum(s["reward_layered"] for s in signals) / len(signals)
+        except RuntimeError as exc:
+            # Round-8 fix: RuntimeError signals a wiring bug (empty
+            # samples_by_id or no overlap). Fallback to a layer-derived
+            # approximation would MASK the bug. Re-raise so the caller
+            # sees the failure and the test suite catches it.
+            raise
         except Exception as exc:
-            # If reward_offline can't be run (e.g. test env without vllm),
-            # fall back to a layer-derived approximation.
+            # Other exceptions (e.g. ``reward_offline`` import failure,
+            # a sample that fails schema parsing). These are infra-level
+            # issues — fall back to a layer-derived approximation and
+            # log it so the operator sees the noise.
             print(f"[p5-04] reward_offline fallback (exc: {exc})", flush=True)
             n = max(len(rows), 1)
             reward_binary = sum(1 for r in rows if r["first_failure"] is None) / n
@@ -910,6 +945,11 @@ def main() -> int:
         # analysis to verify the subset identity without re-reading the
         # log).
         args.manifest_path = args.samples_manifest
+        # Stash the manifest-resolved sample dict (id -> sample) on args
+        # so ``run_one_combination()`` can pass the EXACT objects to
+        # reward_offline without re-loading from disk. ``args.samples_dir``
+        # still points at the manifest's parent for logging only.
+        args.samples_by_id = {s["id"]: s for s in samples}
         args.samples_dir = Path(args.samples_manifest).parent
         print(
             f"[p5-04] {len(samples)} samples loaded from manifest "
@@ -919,6 +959,9 @@ def main() -> int:
         )
     else:
         samples = _load_samples(args.samples_dir, args.limit)
+        # Build samples_by_id from the glob-loaded list so reward_offline
+        # uses the same objects. This keeps both CLI paths symmetric.
+        args.samples_by_id = {s["id"]: s for s in samples}
         args.manifest_path = None
         if not samples:
             print(f"[p5-04] no samples found under {args.samples_dir}", flush=True)
@@ -1011,10 +1054,12 @@ class _MockBackend:
 
     def __init__(self, responses: dict[str, str] | None = None) -> None:
         self.responses = responses or {}
+        self.payloads: list[dict[str, Any]] | None = None
         self.setup_calls: list[str] = []
         self.teardown_calls: int = 0
         self.chat_calls: int = 0
         self._setup_done = False
+        self._payload_idx = 0
 
     @property
     def name(self) -> str:
@@ -1023,6 +1068,7 @@ class _MockBackend:
     def setup(self, model_id: str, **kwargs: Any) -> None:
         self.setup_calls.append(model_id)
         self._setup_done = True
+        self._payload_idx = 0
 
     def chat_generate(self, messages_batch, tools_batch):
         assert self._setup_done, "setup() must be called before chat_generate()"
@@ -1037,6 +1083,19 @@ class _MockBackend:
             out.append(self.responses.get(sid or "", '{"name": "echo", "arguments": {}}'))
         prompt_previews = [(m[-1].get("content", "")[:200] if m else "") for m in messages_batch]
         return out, prompt_previews
+
+    def take_payload(self) -> dict[str, Any] | None:
+        """Round-8 fix helper: pop the next pre-built transcript row for
+        ``run_one_combination()`` tests. Lets selftests inject rows with
+        specific ``sample_id`` / ``layers`` directly.
+        """
+        if not self.payloads:
+            return None
+        if self._payload_idx >= len(self.payloads):
+            return None
+        p = self.payloads[self._payload_idx]
+        self._payload_idx += 1
+        return p
 
     def teardown(self) -> None:
         self.teardown_calls += 1
@@ -1163,6 +1222,8 @@ def _run_selftests() -> int:
     samples = [_self_make_sample(i) for i in range(3)]
     args = _ap.Namespace(
         samples_dir="datasets/tool-calling-d2/dev",
+        samples_by_id={s["id"]: s for s in samples},
+        manifest_path=None,
         dtype="bf16",
         max_new_tokens=64,
         device="cpu",
@@ -1280,6 +1341,98 @@ def _run_selftests() -> int:
     _expect_raises("test_arg_help_exits_cleanly",
                    lambda: _build_argparser().parse_args(["--help"]),
                    SystemExit)
+
+    print("[selftest] Reward computation (round-8 fix)", flush=True)
+    # round-8 root-cause fix: reward must come from args.samples_by_id,
+    # not from reward_offline.load_samples(args.samples_dir) — otherwise
+    # manifest parent dir (no sample files) silently yields reward=0.
+
+    def _make_sample(idx: int, task_type: str = "tool_not_available") -> dict[str, Any]:
+        return {
+            "id": f"s{idx}",
+            "messages": [
+                {"role": "system", "content": "s"},
+                {"role": "user", "content": f"sid{idx}: call the echo tool"},
+            ],
+            "tools": [{
+                "type": "function",
+                "function": {
+                    "name": "echo",
+                    "description": "Echo back the input.",
+                    "parameters": {"type": "object", "properties": {"x": {"type": "string"}}},
+                },
+            }],
+            "expected_tool_calls": [{"call_id": "c1", "name": "echo", "arguments": {"x": "hi"}}],
+            "expected_answer": "echoed: hi",
+            "metadata": {"task_type": task_type, "data_version": "D2", "task_template": "echo", "created_at": "2026-01-01", "validation": {"schema_valid": True, "tool_execution_valid": True, "answer_valid": True, "quality_passed": True}, "pipeline_version": "test/v1"},
+        }
+
+    def _build_args(samples_by_id: dict[str, Any], samples_dir: Path) -> _ap.Namespace:
+        return _ap.Namespace(
+            samples_manifest=None, samples_dir=samples_dir,
+            samples_by_id=samples_by_id, manifest_path=None,
+            dtype="bf16", max_new_tokens=8, vllm_gpu_mem_util=0.85,
+            output_dir=Path("."),
+        )
+
+    def _make_row(sid: str) -> dict[str, Any]:
+        return {
+            "sample_id": sid, "user_turn": "u", "generated": "",
+            "first_failure": None,
+            "layers": {k: True for k in (
+                "parse_success", "schema_valid", "tool_name_correct", "argument_value_correct",
+                "call_plan_matches", "execution_success", "result_grounded", "final_answer_correct",
+            )},
+        }
+
+    # Case A: samples_by_id populated correctly — reward must be > 0
+    samples_a = [_make_sample(1)]
+    backend_a = _MockBackend()
+    # Provide the row for sample id "s1" via the mock payload queue so
+    # run_one_combination() builds matching transcripts and the reward
+    # loop has something to evaluate.
+    backend_a.payloads = [_make_row("s1")]
+    args_a = _build_args({s["id"]: s for s in samples_a}, samples_dir=Path("/tmp/p5-04-selftest-empty"))
+    out_a = run_one_combination(
+        model_id="m", backend_name="transformers", batch_size=1,
+        samples=samples_a, args=args_a,
+        backend_factory=lambda **kw: backend_a,
+    )
+    _expect(
+        "test_round8_reward_uses_samples_by_id",
+        out_a["summary"]["reward_layered"] > 0.0,
+        f"got {out_a['summary']['reward_layered']} (manifest-parent-dir bug)",
+    )
+
+    # Case B: empty samples_by_id must raise — never silently zero
+    args_b = _build_args({}, samples_dir=Path("/tmp/p5-04-selftest-empty"))
+    backend_b = _MockBackend()
+    _expect_raises(
+        "test_round8_reward_raises_when_samples_by_id_empty",
+        lambda: run_one_combination(
+            model_id="m", backend_name="transformers", batch_size=1,
+            samples=[], args=args_b,
+            backend_factory=lambda **kw: backend_b,
+        ),
+        RuntimeError,
+        hint="must raise RuntimeError, not silently return reward=0",
+    )
+
+    # Case C: mismatch sample_ids — no overlap must raise
+    samples_c = [_make_sample(1)]
+    backend_c = _MockBackend()
+    backend_c.payloads = [_make_row("other")]  # different id
+    args_c = _build_args({s["id"]: s for s in samples_c}, samples_dir=Path("/tmp/p5-04-selftest-empty"))
+    _expect_raises(
+        "test_round8_reward_raises_on_no_overlap",
+        lambda: run_one_combination(
+            model_id="m", backend_name="transformers", batch_size=1,
+            samples=samples_c, args=args_c,
+            backend_factory=lambda **kw: backend_c,
+        ),
+        RuntimeError,
+        hint="no sample/transcript id overlap must raise, not silently zero",
+    )
 
     print("[selftest] Same-model Δ% computation", flush=True)
     # basic signs: vLLM faster than transformers → latency Δ% < 0, throughput Δ% > 0

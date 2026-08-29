@@ -159,9 +159,13 @@ HuggingFaceTB/SmolLM2-360M-Instruct,vllm,1,3,1.0,333.3,3.0,0.0,0.42,0.66
 - 现在：batch 异常 → 逐 sample 用 batch=1 重试 → 仍失败的 row 写 `first_failure = "generation_failed"` + `layers.parse_success = False` + `row.generation_error = <repr>`；汇总中记录 `generation_failure_count` + `generation_failed_sample_ids`。
 - 该 round 20 个组合 × 90 样本实测 `generation_failure_count=0`。
 
-## 6.1 reward_layered 口径说明
+## 6.1 reward_layered 口径说明 (round-7 fix)
 
-P5-04 采用的是 P5-02 §8 round-2 (commit `b4fd879`) 后脚本 `eval_transformers.py` 的 8 层口径；round-7 重跑结果与历史表格出现差异：所有 5 模型、4 个组合均为 `0.0`。这是 round-7 明确记录的异常发现，需要后续单独 root-cause（不在 P5-04 双后端对比范围内；详见 `docs/experiments/p5-04-backend-comparison/README.md` §关键发现 4）。
+P5-04 采用 P5-02 §8 round-2 (commit `b4fd879`) 后 `eval_transformers.py` 的 8 层口径；`scripts.reward_offline.compute_reward()` 接受 `(sample, row)` 计算 8 层 `parse_success` → `final_answer_correct` 并归一化到 `reward_layered ∈ [0, 1]`。
+
+**重要**: 必须传入 manifest 加载出的 sample 对象 (`args.samples_by_id`)，**不能**从 `args.samples_dir` (=manifest 父目录) `glob("*.json")` 读 —— manifest 父目录只有 manifest 文件本身，不会被算成 sample。round-7 修复前正因这点错误，导致全部 20 组合 `reward_layered = 0.0` (silently zero input)。修复后取值集中在 0.36–0.42，与 P5-02 历史吻合。
+
+负向断言：若 `samples_by_id` 为空 → raises `RuntimeError`；若 transcript-by-id 无 overlap → raises `RuntimeError`，绝不 silent zero。
 
 | 指标 | 公式 | 含义 |
 |---|---|---|

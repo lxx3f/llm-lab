@@ -98,7 +98,7 @@ PY
 
 - **10/10 `(model, batch_size)` pairs**: vLLM latency 更低 (-31% ~ -56%); throughput 更高 (+46% ~ +126%);
 - **`reward_binary`** 全部 20 个 run = 0.0 (与 P5-02 §8 round-2 后口径一致, 公开模型在无 gold-answer 提示下 8 层全失分);
-- **`reward_layered`** 全部 20 个 run = 0.0 (本轮 round-7 新发现, 与历史 0.33–0.43 表差异已记录在 README §关键发现 4, 范围外待后续 root-cause);
+- **`reward_layered`** 全部 20 个 run 集中在 0.36–0.42 (round-8 修复: 不再走 `args.samples_dir` glob, 直接从 manifest 传 `args.samples_by_id` 给 `compute_reward()`)
 - **`parse_success_rate`** 全部 20 run = 1.0；`generation_failure_count` 全部 0;
 - 最高 Δ% 组合: Qwen2.5-1.5B vLLM b=4 throughput +125.71% / latency -55.70%。
 
@@ -141,23 +141,26 @@ python scripts/run_tests.py full
 
 历史提交 SHA 仅用于描述变更；当前状态由本文件中的 live commands 实时核验。
 
-## 7. Detached reviewer verdict
+## 7. Detached reviewer verdict (round-8 fix)
 
-- **Agent**: `reviewer` (project-level subagent reviewer, dispatched via Agent tool)
-- **PI_PROVIDER**: `minimax-cn`
-- **PI_MODEL**: `MiniMax-M3`
-- **Verdict**: 待本轮 detached auditor 核验
-- **Critical findings**: 预期为空（manifest SHA + batch retry 均已实现并验证）
-- **Warnings**: 预期为空或仅文档非阻塞建议
-- **Suggestions**: README §关键发现 4 的 reward_layered=0.0 与历史 P5-02 表差异需要后续 root-cause（不在本目标范围）
+### round-7 audit (calculet/gpt-5.6-terra)
 
-本轮 reviewer 应核验:
+- **Verdict**: disapproved
+- **Blocking**: 全部 20 run `reward_layered = 0.0` 是 root-cause bug — 原代码从 `args.samples_dir` (=manifest 父目录) `glob("*.json")` 读样本，该目录里只有 manifest 本身，故 `samples_by_id={}` → signals=[] → silent 0。
+- **Auditor repro**: 直接用 manifest 路径 + 真实 sample 重算 SmolLM2-360M transformers b1 得到 0.4236，与本轮修复后值一致。
 
-- 90 样本 SHA 与 manifest 一致；
-- aggregate SHA = `d44fa149...`；
-- 20 run JSONs 全部 `samples_manifest` 指向新 manifest;
-- 0 个 `generated=""` 空 generation;
-- batch retry 路径对空 chunk 的处理（不能 silently 把空当成成功）。
+### round-8 fix (this commit)
+
+- `main()` 不再覆盖 `args.samples_dir` 为 manifest 父目录; 改为 `args.samples_by_id = {s['id']: s for s in samples}` 把 manifest 加载出的样本字典挂到 args;
+- `run_one_combination()` 从 `args.samples_by_id` 取样本直接调 `compute_reward(sample, row)`; 不再走 `reward_offline.load_samples()`;
+- 负向断言: `samples_by_id` 为空 / 无 overlap 时 raises `RuntimeError`, 绝不 silent zero;
+- 同步重写 20 个 run artifact summary + comparison.csv + comparison_delta.csv + README + protocol;
+- 重建 reward_layered 取值 0.3601–0.4236, 与 P5-02 §8 历史 0.33–0.43 吻合; Qwen2.5 vLLM 略低于 transformers (~0.005–0.02 abs), 属 vLLM 数值抖动诚实记录。
+
+### Stage reviewer
+
+- round-7 reviewer: PASS
+- round-8 reviewer: 待本轮 detached auditor 核验
 
 ## 8. Final disposition
 

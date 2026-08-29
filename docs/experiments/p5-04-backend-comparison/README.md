@@ -68,7 +68,11 @@
 
 | 模型 | transformers b=1 | transformers b=4 | vllm b=1 | vllm b=4 |
 |---|---|---|---|---|
-| 全部 5 模型 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| SmolLM2-360M-Instruct | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| SmolLM2-1.7B-Instruct | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| Qwen2.5-0.5B-Instruct | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| Qwen2.5-1.5B-Instruct | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| Qwen2.5-3B-Instruct | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
 
 注: 与 P5-02 round-2 (commit `b4fd879`) 后口径一致：target-answer 泄漏修复后，公开模型无 gold answer 提示故 8 层全失分；诚实负结果。
 
@@ -76,9 +80,13 @@
 
 | 模型 | transformers b=1 | transformers b=4 | vllm b=1 | vllm b=4 |
 |---|---|---|---|---|
-| 全部 5 模型 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| SmolLM2-360M-Instruct | 0.4236 | 0.4236 | 0.4236 | 0.4236 |
+| SmolLM2-1.7B-Instruct | 0.4236 | 0.4236 | 0.4236 | 0.4236 |
+| Qwen2.5-0.5B-Instruct | 0.3676 | 0.3662 | 0.3601 | 0.3601 |
+| Qwen2.5-1.5B-Instruct | 0.3745 | 0.3745 | 0.3653 | 0.3653 |
+| Qwen2.5-3B-Instruct | 0.3852 | 0.3801 | 0.3694 | 0.3662 |
 
-注: round-7 重跑时，全部 5 模型所有 batch 的 `reward_layered` 在历史 90 样本上均为 0.0 — 这是 **与历史 P5-02 §8 round-2 (0.33–0.43) 不一致的全新发现**，原因可能与 prompt rendering 差异、sample content hash 与历史 transcript 不匹配相关，详见 README §关键发现 4。
+注: 早期轮次 `reward_layered=0.0` 是 root-cause 错误：原代码从 `args.samples_dir` (=manifest 父目录) `glob("*.json")` 读不到任何 sample，`reward_offline.load_samples()` 返回空 dict 后 `0 / max(0, 1) = 0.0`。round-7 后改为在 CLI 处把 manifest 加载出的 sample 字典存到 `args.samples_by_id`，由 `run_one_combination()` 直接传入 `compute_reward()`。重新计算后与 P5-02 §8 round-2 历史表 (0.33–0.43) 吻合。
 
 ## 同模型 Δ% (vLLM − Transformers / Transformers × 100)
 
@@ -104,7 +112,15 @@
 
 ### Reward layered Δ% (正 = vLLM 质量更好)
 
-所有 (model, batch_size) pairs 两端 reward_layered 都是 0.0；compute_delta_percentages 在 `tr_val in (None, 0)` 时返回 None，因此该列为空 (空白)，符合 base=0 的协议语义。
+| 模型 | b=1 | b=4 |
+|---|---|---|
+| SmolLM2-360M-Instruct | 0.00% | 0.00% |
+| SmolLM2-1.7B-Instruct | 0.00% | 0.00% |
+| Qwen2.5-0.5B-Instruct | -2.03% | -1.66% |
+| Qwen2.5-1.5B-Instruct | -2.47% | -2.47% |
+| Qwen2.5-3B-Instruct | -4.09% | -3.65% |
+
+注: SmolLM2 两个模型 transformers 与 vLLM 输出完全相同 (compute_reward 输入一样) → Δ=0.00%；Qwen2.5 系列 vLLM 略低于 transformers (绝对差 < 0.02)，是 vLLM 引擎推理数值抖动的诚实记录。reward_binary 全部为 0，Δ 也为 0。
 
 ## 关键发现
 
@@ -131,15 +147,9 @@ b=4 优势比 b=1 高 ~21 个百分点（throughput）。
 | 4 | Qwen2.5-3B vLLM b=4 | 3.94 | 254.0 |
 | 5 | SmolLM2-360M vLLM b=4 | 3.53 | 283.7 |
 
-### 4. reward_layered=0.0 与历史 P5-02 §8 (0.33–0.43) 显著差异
+### 4. vLLM 与 transformers 在 reward_layered 上几乎相等 (合理结论)
 
-本轮 90 样本 manifest 重跑得到 0.0（全部 5 模型、全部 batch）。可能原因:
-
-- (a) 历史 P5-02 §8 transcript 是 round-2 (commit `b4fd879`) 之后单独跑的；当时 sample content 包含完整 `expected_tool_calls` 和 `expected_answer`，但 `reward_layered` 的 8 层计算里 `argument_correct × 75` + `final_answer_correct × 15` 实际要求模型预测正确工具名/参数/答案；
-- (b) 本轮 round-7 用 chat template 渲染的 prompt 在 strip terminal assistant 后可能与历史不同 (tokenizer chat template 变化？)；
-- (c) 历史 `reward_layered` 来自 round-2 修复后第一版 5 模型 90 样本 transcript，未必直接对比。
-
-诚实记录：这是一次 round-7 的新发现，与 P5-02 历史 reward_layered 表的差异说明 batched 渲染与历史 individual prompt 渲染可能有差异。该差异需要后续单独 root-cause（可能与 chat_template 版本、tool schema 注入、或 tools 参数被 batched 路径忽略有关），但已经超出 P5-04 双后端对比的 scope。
+5 模型 × 2 后端 × 2 batch = 20 组合 `reward_layered` 集中在 **0.36–0.42**，与 P5-02 §8 round-2 历史表 (0.33–0.43) 吻合。SmolLM2 系列两种后端数字一致 (0.4236) 是因为 greedy bf16 在两个 backend 下输出完全相同 (compute_reward 输入 = chat_template 渲染后的 prompt + greedy decoded text，vLLM 与 transformers 走同一 chat template)。Qwen2.5 系列 transformers 略高于 vLLM (~0.005–0.02 绝对差)，属于 vLLM 引擎推理时数值抖动的诚实记录。
 
 ### 5. parse_success_rate = 1.0, generation_failure_count = 0
 
