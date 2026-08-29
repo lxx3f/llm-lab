@@ -918,8 +918,7 @@ P3/P4 后续动作：
   - Run C (resume): from Run A state.json 续训，验证 missing steps 真执行
   - Run D (real update): natural group-relative advantages via D2 dev 750
     reward_layered ∈ [0.18, 0.40]（非零方差）；policy delta 真实 > 0
-  - artifacts/grpo-experiment/{run-A-fresh,run-B-det-seed,run-C-resume,
-    run-D-real-update}/{state.json,summary.json}（gitignored）
+  - artifacts/grpo-experiment/{run-A-fresh,run-B-det-seed,run-C-resume,run-D-real-update}/{state.json,summary.json}（gitignored）
   - Round 9+10+11 修复：synthetic advantages path 移除、resume source 必须
     from own state.json、resume check 验证 completeness（不仅比较 state.pt）、
     analyzer hard-fail on every contract violation。
