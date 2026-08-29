@@ -231,12 +231,18 @@ def test_vllm_backend_class_metadata() -> None:
 def test_default_models_and_backends_cover_p5_02_set() -> None:
     assert len(DEFAULT_MODELS) == 5
     assert set(DEFAULT_BACKENDS) == {"transformers", "vllm"}
-    # The 5 canonical models from P5-02 §8:
-    assert "HuggingFaceTB/SmolLM2-360M-Instruct" in DEFAULT_MODELS
-    assert "HuggingFaceTB/SmolLM2-1.7B-Instruct" in DEFAULT_MODELS
-    assert "Qwen/Qwen2.5-0.5B-Instruct" in DEFAULT_MODELS
-    assert "Qwen/Qwen2.5-1.5B-Instruct" in DEFAULT_MODELS
-    assert "Qwen/Qwen2.5-3B-Instruct" in DEFAULT_MODELS
+    # The 5 canonical models from P5-02 §8. ``DEFAULT_MODELS`` is now a
+    # list of ``(model_id, cached_revision)`` tuples so the script can
+    # run with ``HF_HUB_OFFLINE=1`` (default).
+    model_ids = [m for m, _ in DEFAULT_MODELS]
+    assert "HuggingFaceTB/SmolLM2-360M-Instruct" in model_ids
+    assert "HuggingFaceTB/SmolLM2-1.7B-Instruct" in model_ids
+    assert "Qwen/Qwen2.5-0.5B-Instruct" in model_ids
+    assert "Qwen/Qwen2.5-1.5B-Instruct" in model_ids
+    assert "Qwen/Qwen2.5-3B-Instruct" in model_ids
+    # Every cached revision must look like a 40-char hex SHA.
+    for _, rev in DEFAULT_MODELS:
+        assert len(rev) == 40 and all(c in "0123456789abcdef" for c in rev)
 
 
 # ---------------------------------------------------------------------------
@@ -415,7 +421,9 @@ def test_write_aggregate_comparison_handles_empty(tmp_path: Path) -> None:
 
 def test_argparser_defaults() -> None:
     args = _build_argparser().parse_args([])
-    assert args.models == list(DEFAULT_MODELS)
+    # ``--models`` defaults to ``None``; ``main()`` resolves it to the
+    # canonical ``DEFAULT_MODELS`` list of (id, revision) tuples.
+    assert args.models is None
     assert args.backends == list(DEFAULT_BACKENDS)
     assert args.batch_sizes == list(DEFAULT_BATCH_SIZES)
     assert args.samples_dir == Path("datasets/tool-calling-d2/dev")

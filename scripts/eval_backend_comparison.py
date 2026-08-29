@@ -50,13 +50,38 @@ if str(ROOT) not in sys.path:
 _DEFAULT_DTYPE = "bf16"
 _DEFAULT_MAX_NEW_TOKENS = 256
 
+# Disable HF telemetry + force offline model loading by default. We are
+# running on a host with a fully-populated HF cache; network round-trips
+# are slow and unreliable, and the only model artifacts we need are
+# already in ``artifacts/huggingface/``. Users can override either via
+# environment variables.
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
+
+# Point HF cache at our local snapshot directory. The repo stores HF
+# artifacts under ``artifacts/huggingface/`` using the legacy v0 layout
+# (``models--{org}--{name}/snapshots/{commit}/``); modern HF clients
+# expect a ``hub/`` subdirectory. Setting both ``HF_HOME`` and
+# ``HF_HUB_CACHE`` to the same path lets both clients find the cache.
+_hf_cache = os.environ.get("HF_HUB_CACHE") or os.environ.get("HF_HOME")
+if not _hf_cache:
+    _hf_cache = str(ROOT / "artifacts" / "huggingface")
+    os.environ["HF_HOME"] = _hf_cache
+os.environ.setdefault("HF_HUB_CACHE", _hf_cache)
+
 # Five canonical public models for P5-04 (matching P5-02 §8).
-DEFAULT_MODELS: tuple[str, ...] = (
-    "HuggingFaceTB/SmolLM2-360M-Instruct",
-    "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-    "Qwen/Qwen2.5-0.5B-Instruct",
-    "Qwen/Qwen2.5-1.5B-Instruct",
-    "Qwen/Qwen2.5-3B-Instruct",
+# ``revision`` values are the exact cached commit hashes for each
+# model so the script can run with ``HF_HUB_OFFLINE=1`` (default).
+# Update via ``huggingface-cli download`` if any of these commits
+# become unreachable on the host.
+DEFAULT_MODELS: tuple[tuple[str, str], ...] = (
+    ("HuggingFaceTB/SmolLM2-360M-Instruct", "a10cc1512eabd3dde888204e902eca88bddb4951"),
+    ("HuggingFaceTB/SmolLM2-1.7B-Instruct", "31b70e2e869a7173562077fd711b654946d38674"),
+    ("Qwen/Qwen2.5-0.5B-Instruct", "7ae557604adf67be50417f59c2c2f167def9a775"),
+    ("Qwen/Qwen2.5-1.5B-Instruct", "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"),
+    ("Qwen/Qwen2.5-3B-Instruct", "aa8e72537993ba99e69dfaafa59ed015b17504d1"),
 )
 DEFAULT_BACKENDS: tuple[str, ...] = ("transformers", "vllm")
 DEFAULT_BATCH_SIZES: tuple[int, ...] = (1,)
@@ -174,7 +199,9 @@ class TransformersBackend:
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
         # CPU must be fp32 (matches eval_transformers._resolve_dtype)
-        torch_dtype = torch.float32 if device == "cpu" else getattr(torch, self.dtype)
+        # ``torch.bf16`` doesn't exist — the canonical attribute is ``bfloat16``.
+        dtype_map = {"bf16": torch.bfloat16, "fp16": torch.float16, "fp32": torch.float32}
+        torch_dtype = torch.float32 if device == "cpu" else dtype_map[self.dtype]
         cache_dir = os.environ.get("HF_HOME") or str(ROOT / "artifacts" / "huggingface")
 
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -270,7 +297,10 @@ class VLLMBackend:
     name = "vllm"
 
     def __init__(self, dtype: str, max_new_tokens: int, gpu_memory_utilization: float) -> None:
-        self.dtype = dtype
+        # vLLM's ``dtype`` argument uses long names ("bfloat16", "float16",
+        # "float32"). Map the short CLI aliases to the canonical forms.
+        vllm_dtype_map = {"bf16": "bfloat16", "fp16": "float16", "fp32": "float32"}
+        self.dtype = vllm_dtype_map.get(dtype, dtype)
         self.max_new_tokens = max_new_tokens
         self.gpu_memory_utilization = gpu_memory_utilization
         self.llm: Any = None
@@ -282,14 +312,24 @@ class VLLMBackend:
         os.environ.setdefault("VLLM_WSL2_ENABLE_PIN_MEMORY", "1")
         os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
         os.environ.setdefault("VLLM_ATTENTION_BACKEND", "TORCH_SDPA")
+        # Force offline loading: ``HF_HUB_OFFLINE=1`` makes ``from_pretrained``
+        # + vLLM's snapshot lookup read the local cache only.
+        os.environ["HF_HUB_OFFLINE"] = "1"
 
         from vllm import LLM
         from transformers import AutoTokenizer
 
         cache_dir = os.environ.get("HF_HOME") or str(ROOT / "artifacts" / "huggingface")
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id, cache_dir=cache_dir)
+        # ``revision`` is required when running offline: vLLM needs to find
+        # the exact snapshot folder by commit hash. ``run_one_combination``
+        # passes ``revision`` via ``kwargs`` when present.
+        revision = kwargs.get("revision", "main")
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_id, revision=revision, cache_dir=cache_dir,
+        )
         self.llm = LLM(
             model=model_id,
+            revision=revision,
             dtype=self.dtype,
             gpu_memory_utilization=self.gpu_memory_utilization,
             download_dir=cache_dir,
@@ -421,6 +461,7 @@ def run_one_combination(
     samples: list[dict[str, Any]],
     args: argparse.Namespace,
     backend_factory: type[Backend] | None = None,
+    revision: str | None = None,
 ) -> dict[str, Any]:
     """Run a single (model, backend, batch) combination and return a summary.
 
@@ -430,6 +471,10 @@ def run_one_combination(
     ``backend_factory`` is a test hook — production code uses
     ``build_backend`` derived from ``args``; tests can pass a mock factory
     to avoid importing transformers / vLLM.
+
+    ``revision`` is the cached HF revision (commit hash) for ``model_id``;
+    backends pass it through to ``from_pretrained`` / vLLM ``LLM`` so the
+    runs can be offline (no network round-trip).
     """
     if backend_factory is None:
         backend = build_backend(backend_name, args)
@@ -443,7 +488,7 @@ def run_one_combination(
         f"({len(samples)} samples)",
         flush=True,
     )
-    backend.setup(model_id)
+    backend.setup(model_id, revision=revision or "main")
     try:
         layer_counts: dict[str, int] = {}
         rows: list[dict[str, Any]] = []
@@ -660,8 +705,10 @@ def write_delta_csv(out_dir: Path, deltas: dict[str, dict[str, float | None]]) -
 def _build_argparser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
-        "--models", nargs="+", default=list(DEFAULT_MODELS),
-        help="Hugging Face model ids to evaluate (default: 5 canonical public models)",
+        "--models", nargs="+", default=None,
+        help="Hugging Face model ids to evaluate (default: 5 canonical public models). "
+             "Pair each id with ``=`` and an explicit revision to run offline; e.g. "
+             "``HuggingFaceTB/SmolLM2-360M-Instruct=a10cc1512eabd3dde888204e902eca88bddb4951``.",
     )
     p.add_argument(
         "--backends", nargs="+", choices=("transformers", "vllm"),
@@ -696,6 +743,22 @@ def _build_argparser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _build_argparser().parse_args()
+    # Resolve ``--models``: each item is either a bare id (use the canonical
+    # revision that matches the local cache) or ``<id>=<revision>``.
+    if args.models is None:
+        model_ids: list[tuple[str, str]] = list(DEFAULT_MODELS)
+    else:
+        model_ids = []
+        for item in args.models:
+            if "=" in item:
+                mid, rev = item.split("=", 1)
+                model_ids.append((mid, rev))
+            else:
+                # Find the matching canonical revision by id, else default to "main".
+                rev = next(
+                    (r for m, r in DEFAULT_MODELS if m == item), "main",
+                )
+                model_ids.append((item, rev))
     samples = _load_samples(args.samples_dir, args.limit)
     if not samples:
         print(f"[p5-04] no samples found under {args.samples_dir}", flush=True)
@@ -703,12 +766,13 @@ def main() -> int:
     print(f"[p5-04] {len(samples)} samples loaded from {args.samples_dir}", flush=True)
 
     combinations = [
-        (m, b, bs)
-        for m in args.models
+        (m, r, b, bs)
+        for m, r in model_ids
         for b in args.backends
         for bs in args.batch_sizes
     ]
-    print(f"[p5-04] {len(combinations)} combinations to run: {combinations}", flush=True)
+    print(f"[p5-04] {len(combinations)} combinations to run: "
+          f"{[(m, b, bs) for m, _, b, bs in combinations]}", flush=True)
 
     runs: list[dict[str, Any]] = []
     if args.parallel:
@@ -720,9 +784,9 @@ def main() -> int:
                 pool.submit(
                     run_one_combination,
                     model_id=m, backend_name=b, batch_size=bs,
-                    samples=samples, args=args,
+                    samples=samples, args=args, revision=r,
                 ): (m, b, bs)
-                for m, b, bs in combinations
+                for m, r, b, bs in combinations
             }
             for fut, key in futures.items():
                 try:
@@ -730,11 +794,11 @@ def main() -> int:
                 except Exception as exc:
                     print(f"[p5-04] combination {key} failed: {exc}", flush=True)
     else:
-        for m, b, bs in combinations:
+        for m, r, b, bs in combinations:
             try:
                 runs.append(run_one_combination(
                     model_id=m, backend_name=b, batch_size=bs,
-                    samples=samples, args=args,
+                    samples=samples, args=args, revision=r,
                 ))
             except Exception as exc:
                 print(f"[p5-04] combination ({m}, {b}, b={bs}) failed: {exc}", flush=True)
