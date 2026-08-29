@@ -145,12 +145,18 @@ BPE + tokenizer CLI tests: 7 passed
       commit: 251489c feat(n5): dense scale sweep with 4 sizes
   - N6 dropout 消融 {0.0, 0.1, 0.2}
       stage review: docs/plans/reviews/stage-n6-dense-dropout-sweep.md
+      commit: 46d62b3 feat(n6): medium dropout sensitivity sweep with 3 values
   - N7 RoPE base 消融 {10k, 50k, 100k}
       stage review: docs/plans/reviews/stage-n7-dense-rope-sweep.md
+      commit: d00989d feat(n7): medium RoPE base sweep with 3 values
   - N8 n_heads 消融 {2, 4, 8}
       stage review: docs/plans/reviews/stage-n8-dense-heads-sweep.md
+      commit: ffc9f6b feat(n8): medium n_heads sweep with 3 values
   - N9 d_ff 消融 {256, 512, 1024}
       stage review: docs/plans/reviews/stage-n9-dense-dff-sweep.md
+      commit: 5aceb15 feat(n9): medium d_ff sweep with 3 values
+      follow-up: 43260e3 fix(n9): correct d_ff=256 actual val_min step 3200
+      multi-seed: 098c382 feat(multi-seed): full N5-N9 sweep across 3 seeds (39 runs)
   - N11 baseline + medium 各 50000 步长训练
       stage review: docs/plans/reviews/stage-n11-dense-long-curve.md
       commits: 0e4e6e1 feat(n11): dense long training curve at 50000 steps
@@ -763,11 +769,11 @@ instruction-tuned 模型（详见 P5-02 条目与 docs/experiments/p2-evaluator/
 
 P3 已解决本条目的独立 IID held-out split 要求（**历史 MVP 样本版（详细数字见下方 round-13 归档）**）：D2 dev 的早期历史子集（详细数字见下方 round-13 归档）可用于 held-out reward pipeline 验证；P3 已完成 5 ckpt × D2 dev 的历史 reward 评测（详细数字见下方 round-13 归档） 个真实推理 reward_signal，最终多样化数据上的结果见 `docs/experiments/p2-evaluator/README.md` 第 6 节。当前 D2 契约为 5000 样本 / train 3500 / dev 750 / test 750（round 14，HEAD：当前 main）；P5-02 阶段在 P5-02 benchmark evaluation subset（从当前扩样版 D2 dev 750 中采样的 benchmark 子集，benchmark 子集规模详见 `docs/protocols/transformers-backend.md` §3，**不是 D2 数据集规模或 split 契约**）上重跑 5 公开 instruction-tuned 模型，详见 `docs/protocols/transformers-backend.md` §7-8。
 
-后续 P3/P5 需要：
+后续 P3/P5：
 
-- 在 D2 dev 上用 P5-02 公开 instruction-tuned 模型跑可比较的真实模型推理 reward 评测；
-- 报告 P1-05 八级分布、parse success 和完整任务成功率；
-- 保留多 seed mean ± 总体标准差，但不把训练集抽样结果冒充泛化指标。
+- ~~在 D2 dev 上用 P5-02 公开 instruction-tuned 模型跑可比较的真实模型推理 reward 评测；~~ **已完成**（HEAD `63cbd83` + `b4fd879`；详见 P5-02 条目与 `docs/experiments/p2-evaluator/README.md` §7-8）
+- ~~报告 P1-05 八级分布、parse success 和完整任务成功率；~~ **已完成**（同上 P5-02 README §7；详细数字见 round-13 归档段）
+- 保留多 seed mean ± 总体标准差，但不把训练集抽样结果冒充泛化指标（持续要求）。
 
 ### P2-06 P2 阶段性交付已完成（2026-08-28）
 
@@ -1004,7 +1010,7 @@ vLLM 适配不在范围内（暂缓阶段）。
 - 横向对比：自研 5 ckpt reward_layered 全部 0；公开模型 reward_layered ≥ 0.33。
 
 遗留：
-- **reviewer dispatch（minimax-M3）**：将在下一轮 audit 时由 detached auditor 联动 minimax-M3 subagent reviewer 联合复审；持续证据入 `docs/plans/reviews/stage-p5-02-transformers-backend.md`。
+- reviewer dispatch (minimax-M3) 已通过：stage review `docs/plans/reviews/stage-p5-02-transformers-backend.md` 记录 PASS verdict；detached auditor 与 minimax-M3 subagent reviewer 联合复审均已通过；持续证据入该 stage review 文件。
 - P5-03 vLLM backend 已交付（HEAD `bb61a3a`，WSL2 Ubuntu-22.04 smoke PASS），详见 P5-03 vLLM 后端接入条目。
 - D2 数据集扩样到 5000+ **已完成**（见下方 `### P3 D2 扩样到 5000（2026-08-28，round 14）` 段，HEAD：当前 main）：5000 samples（4×833 + 2×834）、train 3500 / dev 750 / test 750 严格命中、6 类 ≥833 unique canonical signatures、cross-split canonical disjoint、D2-vs-D1/D1.1 cross_dataset disjoint、datasets/ 已加入 `.gitignore` 并 `git rm --cached` 隔离。
 - 全部 5 模型 reward_binary=0 为诚实负结果：D2 expected_answer 与公开模型生成的 final_answer 字面不一致；如需严格一致，可加后处理归一化或引入轻量 evaluator prompt。
@@ -1013,7 +1019,7 @@ vLLM 适配不在范围内（暂缓阶段）。
 
 ### P3 D2 扩样到 5000（2026-08-28，round 14）
 
-状态：已交付（round 14 auditor 复查后；待 detached auditor round 14 终审）。
+状态：已交付（detached auditor round 14 PASS；stage review `docs/plans/reviews/stage-p3-d2-expansion-independent-audit.md` 10/10 PASS；HEAD `34ffc84`）。
 教训：round 13 完成时使用早期偏离契约样本规模（详细数字见下方 round-13 归档）（历史 per-class 规模（见下方 round-13 归档）），split 实际为偏离契约的早期数字（详细见下方 round-13 归档）；detached auditor round 14 否决该交付，要求严格命中 5000/3500/750/750 契约。
 
 修复：
@@ -1042,10 +1048,10 @@ vLLM 适配不在范围内（暂缓阶段）。
 
 遗留：
 - per-class 总数不均（4 类 833、2 类 834）：这是 5000 / 6 不整除的必然结果，已通过 _plan_per_class_counts helper 自动化。
-- round 14 status (2026-08-28T16:58):
- - minimax-M3 subagent reviewer 已派发 + 通过：evidence in `.pi-glla/scratch/stage-p3-d2-expansion-r14-review.txt`；11/11 审查项 PASS。
- - detached auditor round 14 状态：初次 audit report 在 16:58:01 返回两条 fixes required（同步不一致 + skipped 计数）。
- - 同步修复：本文档已更新以反映 reviewer PASS 已完成（不是“未启动”）；仅 detached auditor 进行中。
+- round 14 final status (2026-08-29):
+ - minimax-M3 subagent reviewer 派发 + 通过：evidence in `.pi-glla/scratch/stage-p3-d2-expansion-r14-review.txt`；11/11 审查项 PASS。
+ - detached auditor round 14 最终状态：PASS（stage review `docs/plans/reviews/stage-p3-d2-expansion-independent-audit.md` 10/10 PASS，无未关闭 fixes required）。
+ - 中间状态历史快照：round 14 初次 audit report 在 16:58:01 返回两条 fixes required（同步不一致 + skipped 计数）；该中间状态已在本条 open-issues + round-14 文档同步修正 + 最终 audit round 20 (HEAD `f1fe61c`) 中彻底闭环。
  - `scripts/run_tests.py full` 在 isolated auditor 环境可能报告 `OK (skipped=2)`：两个跳过均为 `tests/test_n2_benchmark.py:93, 108` 的 `@unittest.skipUnless(_has_working_cuda(), ...)`，是环境驱动跳过（isolated auditor 环境不一定有 CUDA），不是代码缺陷。
 
 ---
@@ -1078,10 +1084,9 @@ vLLM 适配不在范围内（暂缓阶段）。
 - D2-vs-D1/D1.1 cross_dataset_signature：3 个 split 均 0 重叠
 - `scripts/run_tests.py full` → 本机 Ran **296** tests OK；isolated auditor 环境 294 PASS + 2 environment-driven skips（`tests/test_n2_benchmark.py:93, 108` 的 CUDA skipUnless）；`scripts/validate_stage0.py --examples` → 9/9 PASS
 
-遗留：
+遗留（历史 — 此交付已被 round 14 否决，此处仅作审计溯源）：
 - split 实际为 3498/750/756（不是字面 3500/750/750），原因是 `count % 6 == 0` 约束下 6×834=5004，per-class floor-split 583/125/126，6 类累加为 3498/750/750/756。这是数学必然；如需严格 3500/750/750 应改用 6×833+2 模式（4 类 833、2 类 834），但会让 canonical uniqueness 检查需要按 per-class 单独断言而非统一 floor-split。已在 `docs/data/d2-expansion.md` §8 明确记录。
-- reviewer dispatch 与 detached auditor 还未启动（待本目标下一阶段审查）。
-- round 14 实际状态：reviewer dispatch 已完成 + PASS verdict；detached auditor round 14 在 16:58 返回 2 条 fixes required（同步不一致 + skipped 计数）。本 round 14 （16:58 后）的 文档同步修正已涵盖这两点。
+- **round 13 已被 round 14 否决**：本条目的"reviewer dispatch 与 detached auditor 还未启动"为 round 13 提交时的状态描述；round 14（HEAD `34ffc84`）以 5000/3500/750/750 契约重新交付并通过 detached auditor + minimax-M3 subagent reviewer 联合复审（详见上方 `### P3 D2 扩样到 5000（round 14）` 段）。
 
 ---
 
