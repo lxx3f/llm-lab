@@ -285,7 +285,7 @@ with tarfile.open(arch,'r:gz') as t:
         d=json.loads(m.read().decode())
         print(e['path'].split('/')[-1], 'rev', d['summary']['backend_metadata'].get('revision'))
 "
-# 期望: archive_sha_match=True + 24 entries 全 sha_match=True + 20/20 run 僅报 revision (round-13 重跑补齐)。
+# 期望: archive_sha_match=True + 24 entries sha_match=True + 20/20 run 僅报 revision + comparison.csv rows=20 (both backends) + comparison_delta.csv rows=10 (全 non-null latency delta)。
 ```
 
 ## 10. 已知边界

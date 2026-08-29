@@ -1561,6 +1561,79 @@ def _run_selftests() -> int:
         _expect("test_aggregate_csv_first_backend", csv_rows[0]["backend"] == "transformers")
         _expect("test_aggregate_csv_second_backend", csv_rows[1]["backend"] == "vllm")
 
+        # Round-14: full-aggregate completeness check. Build a synthetic
+        # 20-run set (5 models × 2 backends × 2 batch sizes) and assert
+        # the aggregates contain exactly 20 runs, both backends, both
+        # batch sizes, and 10 non-null same-model Δ% entries. This is
+        # the regression guard the detached auditor asked for after
+        # round-13 shipped a vLLM-only aggregate by mistake.
+        full_runs = []
+        full_models = [
+            "HuggingFaceB/SmolLM2-360M", "HuggingFaceB/SmolLM2-1.7B",
+            "Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "Qwen/Qwen2.5-3B",
+        ]
+        for model in full_models:
+            for backend in ("transformers", "vllm"):
+                for batch in (1, 4):
+                    # Make vLLM faster so per-sample latency and
+                    # throughput produce non-null Δ%.
+                    elapsed = 1.0 if backend == "vllm" else 2.0
+                    full_runs.append({
+                        "summary": {
+                            "model": model, "backend": backend,
+                            "batch_size": batch, "samples": 90,
+                            "elapsed_s": elapsed,
+                            "per_sample_latency_ms": elapsed * 1000 / 90,
+                            "throughput_samples_per_s": 90 / elapsed,
+                            "reward_binary": 0.0, "reward_layered": 0.4,
+                            "parse_success_rate": 1.0,
+                        }
+                    })
+        full_cmp_json, full_cmp_csv = write_aggregate_comparison(td_path, full_runs)
+        full_loaded = _json.loads(full_cmp_json.read_text(encoding="utf-8"))
+        _expect(
+            "test_full_aggregate_runs_count_20",
+            len(full_loaded["runs"]) == 20,
+            hint=f"got {len(full_loaded['runs'])}",
+        )
+        full_csv_rows = list(_csv.DictReader(full_cmp_csv.open(newline="", encoding="utf-8")))
+        full_backends = sorted({r["backend"] for r in full_csv_rows})
+        _expect(
+            "test_full_aggregate_both_backends",
+            full_backends == ["transformers", "vllm"],
+            hint=f"got {full_backends}",
+        )
+        full_batches = sorted({int(r["batch_size"]) for r in full_csv_rows})
+        _expect(
+            "test_full_aggregate_both_batch_sizes",
+            full_batches == [1, 4],
+            hint=f"got {full_batches}",
+        )
+        full_deltas = compute_delta_percentages(full_runs)
+        _expect(
+            "test_full_aggregate_delta_entries_10",
+            len(full_deltas) == 10,
+            hint=f"got {len(full_deltas)}",
+        )
+        full_non_null_lat = sum(
+            1 for v in full_deltas.values()
+            if v.get("per_sample_latency_ms") is not None
+        )
+        _expect(
+            "test_full_aggregate_delta_latency_non_null",
+            full_non_null_lat == 10,
+            hint=f"got {full_non_null_lat}",
+        )
+        full_non_null_thr = sum(
+            1 for v in full_deltas.values()
+            if v.get("throughput_samples_per_s") is not None
+        )
+        _expect(
+            "test_full_aggregate_delta_throughput_non_null",
+            full_non_null_thr == 10,
+            hint=f"got {full_non_null_thr}",
+        )
+
         # Empty runs
         cjson_e, _ = write_aggregate_comparison(td_path, [])
         _expect("test_aggregate_empty_json", _json.loads(cjson_e.read_text(encoding="utf-8"))["runs"] == [])

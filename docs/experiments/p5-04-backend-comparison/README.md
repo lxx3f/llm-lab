@@ -55,6 +55,15 @@ detached auditor round-13 指出 round-12 的 archive (sha256=d2c85e48...) 生�
 4. 验证 `runs_with_revision=20/20` + `entry_sha_match=24/24`, 同一个模型的 transformers / vllm 两条 run 携带完全相同的 canonical revision;
 5. vLLM selftest 强化为真正的 setup() 调用 (patch vllm.LLM + AutoTokenizer.from_pretrained), 取代之前对 `vb.revision` 的直接赋值, selftest 从 106 增至 108 PASS。
 
+## Round-14 aggregate 补齐 (2026-08-30)
+
+detached auditor round-14 指出 round-13 重跑拆成 `--backends transformers` 与 `--backends vllm` 两次独立 invocation, 每次都覆盖了 `comparison.{csv,json}` + `comparison_delta.{csv,json}`, 导致 archive 里 aggregates 只剩 vLLM 半边。本轮修复:
+
+1. 不重跑 GPU: 20 个 `run_*.json` 完整无缺, 直接调用 `write_aggregate_comparison` + `compute_delta_percentages` + `write_delta_csv` 从 20 个 run JSON 重建 aggregates;
+2. 新 archive SHA256 = `05a38aacd6628448fec432c56219bbc33ea0fc425c9595441a23b81fef164d62`, aggregate SHA = `089450b551f0db6f77e565318492ad2db7561fc213d6d4be630206616f90fee5`;
+3. 验证 `comparison.csv rows=20` + `backends={transformers, vllm}`, `comparison.json runs=20`, `comparison_delta.csv rows=10` 全部非空 latency delta, `comparison_delta.json entries=10` 全部非空 latency delta;
+4. selftest 新增 6 个 full-aggregate 完整性断言 (test_full_aggregate_runs_count_20 / test_full_aggregate_both_backends / test_full_aggregate_both_batch_sizes / test_full_aggregate_delta_entries_10 / test_full_aggregate_delta_latency_non_null / test_full_aggregate_delta_throughput_non_null), 防阳  个 run + both backends + both batch sizes + 10 non-null same-model Δ% 入口, 防阳 vLLM-only aggregate, selftest 从 108 增至 114 PASS。
+
 ## 4 轴对比结果（实测, 90 样本 / 组合, manifest-driven, round-13 重跑）
 
 ### Latency (ms / sample, 越低越好)

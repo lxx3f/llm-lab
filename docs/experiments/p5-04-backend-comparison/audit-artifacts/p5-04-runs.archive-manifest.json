@@ -1,34 +1,34 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "archive_name": "p5-04-runs.tar.gz",
-  "archive_bytes": 139089,
-  "archive_sha256": "ffd8e0471f28332cd66a413e7ba02aec76b84326abe9b7a28583c76463bc9e1a",
-  "archive_aggregate_sha256": "572c499756b0a506f333608cc2a4f0957d021e75743d48d89ccacb87a4beab1e",
+  "archive_bytes": 140328,
+  "archive_sha256": "05a38aacd6628448fec432c56219bbc33ea0fc425c9595441a23b81fef164d62",
+  "archive_aggregate_sha256": "089450b551f0db6f77e565318492ad2db7561fc213d6d4be630206616f90fee5",
   "produced_at": "2026-08-30",
   "generator": "scripts/eval_backend_comparison.py",
-  "description": "Immutable archive of 20 P5-04 run JSONs + comparison.{csv,json} + comparison_delta.{csv,json} produced on RTX 5070 Ti WSL2 with commit 4176f65 + round-13 selftest refactor. Every run JSON carries backend_metadata.revision matching the canonical HF commit; identical revision used for Transformers and vLLM runs of the same model (verified). Tracked under docs/ to comply with .gitignore covering artifacts/**/*.json.",
-  "round": 13,
-  "rerecorded_for": "detached auditor round-13 required fresh GPU run with revision field populated",
+  "description": "Immutable archive of 20 P5-04 run JSONs (5 models × 2 backends × batch {1,4}) + comparison.{csv,json} + comparison_delta.{csv,json} produced on RTX 5070 Ti WSL2 with round-13 code. Every run JSON carries backend_metadata.revision matching canonical DEFAULT_MODELS; same-model transformers+vllm use identical revision. Aggregates contain all 20 combinations and 10 non-null same-model Δ% entries (round-14 fix rebuilt aggregates from 20 on-disk runs after round-13 left them as vLLM-only). Tracked under docs/ to comply with .gitignore covering artifacts/**/*.json.",
+  "round": 14,
+  "rerecorded_for": "detached auditor round-14 required complete aggregate (20 runs both backends, 10 non-null deltas)",
   "entries": [
     {
       "path": "artifacts/p5-04-backend-comparison/full/comparison.csv",
-      "bytes": 1380,
-      "sha256": "4b714b5c5c981bfbda474e6640f6976a0b02191e46da17b2372cec0dd2797efc"
+      "bytes": 2695,
+      "sha256": "98295bd2f45a8127dfadc8a92a97bf125e007d6ba199397c328ea586a8c34088"
     },
     {
       "path": "artifacts/p5-04-backend-comparison/full/comparison.json",
-      "bytes": 11164,
-      "sha256": "c6e14a07d90691437e73d814cb787ee7f9194a3c303af00f349f283b3b3efb54"
+      "bytes": 22901,
+      "sha256": "42bcab1df29d649d7184af186d402900afe84ec73d16abacc6636b4c3f8514f1"
     },
     {
       "path": "artifacts/p5-04-backend-comparison/full/comparison_delta.csv",
-      "bytes": 560,
-      "sha256": "84348c37f2b3bc903bce403b1d133a2765a2e2103afb3123d4add9e05e08915b"
+      "bytes": 757,
+      "sha256": "c14e620e498f48fa9596c219afac97d542c6eb9f44950bd98c51b02c9e9b9652"
     },
     {
       "path": "artifacts/p5-04-backend-comparison/full/comparison_delta.json",
-      "bytes": 2055,
-      "sha256": "0cdbbb97c395b81dc71b0d110028746a91849ba97a2bfeeb8001fdc52e4bcb84"
+      "bytes": 2467,
+      "sha256": "390ce0e7c71ab7acffcd5cef52cde415c7df27bb840191ab65c055a0a5ea5032"
     },
     {
       "path": "artifacts/p5-04-backend-comparison/full/run_HuggingFaceTB__SmolLM2-1.7B-Instruct__transformers__b1.json",

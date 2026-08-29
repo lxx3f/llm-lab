@@ -235,6 +235,7 @@ detached auditor round-12 针对三件事提出修复要求。本节记录针对
 
 - **症状**: `artifacts/**/*.json` 被 `.gitignore:89` 覆盖，20 个 run_*.json + comparison.csv/json + comparison_delta.csv/json 是 gitignored local-only；detached auditor 只有 README 表格与散落本地文件作为证据。
 - **修复**: 把 24 个文件打包到 `docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz` (tracked, 24 entries)，并附 `p5-04-runs.archive-manifest.json` (tracked) 记录每个 entry 的 `path` / `bytes` / `sha256` + archive 自身 SHA256。**round-13 重跑**: 原 archive 生成于 commit `4176f65` 之前，20 个 run JSON 均缺 `backend_metadata.revision`。本轮在 RTX 5070 Ti WSL2 bf16 用 round-12 代码重跑 20 个组合，新 archive SHA = `ffd8e0471f28332cd66a413e7ba02aec76b84326abe9b7a28583c76463bc9e1a`，aggregate SHA = `572c499756b0a506f333608cc2a4f0957d021e75743d48d89ccacb87a4beab1e`；验证 `runs_with_revision=20/20`, `entry_sha_match=24/24`。
+- **round-14 aggregate 补齐 (2026-08-30)**: detached auditor round-14 指出 round-13 重跑拆成 `--backends transformers` 与 `--backends vllm` 两次独立 invocation, 每次都覆盖了 `comparison.{csv,json}` + `comparison_delta.{csv,json}`, 导致 archive 里 aggregates 只剩 vLLM 半边。本轮修复: 不重跑 GPU, 直接从 20 个 run JSON 重建 aggregates (调用 write_aggregate_comparison + compute_delta_percentages + write_delta_csv), 新 archive SHA = `05a38aacd6628448fec432c56219bbc33ea0fc425c9595441a23b81fef164d62`, aggregate SHA = `089450b551f0db6f77e565318492ad2db7561fc213d6d4be630206616f90fee5`。验证 `comparison.csv rows=20 + backends={transformers,vllm}`, `comparison_delta.csv rows=10` 全部非空 latency delta, `comparison_delta.json entries=10` 全部非空 latency delta。selftest 新增 6 个 full-aggregate 完整性断言 (test_full_aggregate_runs_count_20 / test_full_aggregate_both_backends / test_full_aggregate_both_batch_sizes / test_full_aggregate_delta_entries_10 / test_full_aggregate_delta_latency_non_null / test_full_aggregate_delta_throughput_non_null), 从 108 增至 114 PASS。
 - **复现验证脚本**: 协议 §9.1 提供 5 行 Python 脚本，detached auditor / 第三方可在干净 checkout 中独立运行：实测 `archive_sha_match=True` + 24/24 entries sha_match=True。
 
 ### 10.3 两后端 immutable revision 对称
@@ -255,7 +256,7 @@ P5-04 final objective (90-sample interpretation; list item D):
 - abstract HEAD pointer: HEAD is on a commit that contains all of:
     - scripts/eval_backend_comparison.py  (with _materialize_manifest_samples + revision symmetry + tracked archive delivery)
     - docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json  (tracked, 90 entries, source_commit=b4fd879, aggregate_sha256=d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282)
-    - docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz  (tracked, archive_sha=ffd8e0471f28332cd66a413e7ba02aec76b84326abe9b7a28583c76463bc9e1a, round-13 重跑含 revision)
+    - docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz  (tracked, archive_sha=05a38aacd6628448fec432c56219bbc33ea0fc425c9595441a23b81fef164d62, round-13 重跑 + round-14 重建 aggregates 20 runs both backends + 10 non-null deltas)
     - docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.archive-manifest.json  (tracked, 24 entries + aggregate_sha256)
     - docs/experiments/p5-04-backend-comparison/README.md  (round-12 加固段)
     - docs/protocols/backend-comparison.md  (§3.1 / §6.2 / §9.1 加固)
