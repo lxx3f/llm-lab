@@ -153,8 +153,15 @@ The script scans every active `.md` file under `docs/`. **Exclusions**:
   removed artifacts are part of the change record, not active
   contracts.
 
-On this audit: 92 total docs, 34 excluded (1 license + 1 final-audit
-+ 32 stage reviews + 1 other), **58 active docs scanned**.
+On this audit at the audited parent (`HEAD~1`, before the
+round-14 reviewer-evidence doc was added): 92 total docs, 34
+excluded (1 license + 1 final-audit + 32 stage reviews + 1 other),
+**58 active docs scanned**. The current HEAD shows 59 active docs
+(after round-14 added the round-13 reviewer-evidence doc which
+contributes one additional active doc); the round-13 implementation
+itself was verified at 58 active docs, and the current "Real
+results from this audit (this host)" section below uses the current
+59-doc tree state.
 
 ### Classification methodology (round-12 fix)
 
@@ -200,9 +207,11 @@ These numbers reflect the **current** tree state at HEAD (including
 the `docs/reports/final-audit/round-13-reviewer-evidence.md` doc
 added in round-14, which itself contains 9 artifact references).
 The round-13 implementation commit `afd579f` was verified at that
-commit with 58/167/29 counts (see
+commit with 58/167/29 counts (historical evidence; see
 `docs/reports/final-audit/round-13-reviewer-evidence.md` for the
-exact round-13 reproduction).
+exact round-13 reproduction). The current HEAD shows 59/173/33 (the
++1 doc / +6 refs / +4 globs come from the round-14 reviewer-evidence
+doc itself).
 
 ### What round-13 fix addresses
 
