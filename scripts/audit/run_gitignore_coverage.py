@@ -15,8 +15,8 @@ Output format from git:
 Writes machine-readable JSON to artifacts/audits/gitignore-coverage.json
 and exits 0 if Not ignored == 0, exits 1 otherwise.
 
-Reproduction:
-    1. git checkout HEAD~1   # obtain audited tree
+Reproduction (non-mutating; no git checkout):
+    1. Confirm clean main: git status --short  # → empty
     2. python scripts/audit/run_gitignore_coverage.py
     3. Expected: exit 0, JSON written, "Not ignored: 0"
 """

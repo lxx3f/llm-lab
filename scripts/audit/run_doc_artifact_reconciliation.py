@@ -28,8 +28,8 @@ Resolution status:
 
 Per-doc/per-ref JSON evidence + exit 1 if any MISSING_UNRESOLVABLE.
 
-Reproduction:
-    1. git checkout HEAD~1   # obtain audited tree
+Reproduction (non-mutating; no git checkout):
+    1. Confirm clean main: git status --short  # → empty
     2. python scripts/audit/run_doc_artifact_reconciliation.py
     3. Expected: exit 0
 """
