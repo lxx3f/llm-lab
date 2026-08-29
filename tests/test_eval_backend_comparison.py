@@ -35,7 +35,9 @@ from scripts.eval_backend_comparison import (  # noqa: E402
     _build_argparser,
     _slugify,
     _strip_terminal_assistant,
+    compute_delta_percentages,
     write_aggregate_comparison,
+    write_delta_csv,
     write_run_artifact,
 )
 
@@ -72,7 +74,7 @@ class MockBackend:
         self,
         messages_batch: list[list[dict[str, Any]]],
         tools_batch: list[list[dict[str, Any]] | None],
-    ) -> list[str]:
+    ) -> tuple[list[str], list[str]]:
         assert self._setup_done, "setup() must be called before chat_generate()"
         self.chat_calls += 1
         out: list[str] = []
@@ -84,7 +86,11 @@ class MockBackend:
                     sid = m.get("content", "")[:8]
                     break
             out.append(self.responses.get(sid or "", '{"name": "echo", "arguments": {}}'))
-        return out
+        prompt_previews = [
+            (m[-1].get("content", "")[:200] if m else "")
+            for m in messages_batch
+        ]
+        return out, prompt_previews
 
     def teardown(self) -> None:
         self.teardown_calls += 1
@@ -201,7 +207,11 @@ def test_backend_interface_is_typed() -> None:
         [[{"role": "user", "content": "sid00000001: hi"}]],
         [None],
     )
-    assert isinstance(out, list) and len(out) == 1
+    # Backend returns ``(generations, prompt_previews)`` — a 2-tuple of lists.
+    assert isinstance(out, tuple) and len(out) == 2
+    gens, prompts = out
+    assert isinstance(gens, list) and len(gens) == 1
+    assert isinstance(prompts, list) and len(prompts) == 1
     backend.teardown()
 
 
@@ -316,7 +326,6 @@ def test_run_one_combination_handles_generation_error(tmp_path: Path) -> None:
     class ErrorBackend(MockBackend):
         def chat_generate(self, messages_batch, tools_batch):  # type: ignore[override]
             raise RuntimeError("simulated OOM")
-
     samples = _make_samples(2)
     args = argparse.Namespace(
         samples_dir=str(ROOT / "datasets/tool-calling-d2/dev"),
@@ -438,3 +447,115 @@ def test_argparser_help_exits_cleanly(capsys: pytest.CaptureFixture[str]) -> Non
     assert ei.value.code == 0
     out = capsys.readouterr().out
     assert "P5-04" in out or "backend comparison" in out.lower()
+
+
+# ---------------------------------------------------------------------------
+# 7. Same-model Δ% computation
+# ---------------------------------------------------------------------------
+
+
+def test_delta_percentages_basic_signs() -> None:
+    """vLLM faster than transformers → negative latency Δ% and positive throughput Δ%."""
+    runs = [
+        {"summary": {
+            "model": "M", "backend": "transformers", "batch_size": 1,
+            "per_sample_latency_ms": 1000.0,
+            "throughput_samples_per_s": 1.0,
+            "reward_binary": 0.0, "reward_layered": 0.4,
+            "parse_success_rate": 0.5,
+        }},
+        {"summary": {
+            "model": "M", "backend": "vllm", "batch_size": 1,
+            "per_sample_latency_ms": 500.0,  # 50% faster
+            "throughput_samples_per_s": 2.0,  # 100% more throughput
+            "reward_binary": 0.0, "reward_layered": 0.4,
+            "parse_success_rate": 0.5,
+        }},
+    ]
+    deltas = compute_delta_percentages(runs)
+    key = "M__b1"
+    assert key in deltas
+    assert abs(deltas[key]["per_sample_latency_ms"] - (-50.0)) < 1e-6
+    assert abs(deltas[key]["throughput_samples_per_s"] - 100.0) < 1e-6
+    assert deltas[key]["reward_binary"] is None  # identical (no diff)
+    assert deltas[key]["reward_layered"] == 0.0
+
+
+def test_delta_percentages_groups_by_batch() -> None:
+    """Different batch sizes produce different delta keys."""
+    runs = [
+        {"summary": {"model": "M", "backend": "transformers", "batch_size": 1,
+                     "per_sample_latency_ms": 1000.0, "throughput_samples_per_s": 1.0,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+        {"summary": {"model": "M", "backend": "transformers", "batch_size": 4,
+                     "per_sample_latency_ms": 400.0, "throughput_samples_per_s": 10.0,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+        {"summary": {"model": "M", "backend": "vllm", "batch_size": 1,
+                     "per_sample_latency_ms": 900.0, "throughput_samples_per_s": 1.1,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+        {"summary": {"model": "M", "backend": "vllm", "batch_size": 4,
+                     "per_sample_latency_ms": 200.0, "throughput_samples_per_s": 20.0,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+    ]
+    deltas = compute_delta_percentages(runs)
+    assert "M__b1" in deltas
+    assert "M__b4" in deltas
+    assert deltas["M__b1"]["per_sample_latency_ms"] == pytest.approx(-10.0, abs=1e-6)
+    assert deltas["M__b4"]["per_sample_latency_ms"] == pytest.approx(-50.0, abs=1e-6)
+    assert deltas["M__b4"]["throughput_samples_per_s"] == pytest.approx(100.0, abs=1e-6)
+
+
+def test_delta_percentages_missing_backend_returns_none() -> None:
+    """Only one backend present → fields are None."""
+    runs = [
+        {"summary": {"model": "M", "backend": "transformers", "batch_size": 1,
+                     "per_sample_latency_ms": 100.0, "throughput_samples_per_s": 10.0,
+                     "reward_binary": 0.0, "reward_layered": 0.4, "parse_success_rate": 0.5}},
+    ]
+    deltas = compute_delta_percentages(runs)
+    assert "M__b1" in deltas
+    for v in deltas["M__b1"].values():
+        assert v is None
+
+
+def test_delta_percentages_zero_baseline_returns_none() -> None:
+    """Baseline value == 0 → cannot compute delta; return None for safety."""
+    runs = [
+        {"summary": {"model": "M", "backend": "transformers", "batch_size": 1,
+                     "per_sample_latency_ms": 0.0, "throughput_samples_per_s": 0.0,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+        {"summary": {"model": "M", "backend": "vllm", "batch_size": 1,
+                     "per_sample_latency_ms": 100.0, "throughput_samples_per_s": 10.0,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+    ]
+    deltas = compute_delta_percentages(runs)
+    for v in deltas["M__b1"].values():
+        assert v is None
+
+
+def test_write_delta_csv_emits_rows(tmp_path: Path) -> None:
+    deltas = {
+        "M__b1": {
+            "per_sample_latency_ms": -50.0,
+            "throughput_samples_per_s": 100.0,
+            "reward_binary": 0.0,
+            "reward_layered": 5.0,
+            "parse_success_rate": -2.5,
+        },
+        "M__b4": {
+            "per_sample_latency_ms": None,
+            "throughput_samples_per_s": None,
+            "reward_binary": None,
+            "reward_layered": None,
+            "parse_success_rate": None,
+        },
+    }
+    out = write_delta_csv(tmp_path, deltas)
+    assert out.exists()
+    with out.open(newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert len(rows) == 2
+    assert rows[0]["model_batch"] == "M__b1"
+    assert rows[0]["delta_per_sample_latency_ms_pct"] == "-50.00"
+    assert rows[1]["delta_per_sample_latency_ms_pct"] == ""  # missing
+

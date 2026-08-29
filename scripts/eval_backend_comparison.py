@@ -79,11 +79,16 @@ class Backend(Protocol):
         self,
         messages_batch: list[list[dict[str, Any]]],
         tools_batch: list[list[dict[str, Any]] | None],
-    ) -> list[str]:
-        """Run chat completion for each sample. One output string per sample.
+    ) -> tuple[list[str], list[str]]:
+        """Run chat completion for each sample. Returns ``(generations, prompt_previews)``.
 
         ``tools_batch[i]`` is the tool schema list for sample ``i`` (or
         ``None`` if no tools should be injected).
+
+        ``prompt_previews[i]`` is the rendered prompt's first 200 chars for
+        sample ``i``; the comparison CLI uses this to populate the
+        ``user_turn`` field of the persisted row so artifacts match
+        ``eval_transformers._build_eval_row`` exactly.
         """
 
     def teardown(self) -> None:
@@ -186,7 +191,7 @@ class TransformersBackend:
         self,
         messages_batch: list[list[dict[str, Any]]],
         tools_batch: list[list[dict[str, Any]] | None],
-    ) -> list[str]:
+    ) -> tuple[list[str], list[str]]:
         import torch
 
         if self.model is None or self.tokenizer is None:
@@ -230,7 +235,8 @@ class TransformersBackend:
             prompt_len = inputs["input_ids"][i].shape[0]
             new_ids = ids[prompt_len:]
             results.append(self.tokenizer.decode(new_ids, skip_special_tokens=True))
-        return results
+        prompt_previews = [p[:200] for p in prompts]
+        return results, prompt_previews
 
     def teardown(self) -> None:
         import torch
@@ -296,7 +302,7 @@ class VLLMBackend:
         self,
         messages_batch: list[list[dict[str, Any]]],
         tools_batch: list[list[dict[str, Any]] | None],
-    ) -> list[str]:
+    ) -> tuple[list[str], list[str]]:
         from vllm import SamplingParams
 
         if self.llm is None:
@@ -328,7 +334,9 @@ class VLLMBackend:
             max_tokens=self.max_new_tokens,
         )
         outputs = self.llm.generate(prompts, sampling, use_tqdm=False)
-        return [o.outputs[0].text for o in outputs]
+        generations = [o.outputs[0].text for o in outputs]
+        prompt_previews = [p[:200] for p in prompts]
+        return generations, prompt_previews
 
     def teardown(self) -> None:
         # vLLM holds CUDA memory in worker subprocesses; explicit
@@ -446,21 +454,20 @@ def run_one_combination(
             messages_batch = [s["messages"] for s in chunk]
             tools_batch = [s.get("tools") for s in chunk]
             try:
-                generated = backend.chat_generate(messages_batch, tools_batch)
+                # Backend returns (generated, prompt_preview) per sample so the
+                # row's ``user_turn`` field can carry the actual rendered prompt
+                # (matches P5-02 ``eval_transformers._build_eval_row``).
+                generated, prompt_previews = backend.chat_generate(messages_batch, tools_batch)
             except Exception as exc:
                 # If the entire batch fails, fall back to empty generations
                 # so the run still produces a row per sample (matches
                 # eval_transformers._greedy_generate error semantics).
                 print(f"[p5-04] generation error: {exc}", flush=True)
                 generated = [""] * len(chunk)
+                prompt_previews = [s["messages"][-1].get("content", "")[:200] if s["messages"] else "" for s in chunk]
             # Build per-sample rows + apply P1-05 classifier.
-            for sample, gen in zip(chunk, generated):
-                prompt_preview = ""
-                # Re-derive the prompt just for the row's preview (eval_transformers
-                # writes the prompt_text's first 200 chars to user_turn).
-                if isinstance(gen, str):
-                    prompt_preview = gen[:0]  # we don't re-render the full prompt
-                row, result = _row_from_sample(sample, prompt_preview, gen, layer_counts)
+            for sample, gen, prompt_prev in zip(chunk, generated, prompt_previews):
+                row, result = _row_from_sample(sample, prompt_prev, gen, layer_counts)
                 first = result["first_failure"]
                 key = first if first is not None else "none"
                 layer_counts[key] = layer_counts.get(key, 0) + 1
@@ -562,6 +569,94 @@ def write_aggregate_comparison(out_dir: Path, runs: list[dict[str, Any]]) -> tup
     return cmp_json, cmp_csv
 
 
+def compute_delta_percentages(runs: list[dict[str, Any]]) -> dict[str, dict[str, float | None]]:
+    """Compute same-model backend Δ% for each (model, batch_size) pair.
+
+    For each (model, batch_size), finds the transformers run + the vllm run
+    (if both present) and computes vLLM − Transformers as a percentage of
+    the transformers baseline. The convention is:
+
+    - latency: lower is better, so a positive Δ% means vLLM is slower.
+    - throughput: higher is better, so a positive Δ% means vLLM is faster.
+    - reward_binary / reward_layered / parse_success_rate: higher is better;
+      a positive Δ% means vLLM produced better-quality generations.
+
+    Missing combinations return ``None`` for that field (preserves the
+    schema even when one backend failed or was skipped).
+
+    Returns ``{(model, batch_size) -> {field_name: delta_percent_or_None}}``.
+    The keys are JSON-serializable strings ``"<model>__b<batch>"``.
+    """
+    metric_fields = (
+        "per_sample_latency_ms", "throughput_samples_per_s",
+        "reward_binary", "reward_layered", "parse_success_rate",
+    )
+    grouped: dict[tuple[str, int], dict[str, dict[str, Any]]] = {}
+    for r in runs:
+        s = r["summary"]
+        key = (s["model"], s["batch_size"])
+        grouped.setdefault(key, {})[s["backend"]] = s
+
+    out: dict[str, dict[str, float | None]] = {}
+    for (model, batch_size), backends in grouped.items():
+        tr = backends.get("transformers")
+        vl = backends.get("vllm")
+        per_key: dict[str, float | None] = {}
+        for field in metric_fields:
+            if tr is None or vl is None:
+                per_key[field] = None
+                continue
+            tr_val = tr.get(field)
+            vl_val = vl.get(field)
+            if tr_val in (None, 0) or vl_val is None:
+                per_key[field] = None
+                continue
+            base = float(tr_val)
+            if base == 0.0:
+                per_key[field] = None
+                continue
+            per_key[field] = (float(vl_val) - base) / abs(base) * 100.0
+        out[f"{model}__b{batch_size}"] = per_key
+    return out
+
+
+def write_delta_csv(out_dir: Path, deltas: dict[str, dict[str, float | None]]) -> Path:
+    """Write same-model Δ% table to ``comparison_delta.csv``."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "comparison_delta.csv"
+    fieldnames = [
+        "model_batch",
+        "delta_per_sample_latency_ms_pct",
+        "delta_throughput_samples_per_s_pct",
+        "delta_reward_binary_pct",
+        "delta_reward_layered_pct",
+        "delta_parse_success_rate_pct",
+    ]
+    with out_path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+        writer.writeheader()
+        for model_batch, per in deltas.items():
+            writer.writerow({
+                "model_batch": model_batch,
+                "delta_per_sample_latency_ms_pct":
+                    "" if per["per_sample_latency_ms"] is None
+                    else f"{per['per_sample_latency_ms']:.2f}",
+                "delta_throughput_samples_per_s_pct":
+                    "" if per["throughput_samples_per_s"] is None
+                    else f"{per['throughput_samples_per_s']:.2f}",
+                "delta_reward_binary_pct":
+                    "" if per["reward_binary"] is None
+                    else f"{per['reward_binary']:.2f}",
+                "delta_reward_layered_pct":
+                    "" if per["reward_layered"] is None
+                    else f"{per['reward_layered']:.2f}",
+                "delta_parse_success_rate_pct":
+                    "" if per["parse_success_rate"] is None
+                    else f"{per['parse_success_rate']:.2f}",
+            })
+    return out_path
+
+
 def _build_argparser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
@@ -652,12 +747,21 @@ def main() -> int:
             s["batch_size"], run_payload,
         )
     cmp_json, cmp_csv = write_aggregate_comparison(args.output_dir, runs)
+    deltas = compute_delta_percentages(runs)
+    cmp_delta_json = args.output_dir / "comparison_delta.json"
+    cmp_delta_json.write_text(
+        json.dumps(deltas, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    cmp_delta_csv = write_delta_csv(args.output_dir, deltas)
     print(
         f"[p5-04] wrote {len(runs)} runs to {args.output_dir}",
         flush=True,
     )
-    print(f"[p5-04] aggregate JSON: {cmp_json}", flush=True)
-    print(f"[p5-04] aggregate CSV:  {cmp_csv}", flush=True)
+    print(f"[p5-04] aggregate JSON:    {cmp_json}", flush=True)
+    print(f"[p5-04] aggregate CSV:     {cmp_csv}", flush=True)
+    print(f"[p5-04] delta JSON:        {cmp_delta_json}", flush=True)
+    print(f"[p5-04] delta CSV:         {cmp_delta_csv}", flush=True)
     return 0
 
 
