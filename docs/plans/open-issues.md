@@ -1058,7 +1058,7 @@ vLLM 适配不在范围内（暂缓阶段）。
 决策：执行最终全链路审查 + 清理，确保：
   - run_tests.py full / validate_stage0.py --examples 全部 PASS
   - doc / artifact 对账 0 MISSING_UNRESOLVABLE
-  - 数据集 / checkpoint / JSON 产物全部被 .gitignore 覆盖（7093/7093）
+  - 数据集 / checkpoint / JSON 产物全部被 .gitignore 覆盖（7094/7094）
   - reviewer / auditor evidence 落盘到 docs/reports/final-audit/ + per-round reviewer evidence docs
   - main 工作树保持 clean
 交付：
@@ -1069,14 +1069,14 @@ vLLM 适配不在范围内（暂缓阶段）。
   - scripts/audit/run_doc_artifact_reconciliation.py（broad scan + directory + brace/glob/placeholder classification）
   - tests/test_audit_reconciliation_extraction.py（26 regression tests）
   - 最终 HEAD f1fe61c: 28 test targets / 386 tests OK (skipped=1)
-  - gitignore coverage: 7093/7093 PASS, semantic dataset checks PASS
+  - gitignore coverage: 7094/7094 PASS, semantic dataset checks PASS
   - doc/artifact reconciliation: 60 active docs / 175 refs / 34 globs FOUND
     / 0 MISSING_UNRESOLVABLE, exit 0
   - working tree clean at HEAD f1fe61c
 验证：
   - scripts/run_tests.py full → Ran 386 tests OK (skipped=1)
   - scripts/validate_stage0.py --examples → 9/9 PASS
-  - python scripts/audit/run_gitignore_coverage.py → PASS: 7093/7093
+  - python scripts/audit/run_gitignore_coverage.py → PASS: 7094/7094
   - python scripts/audit/run_doc_artifact_reconciliation.py → PASS (60/175/34/0)
   - git status --short → empty
   - detached auditor round 20 PASS
