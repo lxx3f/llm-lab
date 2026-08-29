@@ -73,6 +73,7 @@ llm-lab/
 
 ```json
 {
+  "schema_version": "model_output/v1",
   "model": "model-name",
   "prompt": "...",
   "response": "...",
@@ -86,6 +87,7 @@ llm-lab/
 
 ```json
 {
+  "schema_version": "tool_calling/v1",
   "id": "sample-001",
   "messages": [],
   "tools": [],
@@ -101,6 +103,7 @@ llm-lab/
 
 ```json
 {
+  "schema_version": "evaluation_result/v1",
   "model": "base-model",
   "task": "tool_calling",
   "metrics": {
@@ -109,7 +112,9 @@ llm-lab/
     "task_success_rate": 0.0,
     "format_error_rate": 0.0
   },
-  "failures": []
+  "failures": [],
+  "experiment_id": "...",
+  "timestamp": "..."
 }
 ```
 

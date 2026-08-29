@@ -748,7 +748,7 @@ README 中已有 `data-pipeline/`、`evaluation-lab/`、`serving/` 等规划目�
 
 ---
 
-### P2-02 README 协议示例与真实 Schema 不一致
+### P2-02 README 协议示例与真实 Schema 不一致（已解决，2026-08-29 B-audit round-14）
 
 README 中的模型输出和评测结果示例缺少真实 Schema 要求的部分字段，例如：
 
@@ -758,17 +758,29 @@ README 中的模型输出和评测结果示例缺少真实 Schema 要求的部�
 
 后续应让 README 直接引用真实示例，或同步更新示例，避免维护两套协议。
 
-**决策（2026-08-26）**
+**决策（2026-08-26 / 2026-08-29 B-audit round-14 解决）**
 
 ```text
-状态：部分解决
+状态：已解决
 决策：
   - dense_training_result.schema.json 已对齐并接入 CLI 校验。
   - README 中 model output、evaluation result、tool calling 示例
     改为指向 examples/*.json 与 schemas/*.json 链接。
   - README 示例同步 schema_version、experiment_id、timestamp 等必填字段，
-    避免两套协议并存。
-执行时机：roadmap 当前阶段完成后随 README 一起更新；本轮不修改实现。
+    避免两套协议并存（B-audit round-14: README.md line 74-83 / line 85-98 /
+    line 100-114 三个示例均加上了 schema_version；evaluation_result 示例
+    还补齐了 experiment_id + timestamp）。
+  - 验证：examples/*.json 与 schemas/*.schema.json 验证脚本运行时一致。
+交付 commit：`0fc7aac` docs(readme): sync README protocol examples with schema required fields (2026-08-29)
+交付 commit：`75ca67d` / `b8437dd` B-audit 早期轮次补齐 P2-02 disposition
+验证：scripts/validate_stage0.py --examples -> 9/9 PASS（包含三个示例的 schema 验证）
+后续：README 示例与真实 schema 同步; schema 新增字段需同步更新 README 示例（跟踪项，见 P2-07）
+改动：
+  - README.md: model_output / tool_calling / evaluation_result 三个示例同步 schema_version + experiment_id + timestamp
+  - schemas/model_output.schema.json: schema_version = "model_output/v1"
+  - schemas/tool_calling_sample.schema.json: schema_version = "tool_calling/v1"
+  - schemas/evaluation_result.schema.json: schema_version = "evaluation_result/v1"
+遗留风险：无；P2-02 验收条件已全部覆盖。
 ```
 
 ---
@@ -808,6 +820,30 @@ docs/
 ├── experiments/
 └── environment.md
 ```
+
+**决策（2026-08-26 / 2026-08-29 B-audit round-14 重标）**
+
+```text
+状态：部分解决
+决策：
+  - 目录结构已统一（docs/plans/ + docs/protocols/ + docs/experiments/ + docs/reports/）；
+    不存在两套文档目录并存问题。
+  - 跨文件链接需随项目发展持续维护，例如：
+    * experiments/*/README.md 中的 `## 下一阶段` 区块需在阶段交付后同步更新（已通过 B-audit
+      round-9/10 修复 P5-03 / P4 GRPO / P5-02 stale claims）。
+    * protocols/*.md 中的 schema_version 引用需在 schema 升级时同步更新（见 P2-07）。
+    * plans/open-issues.md 中的 stage review pointers / commit SHAs 需在审计轮次后更新
+      （已通过 B-audit round-1..13 持续保持同步）。
+后续维护：
+  - 跨文件引用检查: scripts/audit/run_doc_artifact_reconciliation.py 自动检查
+    99 references / 19 dirs / 35 globs FOUND，0 unresolvable；如发现新增 MISSING_UNRESOLVABLE
+    需修复。
+  - 阶段交付后的下一阶段区块同步: 在阶段交付 commit 中同时更新 README / protocol / plan。
+  - stage review pointers: 每个阶段交付后创建 docs/plans/reviews/stage-X-name.md
+    作为唯一真相来源，open-issues.md 中的 pointer 指向该文件。
+执行机制：B-audit (Open-issues 审计与关闭) 轮次作为统一同步检查点；未来可考虑添加 CI hook。
+验证：scripts/audit/run_doc_artifact_reconciliation.py -> exit 0; 0 unresolvable。
+遗留风险：低—B-audit 轮次主动检查与修复; CI 化需要进一步设计。
 
 ### P2-05 SFT held-out 评测 split 仍然偏小（已通过 P3-01 D2 多轮 IID held-out split 解决）
 
