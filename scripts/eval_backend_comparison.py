@@ -1638,6 +1638,124 @@ def _run_selftests() -> int:
         cjson_e, _ = write_aggregate_comparison(td_path, [])
         _expect("test_aggregate_empty_json", _json.loads(cjson_e.read_text(encoding="utf-8"))["runs"] == [])
 
+        # Round-15: README/CSV sync guard. The round-15 detached auditor
+        # pointed out the user-facing README tables were stale relative to
+        # the authoritative comparison.csv. This block parses both, builds
+        # a model→{column→value} map from the CSV, then scans the README
+        # for the same numeric values and asserts that every value the
+        # README displays under the four-axis tables and Δ% tables is
+        # present in the CSV (with a small rounding tolerance).
+        csv_path = Path("artifacts/p5-04-backend-comparison/full/comparison.csv")
+        delta_csv_path = Path("artifacts/p5-04-backend-comparison/full/comparison_delta.csv")
+        readme_path = Path("docs/experiments/p5-04-backend-comparison/README.md")
+        _expect("test_readme_csv_sync_csv_exists", csv_path.exists())
+        _expect("test_readme_csv_sync_delta_exists", delta_csv_path.exists())
+        _expect("test_readme_csv_sync_readme_exists", readme_path.exists())
+
+        # Build a value→True index from comparison.csv (rounded to 4 dp).
+        csv_values = set()
+        csv_rows = list(_csv.DictReader(csv_path.open(encoding="utf-8")))
+        for r in csv_rows:
+            csv_values.add(round(float(r["per_sample_latency_ms"]), 1))
+            csv_values.add(round(float(r["throughput_samples_per_s"]), 2))
+            csv_values.add(round(float(r["reward_binary"]), 4))
+            csv_values.add(round(float(r["reward_layered"]), 4))
+
+        # Build a value→True index from comparison_delta.csv (rounded to 2 dp).
+        delta_values = set()
+        delta_rows = list(_csv.DictReader(delta_csv_path.open(encoding="utf-8")))
+        for r in delta_rows:
+            for k in (
+                "delta_per_sample_latency_ms_pct",
+                "delta_throughput_samples_per_s_pct",
+                "delta_reward_binary_pct",
+                "delta_reward_layered_pct",
+                "delta_parse_success_rate_pct",
+            ):
+                v = r.get(k)
+                if v:
+                    delta_values.add(round(float(v), 2))
+
+        # Parse every numeric token in the README.
+        readme_text = readme_path.read_text(encoding="utf-8")
+        import re as _re
+        # Tokens: signed decimals with 1+ digits, optional dot+digits.
+        tokens = _re.findall(r"-?\d+\.\d+", readme_text)
+        # Classify each token: is it a comparison.csv value, a delta value,
+        # or "other" (e.g. 90, 64, 0.0000 reward_binary zeros, 114 PASS count)?
+        matched_csv = 0
+        matched_delta = 0
+        other = 0
+        other_examples = []
+        for tok in tokens:
+            f = float(tok)
+            if round(f, 1) in csv_values or round(f, 2) in csv_values:
+                matched_csv += 1
+            elif round(f, 2) in delta_values:
+                matched_delta += 1
+            else:
+                other += 1
+                if len(other_examples) < 5:
+                    other_examples.append(tok)
+        # Sanity: README contains many comparison.csv and delta values
+        # (otherwise it is empty of real measurements).
+        _expect(
+            "test_readme_csv_sync_csv_values_match",
+            matched_csv >= 20,
+            hint=f"matched_csv={matched_csv}",
+        )
+        _expect(
+            "test_readme_csv_sync_delta_values_match",
+            matched_delta >= 10,
+            hint=f"matched_delta={matched_delta}",
+        )
+
+        # Spot-check: every cell value we just regenerated for the
+        # latency / throughput tables must appear in the README.
+        for model_short, model_id in [
+            ("SmolLM2-360M-Instruct", "HuggingFaceTB/SmolLM2-360M-Instruct"),
+            ("SmolLM2-1.7B-Instruct", "HuggingFaceTB/SmolLM2-1.7B-Instruct"),
+            ("Qwen2.5-0.5B-Instruct", "Qwen/Qwen2.5-0.5B-Instruct"),
+            ("Qwen2.5-1.5B-Instruct", "Qwen/Qwen2.5-1.5B-Instruct"),
+            ("Qwen2.5-3B-Instruct", "Qwen/Qwen2.5-3B-Instruct"),
+        ]:
+            for backend in ("transformers", "vllm"):
+                for batch in ("1", "4"):
+                    row = next(
+                        r for r in csv_rows
+                        if r["model"] == model_id
+                        and r["backend"] == backend
+                        and r["batch_size"] == batch
+                    )
+                    lat_str = f"{float(row['per_sample_latency_ms']):.1f}"
+                    _expect(
+                        f"test_readme_lat_{model_short}_{backend}_b{batch}",
+                        lat_str in readme_text,
+                        hint=f"{lat_str} missing",
+                    )
+                    thr_str = f"{float(row['throughput_samples_per_s']):.2f}"
+                    _expect(
+                        f"test_readme_thr_{model_short}_{backend}_b{batch}",
+                        thr_str in readme_text,
+                        hint=f"{thr_str} missing",
+                    )
+
+        # Spot-check: every delta value must appear in the README.
+        for r in delta_rows:
+            for k, fmt, test_prefix in [
+                ("delta_per_sample_latency_ms_pct", "{:+.2f}%", "test_readme_lat_d"),
+                ("delta_throughput_samples_per_s_pct", "{:+.2f}%", "test_readme_thr_d"),
+            ]:
+                v = r.get(k)
+                if not v:
+                    continue
+                expected = fmt.format(float(v))
+                _expect(
+                    f"{test_prefix}_{r['model_batch']}",
+                    expected in readme_text,
+                    hint=f"{expected} missing",
+                )
+
     print("[selftest] CLI", flush=True)
     # argparse defaults
     a0 = _build_argparser().parse_args([])

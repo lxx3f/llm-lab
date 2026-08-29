@@ -64,27 +64,27 @@ detached auditor round-14 指出 round-13 重跑拆成 `--backends transformers`
 3. 验证 `comparison.csv rows=20` + `backends={transformers, vllm}`, `comparison.json runs=20`, `comparison_delta.csv rows=10` 全部非空 latency delta, `comparison_delta.json entries=10` 全部非空 latency delta;
 4. selftest 新增 6 个 full-aggregate 完整性断言 (test_full_aggregate_runs_count_20 / test_full_aggregate_both_backends / test_full_aggregate_both_batch_sizes / test_full_aggregate_delta_entries_10 / test_full_aggregate_delta_latency_non_null / test_full_aggregate_delta_throughput_non_null), 防阳  个 run + both backends + both batch sizes + 10 non-null same-model Δ% 入口, 防阳 vLLM-only aggregate, selftest 从 108 增至 114 PASS。
 
-## 4 轴对比结果（实测, 90 样本 / 组合, manifest-driven, round-13 重跑）
+## 4 轴对比结果（实测, 90 样本 / 组合, manifest-driven, round-14 重跑; 数值直接来自 tracked archive comparison.csv）
 
 ### Latency (ms / sample, 越低越好)
 
 | 模型 | transformers b=1 | transformers b=4 | vllm b=1 | vllm b=4 |
 |---|---|---|---|---|
-| SmolLM2-360M-Instruct | 1432.3 | 422.9 | 983.8 | 283.7 |
-| SmolLM2-1.7B-Instruct | 1107.2 | 352.1 | 737.1 | 193.7 |
-| Qwen2.5-0.5B-Instruct | 561.9 | 244.7 | 323.8 | 126.1 |
-| Qwen2.5-1.5B-Instruct | 717.8 | 300.0 | 377.4 | 132.9 |
-| Qwen2.5-3B-Instruct | 1278.4 | 473.3 | 735.5 | 254.0 |
+| SmolLM2-360M-Instruct | 1555.3 | 488.4 | 1001.9 | 285.4 |
+| SmolLM2-1.7B-Instruct | 1119.7 | 381.1 | 677.3 | 196.0 |
+| Qwen2.5-0.5B-Instruct | 562.0 | 232.1 | 328.9 | 122.3 |
+| Qwen2.5-1.5B-Instruct | 691.9 | 320.8 | 392.1 | 124.5 |
+| Qwen2.5-3B-Instruct | 1232.6 | 460.3 | 710.3 | 246.1 |
 
 ### Throughput (samples / s, 越高越好)
 
 | 模型 | transformers b=1 | transformers b=4 | vllm b=1 | vllm b=4 |
 |---|---|---|---|---|
-| SmolLM2-360M-Instruct | 0.70 | 2.36 | 1.02 | 3.53 |
-| SmolLM2-1.7B-Instruct | 0.90 | 2.84 | 1.36 | 5.16 |
-| Qwen2.5-0.5B-Instruct | 1.78 | 4.09 | 3.09 | 7.93 |
-| Qwen2.5-1.5B-Instruct | 1.39 | 3.33 | 2.65 | 7.52 |
-| Qwen2.5-3B-Instruct | 0.78 | 2.11 | 1.36 | 3.94 |
+| SmolLM2-360M-Instruct | 0.64 | 2.05 | 1.00 | 3.50 |
+| SmolLM2-1.7B-Instruct | 0.89 | 2.62 | 1.48 | 5.10 |
+| Qwen2.5-0.5B-Instruct | 1.78 | 4.31 | 3.04 | 8.18 |
+| Qwen2.5-1.5B-Instruct | 1.45 | 3.12 | 2.55 | 8.03 |
+| Qwen2.5-3B-Instruct | 0.81 | 2.17 | 1.41 | 4.06 |
 
 ### reward_binary (8 层全部 passed)
 
@@ -116,21 +116,21 @@ detached auditor round-14 指出 round-13 重跑拆成 `--backends transformers`
 
 | 模型 | b=1 | b=4 |
 |---|---|---|
-| SmolLM2-360M-Instruct | -31.31% | -32.92% |
-| SmolLM2-1.7B-Instruct | -33.43% | -44.98% |
-| Qwen2.5-0.5B-Instruct | -42.37% | -48.47% |
-| Qwen2.5-1.5B-Instruct | -47.42% | -55.70% |
-| Qwen2.5-3B-Instruct | -42.47% | -46.34% |
+| SmolLM2-360M-Instruct | -35.58% | -41.56% |
+| SmolLM2-1.7B-Instruct | -39.51% | -48.57% |
+| Qwen2.5-0.5B-Instruct | -41.48% | -47.32% |
+| Qwen2.5-1.5B-Instruct | -43.33% | -61.18% |
+| Qwen2.5-3B-Instruct | -42.38% | -46.54% |
 
 ### Throughput Δ% (正 = vLLM 更快)
 
 | 模型 | b=1 | b=4 |
 |---|---|---|
-| SmolLM2-360M-Instruct | +45.58% | +49.08% |
-| SmolLM2-1.7B-Instruct | +50.21% | +81.76% |
-| Qwen2.5-0.5B-Instruct | +73.53% | +94.07% |
-| Qwen2.5-1.5B-Instruct | +90.18% | +125.71% |
-| Qwen2.5-3B-Instruct | +73.82% | +86.36% |
+| SmolLM2-360M-Instruct | +55.23% | +71.11% |
+| SmolLM2-1.7B-Instruct | +65.31% | +94.44% |
+| Qwen2.5-0.5B-Instruct | +70.87% | +89.81% |
+| Qwen2.5-1.5B-Instruct | +76.47% | +157.61% |
+| Qwen2.5-3B-Instruct | +73.54% | +87.06% |
 
 ### Reward layered Δ% (正 = vLLM 质量更好)
 
@@ -148,26 +148,26 @@ detached auditor round-14 指出 round-13 重跑拆成 `--backends transformers`
 
 ### 1. vLLM 在所有 10/10 batch 组合上都优于 transformers (manifest 校验后)
 
-**10/10 pairs**: vLLM latency 低 31–56%, throughput 高 46–126%. 没有 batch=1 +92% 异常；那异常来自 round-5 的 30 样本噪声。
+**10/10 pairs**: vLLM latency 低 36–61%, throughput 高 55–158%. 没有 batch=1 +92% 异常；那异常来自 round-5 的 30 样本噪声。
 
 ### 2. vLLM 在 batch=4 时优势更大
 
 | 指标 | b=1 平均 | b=4 平均 |
 |---|---|---|
-| Latency Δ% | -39.40% | -45.68% |
-| Throughput Δ% | +66.66% | +87.40% |
+| Latency Δ% | -40.46% | -49.03% |
+| Throughput Δ% | +68.28% | +100.01% |
 
-b=4 优势比 b=1 高 ~21 个百分点（throughput）。
+b=4 优势比 b=1 高 ~32 个百分点（throughput: +100.01% vs +68.28%）。
 
 ### 3. 绝对最快的组合
 
 | 排名 | 组合 | throughput (samples/s) | latency (ms/sample) |
 |---|---|---|---|
-| 1 | Qwen2.5-0.5B vLLM b=4 | 7.93 | 126.1 |
-| 2 | Qwen2.5-1.5B vLLM b=4 | 7.52 | 132.9 |
-| 3 | SmolLM2-1.7B vLLM b=4 | 5.16 | 193.7 |
-| 4 | Qwen2.5-3B vLLM b=4 | 3.94 | 254.0 |
-| 5 | SmolLM2-360M vLLM b=4 | 3.53 | 283.7 |
+| 1 | Qwen2.5-0.5B vLLM b=4 | 8.18 | 122.3 |
+| 2 | Qwen2.5-1.5B vLLM b=4 | 8.03 | 124.5 |
+| 3 | SmolLM2-1.7B vLLM b=4 | 5.10 | 196.0 |
+| 4 | Qwen2.5-3B vLLM b=4 | 4.06 | 246.1 |
+| 5 | SmolLM2-360M vLLM b=4 | 3.50 | 285.4 |
 
 ### 4. vLLM 与 transformers 在 reward_layered 上几乎相等 (合理结论)
 
@@ -179,7 +179,7 @@ manifest 校验 + batch 重试到位后, 全部 20 个组合 1800 row 全部成�
 
 ## 测试覆盖 (`--selftest`, no GPU)
 
-覆盖 ~30 测试点, ~106 断言 (~5s, 含 round-12 新增 6 个断言: manifest 干净 checkout 复原 + 两后端 revision metadata 对称):
+覆盖 ~32 测试点, ~114 断言 (~5s, 含 round-12 manifest 干净 checkout 复原 + round-13 两后端 revision metadata 对称 + round-14 full-aggregate 完整性 6 个断言):
 
 - Backend tuple 接口 + TransformersBackend / VLLMBackend metadata
 - terminal assistant removal + batched `_strip_terminal_assistant`
