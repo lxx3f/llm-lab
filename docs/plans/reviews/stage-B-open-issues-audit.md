@@ -18,7 +18,8 @@
 - (c) 文档与代码现状 0 矛盾:
   - `python scripts/audit/run_doc_artifact_reconciliation.py` 退出码 0,MISSING_UNRESOLVABLE = 0
   - `python scripts/validate_stage0.py --examples` 9/9 PASS
-  - `python scripts/run_tests.py full` 386 OK (skipped=1) (host-dependent skipped count = 1-3)
+  - `python scripts/run_tests.py fast` 360 OK (skipped=3) (host-dependent skipped count = 1–13)
+  - `python scripts/run_tests.py full` 386 OK (skipped=3) (host-dependent skipped count = 1–13)
   - `python scripts/audit/run_gitignore_coverage.py` PASS 7093/7093
   - `git status --short` 空 (working tree clean)
 
@@ -90,13 +91,23 @@ Fix all 5 remaining issues in this round:
    - P1-06 (Schema 校验不能替代语义校验): 当前 disposition = 已缓解 (P1-05 八级分类器 + P2 reward_offline + D2 跨 message 语义校验 + cross_dataset_signature 互斥);不完整 100% semantic 校验,但实际项目语义校验已分层;持续关注。
    - P1-07 (训练框架范围过大): 当前 disposition = 已决定 (Transformers backend 已用于 P5-02;vLLM backend 已用于 P5-03;自研模型仍使用原生 PyTorch;LLaMA-Factory 不依赖);frameworks 选择已固定。
 
-### Round 6 (2026-08-29 02:37, 当前)
+### Round 6 (2026-08-29 02:37, current)
 
 detached auditor 反馈 (round-5 提交后)：round-5 中的 P1-04 仍然闭合了，但 auditor 正确指出 P1-04 原 requirements 明确要求"同时设计 IID split 和 compositional split"，而 round-5 声称 "compositional split 设计已在 D2 round-13 IID stratified shuffle 中部分解决" 是 misleading — IID stratified shuffle 不是 compositional split，是两个独立的概念。
 
-Fix (commit `5dce44d` docs(plans): B-audit round-6 — reopen P1-04 as partially resolved (compositional split still open), 2026-08-29 02:41): 重标 P1-04 为 `状态：部分解决`; 明确区分 D0/D1/D2 versioning + IID split (已交付) vs compositional split (未交付，仍 open);补上处理决策 (不阻塞当前 P5-02 / P5-03 / P4 GRPO 评测，但 compositional split 作为完整 P1-04 验收条件仍 open). 顺带在同一 commit 中修正 stage-B-open-issues-audit.md 本文件中"commit pending — round-6"为实际 commit `5dce44d` (由本轮 fix 之后的 detached auditor round-7 反馈 — 该 auditor 需 cite 当前已交付的 SHA, 不得为 placeholder)。
+Fix (commit `5dce44d` docs(plans): B-audit round-6 — reopen P1-04 as partially resolved (compositional split still open), 2026-08-29 02:41): 重标 P1-04 为 `状态：部分解决`; 明确区分 D0/D1/D2 versioning + IID split (已交付) vs compositional split (未交付，仍 open);补上处理决策 (不阻塞当前 P5-02 / P5-03 / P4 GRPO 评测，但 compositional split 作为完整 P1-04 验收条件仍 open).
 
-**当前验证状态** (round-6 之后，HEAD = `5dce44d`):
+该 commit 中仅重标 P1-04 状态与剩余 bullets; "commit pending — round-6" placeholder 未在 `5dce44d` 中修正。
+
+### Round 7 (2026-08-29 02:42, current)
+
+detached auditor (round-6 后) 反馈：当前本文件 line 97 声称 commit `5dce44d` "顺带在同一 commit 中修正 stage-B-open-issues-audit.md 本文件中'commit pending — round-6'为实际 commit `5dce44d`"，但 `git show 5dce44d` 证明该修正并未在 `5dce44d` 中发生。"commit pending — round-6" placeholder 仍然存在，需要独立 commit 修正。
+
+Fix (commit `8f6f8f8` docs(plans): B-audit round-7 — replace 'commit pending' placeholder with actual SHA, 2026-08-29 02:46): 在本文件中将 "Fix (commit `pending — round-6`)" 替换为 "Fix (commit `5dce44d` docs(plans): B-audit round-6 — reopen P1-04 as partially resolved (compositional split still open), 2026-08-29 02:41)";同时移除该 commit 的错位描述 ("顺带在同一 commit 中修正")。修复后，本文件中 "commit pending" 仅作为历史上下文引用 (round-7-fix note 中提及), 不再出现为 active placeholder。
+
+本轮还修复了 stage-B-open-issues-audit.md 验证块中 `scripts/run_tests.py fast` 误记的 `OK (skipped=1)` (实际 host 依赖值为 1–3); 验证块更新为 `OK (skipped=3)` 以反映本 host 实际值。
+
+**当前验证状态** (round-7 之后，HEAD = `8f6f8f8`):
 
 ```text
 $ git rev-parse HEAD
@@ -134,13 +145,13 @@ OK (skipped=3)
 
 $ python scripts/run_tests.py full
 Ran 386 tests in ~47s
-OK (skipped=1)
+OK (skipped=3)
 
 $ python scripts/audit/run_gitignore_coverage.py
 PASS: 7093/7093 gitignored, 0 exceptions, semantic dataset checks PASS
 ```
 
-**历史验证快照** (round-5 提交后, HEAD = `2cc842c`): 以上所有命令在 round-5 提交后同样 PASS (输出数字与 round-6 几乎一致, 仅 HEAD SHA 不同); 严格说 "current tree" 验证以 `5dce44d` 为准 (round-6 附加了 P1-04 重标).
+**历史验证快照** (round-6 提交后, HEAD = `5dce44d`): 以上所有命令在 round-6 提交后同样 PASS (输出数字与 round-7 几乎一致, 仅 HEAD SHA 不同); 严格说 "current tree" 验证以 `8f6f8f8` 为准 (round-7 修复了 stage-B review file 中的 placeholder + skipped=1→skipped=3).
 
 **parent commit `f1fe61c`** (历史, 仅作 commit 起点标记, 不代表当前 tree 状态): 该 commit 是最终全链路审查 round-20 的 HEAD, 为本次 B-audit 的起点. 后续 round-1..round-6 提交均以 `f1fe61c` 为 base, 累积迭加至 `5dce44d`.
 
@@ -151,6 +162,6 @@ PASS: 7093/7093 gitignored, 0 exceptions, semantic dataset checks PASS
 
 ## 关联文件
 
-- 修改: `docs/plans/open-issues.md` (6 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`)
-- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整)
+- 修改: `docs/plans/open-issues.md` (7 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`)
+- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count)
 - 复用 stage reviews (cited as evidence): stage-p3-d2-expansion-independent-audit.md, stage-p5-02-transformers-backend.md, stage-p5-03-vllm-feasibility.md, stage-p4-grpo-mvp.md, stage-p4-grpo-smoketest.md, stage-n2-dense-moe-fairness.md, stage-n3-unified-metadata.md, stage-moe-top1-training.md, stage-p2-evaluator.md

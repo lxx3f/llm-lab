@@ -117,7 +117,7 @@ BPE + tokenizer CLI tests: 7 passed
 - training 协议见 `docs/protocols/dense-training.md`；
 - 正式 cache 记录见 `docs/data/owt-sample.md`；
 
-**原问题现状**
+**原问题现状**（2026-08-25 决策 rationale, historical snapshot — N4–N12 已交付后这段为历史 context;P0-01 已于下文"状态更新（2026-08-27）"段重新闭合）
 
 当前 Dense Transformer 已完成 forward、loss、KV Cache、增量解码和 smoke benchmark，但还没有完成原计划中的完整基线：
 
@@ -186,9 +186,9 @@ BPE + tokenizer CLI tests: 7 passed
 
 ---
 
-### P0-02 MoE Top-1 目前是 forward MVP，不是完整训练 MVP
+### P0-02 MoE Top-1 目前是 forward MVP，不是完整训练 MVP（已解决，2026-08-26 N1 + 2026-08-29 B-audit round-5 重标 commit SHA evidence）
 
-**现状**
+**现状**（2026-08-26 决策 rationale, historical snapshot — N1 训练闭环 + N2 公平对比协议 + N3 统一 metadata 均已交付后这段为历史 context;P0-02 已于下文"状态更新（2026-08-26 / 2026-08-29 B-audit round-5）"段重新闭合）
 
 当前 MoE Top-1 已实现 router、Top-1 expert、capacity、dropped token、auxiliary loss、forward/backward 测试和基础 KV Cache，但还没有：
 
@@ -326,9 +326,9 @@ N1 训练闭环已完成大阶段审查，审查结论为通过；正式阶段 c
 
 ---
 
-### P0-04 MoE routing statistics 污染 latency benchmark
+### P0-04 MoE routing statistics 污染 latency benchmark（已解决，2026-08-26 N2 + 2026-08-29 B-audit round-5 重标 commit SHA evidence）
 
-**现状**
+**现状**（2026-08-26 决策 rationale, historical snapshot — N2 routing stats 已交付后这段为历史 context;P0-04 已于下文"决策（2026-08-26 / 2026-08-29 B-audit round-5）"段重新闭合）
 
 当前 MoE forward 中会把 routing 统计同步到 CPU，例如调用 `.item()`、`.cpu().tolist()`。这些操作可能触发 GPU 同步。Dense benchmark 没有等价的统计开销。
 
@@ -719,18 +719,18 @@ Dense 2M/5M/12M 与 MoE 4-expert 自研模型均完成了训练、生成和 P1-0
 
 **状态：已记录，阻塞自研模型直接进入 GRPO；不阻塞公开 instruction-tuned 模型后端评测。**
 
-后续决策：
+后续决策（2026-08-28 SFT 阶段, historical snapshot — P2 evaluator / P3 D2 / P4 GRPO 均已交付后这段为历史 context;P1-10 已记录本阶段诚实负结果）：
 
-- P5 先使用公开 instruction-tuned 模型作为标准起点；
-- 将 Transformers/vLLM 后端与 P1-05 分类器接通后再评估模型能力；
-- GRPO 需等待确定性 evaluator、reward 离线校验和更可靠的数据 split。
+- P5 先使用公开 instruction-tuned 模型作为标准起点（已交付：P5-02 HEAD `63cbd83` + P5-03 HEAD `bb61a3a`）；
+- 将 Transformers/vLLM 后端与 P1-05 分类器接通后再评估模型能力（已交付：P5-02 + P5-03）；
+- GRPO 需等待确定性 evaluator、reward 离线校验和更可靠的数据 split（均已交付：P2 evaluator HEAD `75e2f2f` + D2 IID split HEAD `34ffc84` + P4 GRPO MVP HEAD `1fae6f0`）。
 
 ---
 
 ## P2：范围和文档工程问题
 
 
-### P2-01 计划目录和实际目录不同步
+### P2-01 计划目录和实际目录不同步（部分解决，2026-08-26）
 
 README 中已有 `data-pipeline/`、`evaluation-lab/`、`serving/` 等规划目录，但当前仓库尚未实现这些模块。
 
