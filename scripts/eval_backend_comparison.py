@@ -1220,12 +1220,16 @@ def _run_selftests() -> int:
 
     failures: list[str] = []
 
-    def _expect(name: str, condition: bool, hint: str = "") -> None:
+    def _expect_impl(name: str, condition: bool, hint: str = "") -> None:
         if condition:
             print(f"  [PASS] {name}", flush=True)
         else:
             failures.append(f"{name}: {hint}")
             print(f"  [FAIL] {name}: {hint}", flush=True)
+
+    # Make _expect a module-level name so the negative-test helper can
+    # swap it via globals() without losing the local failures list.
+    globals()["_expect"] = _expect_impl
 
     def _expect_raises(name: str, fn, exc_type: type, hint: str = "") -> None:
         try:
@@ -1638,13 +1642,18 @@ def _run_selftests() -> int:
         cjson_e, _ = write_aggregate_comparison(td_path, [])
         _expect("test_aggregate_empty_json", _json.loads(cjson_e.read_text(encoding="utf-8"))["runs"] == [])
 
-        # Round-15: README/CSV sync guard. The round-15 detached auditor
-        # pointed out the user-facing README tables were stale relative to
-        # the authoritative comparison.csv. This block parses both, builds
-        # a model→{column→value} map from the CSV, then scans the README
-        # for the same numeric values and asserts that every value the
-        # README displays under the four-axis tables and Δ% tables is
-        # present in the CSV (with a small rounding tolerance).
+# Round-16: section-aware, row/column-specific README/CSV binding.
+        # The round-16 detached auditor found that the round-15 guard was
+        # only a global numeric-substring check and did not bind each
+        # README cell to its specific (model, backend, batch) CSV row.
+        # This new implementation:
+        #   1. parses each markdown table under its `### heading` section,
+        #   2. maps row labels to known model short names,
+        #   3. verifies each cell matches the expected value from
+        #      comparison.csv (per-axis) or comparison_delta.csv (per-delta).
+        # Plus it runs NEGATIVE tests that mutate a temp copy of the
+        # README and verifies the guard catches the unsynchronized change.
+
         csv_path = Path("artifacts/p5-04-backend-comparison/full/comparison.csv")
         delta_csv_path = Path("artifacts/p5-04-backend-comparison/full/comparison_delta.csv")
         readme_path = Path("docs/experiments/p5-04-backend-comparison/README.md")
@@ -1652,109 +1661,359 @@ def _run_selftests() -> int:
         _expect("test_readme_csv_sync_delta_exists", delta_csv_path.exists())
         _expect("test_readme_csv_sync_readme_exists", readme_path.exists())
 
-        # Build a value→True index from comparison.csv (rounded to 4 dp).
-        csv_values = set()
+        # Index comparison.csv rows by (model_id, backend, batch_size) for
+        # row/column-specific cell binding.
         csv_rows = list(_csv.DictReader(csv_path.open(encoding="utf-8")))
+        csv_by_key = {}
         for r in csv_rows:
-            csv_values.add(round(float(r["per_sample_latency_ms"]), 1))
-            csv_values.add(round(float(r["throughput_samples_per_s"]), 2))
-            csv_values.add(round(float(r["reward_binary"]), 4))
-            csv_values.add(round(float(r["reward_layered"]), 4))
-
-        # Build a value→True index from comparison_delta.csv (rounded to 2 dp).
-        delta_values = set()
+            key = (r["model"], r["backend"], r["batch_size"])
+            csv_by_key[key] = r
+        # Same for the delta CSV: key by (model_id, batch_size) -> row.
         delta_rows = list(_csv.DictReader(delta_csv_path.open(encoding="utf-8")))
+        delta_by_key = {}
         for r in delta_rows:
-            for k in (
-                "delta_per_sample_latency_ms_pct",
-                "delta_throughput_samples_per_s_pct",
-                "delta_reward_binary_pct",
-                "delta_reward_layered_pct",
-                "delta_parse_success_rate_pct",
-            ):
-                v = r.get(k)
-                if v:
-                    delta_values.add(round(float(v), 2))
+            mb = r["model_batch"]
+            assert mb.endswith("__b1") or mb.endswith("__b4"), mb
+            model_id, batch_token = mb.rsplit("__", 1)
+            batch_size = batch_token.lstrip("b")
+            delta_by_key[(model_id, batch_size)] = r
 
-        # Parse every numeric token in the README.
-        readme_text = readme_path.read_text(encoding="utf-8")
-        import re as _re
-        # Tokens: signed decimals with 1+ digits, optional dot+digits.
-        tokens = _re.findall(r"-?\d+\.\d+", readme_text)
-        # Classify each token: is it a comparison.csv value, a delta value,
-        # or "other" (e.g. 90, 64, 0.0000 reward_binary zeros, 114 PASS count)?
-        matched_csv = 0
-        matched_delta = 0
-        other = 0
-        other_examples = []
-        for tok in tokens:
-            f = float(tok)
-            if round(f, 1) in csv_values or round(f, 2) in csv_values:
-                matched_csv += 1
-            elif round(f, 2) in delta_values:
-                matched_delta += 1
-            else:
-                other += 1
-                if len(other_examples) < 5:
-                    other_examples.append(tok)
-        # Sanity: README contains many comparison.csv and delta values
-        # (otherwise it is empty of real measurements).
-        _expect(
-            "test_readme_csv_sync_csv_values_match",
-            matched_csv >= 20,
-            hint=f"matched_csv={matched_csv}",
-        )
-        _expect(
-            "test_readme_csv_sync_delta_values_match",
-            matched_delta >= 10,
-            hint=f"matched_delta={matched_delta}",
-        )
+        MODEL_SHORT_TO_ID = {
+            "SmolLM2-360M-Instruct": "HuggingFaceTB/SmolLM2-360M-Instruct",
+            "SmolLM2-1.7B-Instruct": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+            "Qwen2.5-0.5B-Instruct": "Qwen/Qwen2.5-0.5B-Instruct",
+            "Qwen2.5-1.5B-Instruct": "Qwen/Qwen2.5-1.5B-Instruct",
+            "Qwen2.5-3B-Instruct": "Qwen/Qwen2.5-3B-Instruct",
+        }
 
-        # Spot-check: every cell value we just regenerated for the
-        # latency / throughput tables must appear in the README.
-        for model_short, model_id in [
-            ("SmolLM2-360M-Instruct", "HuggingFaceTB/SmolLM2-360M-Instruct"),
-            ("SmolLM2-1.7B-Instruct", "HuggingFaceTB/SmolLM2-1.7B-Instruct"),
-            ("Qwen2.5-0.5B-Instruct", "Qwen/Qwen2.5-0.5B-Instruct"),
-            ("Qwen2.5-1.5B-Instruct", "Qwen/Qwen2.5-1.5B-Instruct"),
-            ("Qwen2.5-3B-Instruct", "Qwen/Qwen2.5-3B-Instruct"),
-        ]:
+        # Markdown section/table parser.
+        def _parse_readme_tables(readme_text):
+            sections = []
+            current_heading = None
+            current_table_lines = []
+            for raw_line in readme_text.splitlines():
+                if raw_line.startswith("###"):
+                    if current_table_lines:
+                        sections.append((current_heading, current_table_lines))
+                        current_table_lines = []
+                    current_heading = raw_line.lstrip("#").strip()
+                    continue
+                if raw_line.startswith("|"):
+                    current_table_lines.append(raw_line)
+                else:
+                    if current_table_lines:
+                        sections.append((current_heading, current_table_lines))
+                        current_table_lines = []
+            if current_table_lines:
+                sections.append((current_heading, current_table_lines))
+            parsed = []
+            for heading, lines in sections:
+                if len(lines) < 3:
+                    continue
+                header = [c.strip() for c in lines[0].strip("|").split("|")]
+                sep = [c.strip() for c in lines[1].strip("|").split("|")]
+                if not all(set(c) <= set("-:") and c for c in sep):
+                    continue
+                rows = []
+                for line in lines[2:]:
+                    cells = [c.strip() for c in line.strip("|").split("|")]
+                    if len(cells) != len(header):
+                        continue
+                    rows.append(cells)
+                parsed.append((heading, header, rows))
+            return parsed
+
+        def _format_cell(value, decimals, signed=False):
+            if signed:
+                return f"{value:+.{decimals}f}"
+            return f"{value:.{decimals}f}"
+
+        def _bind_axis_table(heading_substring, csv_field, decimals,
+                              parse_header_cell, transform):
+            tables = _parse_readme_tables(readme_path.read_text(encoding="utf-8"))
+            target_tables = [
+                t for t in tables
+                if t[0] is not None and heading_substring.lower() in t[0].lower()
+            ]
+            _expect(
+                f"test_readme_section_exists_{heading_substring.replace(' ', '_')[:20]}",
+                len(target_tables) >= 1,
+                hint=f"no section with heading containing {heading_substring!r}",
+            )
+            for heading, header, rows in target_tables:
+                col_specs = [parse_header_cell(h) for h in header]
+                for row in rows:
+                    label = row[0]
+                    if label not in MODEL_SHORT_TO_ID:
+                        continue
+                    model_id = MODEL_SHORT_TO_ID[label]
+                    for col_idx, spec in enumerate(col_specs):
+                        if spec[0] != "axis":
+                            continue
+                        backend, batch_size = spec[1], spec[2]
+                        cell_raw = row[col_idx]
+                        expected_raw = csv_by_key[
+                            (model_id, backend, batch_size)
+                        ][csv_field]
+                        expected_value = transform(float(expected_raw))
+                        expected_str = _format_cell(expected_value, decimals)
+                        cell_normalized = cell_raw.rstrip("%").strip()
+                        test_name = (
+                            f"test_readme_bind_{heading_substring.replace(' ', '_')[:20]}"
+                            f"_{label}_{backend}_b{batch_size}"
+                        )
+                        _expect(
+                            test_name,
+                            cell_normalized == expected_str,
+                            hint=(
+                                f"heading={heading!r} cell={cell_raw!r} "
+                                f"expected={expected_str!r} "
+                                f"(csv_field={csv_field} value={expected_raw})"
+                            ),
+                        )
+
+        def _parse_lat_or_thr(h):
+            if h in ("模型", "model"):
+                return ("label",)
             for backend in ("transformers", "vllm"):
                 for batch in ("1", "4"):
-                    row = next(
-                        r for r in csv_rows
-                        if r["model"] == model_id
-                        and r["backend"] == backend
-                        and r["batch_size"] == batch
+                    if h == f"{backend} b={batch}":
+                        return ("axis", backend, batch)
+            return ("label",)
+
+        _bind_axis_table(
+            "Latency (ms",
+            "per_sample_latency_ms",
+            1,
+            _parse_lat_or_thr,
+            lambda x: x,
+        )
+        _bind_axis_table(
+            "Throughput (samples",
+            "throughput_samples_per_s",
+            2,
+            _parse_lat_or_thr,
+            lambda x: x,
+        )
+        _bind_axis_table(
+            "reward_binary",
+            "reward_binary",
+            4,
+            _parse_lat_or_thr,
+            lambda x: x,
+        )
+        _bind_axis_table(
+            "reward_layered",
+            "reward_layered",
+            4,
+            _parse_lat_or_thr,
+            lambda x: x,
+        )
+
+        def _bind_delta_table(heading_substring, csv_field):
+            tables = _parse_readme_tables(readme_path.read_text(encoding="utf-8"))
+            target_tables = [
+                t for t in tables
+                if t[0] is not None and heading_substring.lower() in t[0].lower()
+            ]
+            _expect(
+                f"test_readme_section_exists_delta_{heading_substring.replace(' ', '_')[:20]}",
+                len(target_tables) >= 1,
+                hint=f"no section with heading containing {heading_substring!r}",
+            )
+            for heading, header, rows in target_tables:
+                col_batch = {}
+                for col_idx, h in enumerate(header):
+                    if h in ("模型", "model"):
+                        continue
+                    if h in ("b=1", "b=2", "b=4"):
+                        col_batch[col_idx] = h.split("=")[1]
+                for row in rows:
+                    label = row[0]
+                    if label not in MODEL_SHORT_TO_ID:
+                        continue
+                    model_id = MODEL_SHORT_TO_ID[label]
+                    for col_idx, batch_size in col_batch.items():
+                        cell_raw = row[col_idx]
+                        key = (model_id, batch_size)
+                        if key not in delta_by_key:
+                            continue
+                        expected_raw = delta_by_key[key][csv_field]
+                        expected_str = _format_cell(
+                            float(expected_raw), 2, signed=True
+                        )
+                        cell_normalized = cell_raw.rstrip("%").strip()
+                        test_name = (
+                            f"test_readme_bind_delta_{heading_substring.replace(' ', '_')[:20]}"
+                            f"_{label}_b{batch_size}"
+                        )
+                        cell_unsigned = expected_str.lstrip("+")
+                        _expect(
+                            test_name,
+                            cell_normalized in (expected_str, cell_unsigned),
+                            hint=(
+                                f"heading={heading!r} cell={cell_raw!r} "
+                                f"expected={expected_str!r} (csv_field={csv_field})"
+                            ),
+                        )
+
+        _bind_delta_table("Latency \u0394%", "delta_per_sample_latency_ms_pct")
+        _bind_delta_table("Throughput \u0394%", "delta_throughput_samples_per_s_pct")
+        _bind_delta_table("Reward layered \u0394%", "delta_reward_layered_pct")
+
+        # Top-5 fastest table: bind by (model, vllm, b=4).
+        tables = _parse_readme_tables(readme_path.read_text(encoding="utf-8"))
+        top5_tables = [t for t in tables if t[0] is not None and "\u6700\u5feb" in t[0]]
+        _expect("test_readme_section_exists_top5", len(top5_tables) >= 1)
+        if top5_tables:
+            for heading, header, rows in top5_tables:
+                thr_col = None
+                lat_col = None
+                for col_idx, h in enumerate(header):
+                    if "throughput" in h.lower() or "samples/s" in h.lower():
+                        thr_col = col_idx
+                    if "latency" in h.lower() or "ms/sample" in h.lower():
+                        lat_col = col_idx
+                _expect("test_readme_top5_has_throughput_col", thr_col is not None)
+                _expect("test_readme_top5_has_latency_col", lat_col is not None)
+                for row in rows:
+                    label = row[0]
+                    short_name = label.split(" vLLM")[0].strip()
+                    if short_name not in MODEL_SHORT_TO_ID:
+                        continue
+                    model_id = MODEL_SHORT_TO_ID[short_name]
+                    csv_row = csv_by_key[(model_id, "vllm", "4")]
+                    expected_thr = _format_cell(
+                        float(csv_row["throughput_samples_per_s"]), 2
                     )
-                    lat_str = f"{float(row['per_sample_latency_ms']):.1f}"
-                    _expect(
-                        f"test_readme_lat_{model_short}_{backend}_b{batch}",
-                        lat_str in readme_text,
-                        hint=f"{lat_str} missing",
+                    expected_lat = _format_cell(
+                        float(csv_row["per_sample_latency_ms"]), 1
                     )
-                    thr_str = f"{float(row['throughput_samples_per_s']):.2f}"
                     _expect(
-                        f"test_readme_thr_{model_short}_{backend}_b{batch}",
-                        thr_str in readme_text,
-                        hint=f"{thr_str} missing",
+                        f"test_readme_top5_thr_{short_name}",
+                        row[thr_col].strip() == expected_thr,
+                        hint=(
+                            f"label={label!r} cell={row[thr_col]!r} "
+                            f"expected={expected_thr!r}"
+                        ),
+                    )
+                    _expect(
+                        f"test_readme_top5_lat_{short_name}",
+                        row[lat_col].strip() == expected_lat,
+                        hint=(
+                            f"label={label!r} cell={row[lat_col]!r} "
+                            f"expected={expected_lat!r}"
+                        ),
                     )
 
-        # Spot-check: every delta value must appear in the README.
-        for r in delta_rows:
-            for k, fmt, test_prefix in [
-                ("delta_per_sample_latency_ms_pct", "{:+.2f}%", "test_readme_lat_d"),
-                ("delta_throughput_samples_per_s_pct", "{:+.2f}%", "test_readme_thr_d"),
-            ]:
-                v = r.get(k)
-                if not v:
-                    continue
-                expected = fmt.format(float(v))
-                _expect(
-                    f"{test_prefix}_{r['model_batch']}",
-                    expected in readme_text,
-                    hint=f"{expected} missing",
+        # NEGATIVE TESTS — prove unsynchronized mutations fail.
+        def _run_bindings_on_text(mutated_text):
+            captured = []
+            def _capture(name, cond, hint=""):
+                if not cond:
+                    captured.append((name, hint))
+            import builtins as _bi
+            original_print = _bi.print
+            _bi.print = lambda *a, **kw: None
+            # The binding helpers read `readme_path.read_text(encoding="utf-8")`
+            # internally; monkey-patch the class method so the call resolves
+            # to our mutated version.
+            orig_read = type(readme_path).read_text
+            def fake_read(self, encoding="utf-8"):
+                return mutated_text
+            type(readme_path).read_text = fake_read
+            orig_expect = globals().get("_expect")
+            globals()["_expect"] = _capture
+            try:
+                _bind_axis_table(
+                    "Latency (ms",
+                    "per_sample_latency_ms",
+                    1,
+                    _parse_lat_or_thr,
+                    lambda x: x,
                 )
+                _bind_axis_table(
+                    "Throughput (samples",
+                    "throughput_samples_per_s",
+                    2,
+                    _parse_lat_or_thr,
+                    lambda x: x,
+                )
+                _bind_axis_table(
+                    "reward_binary",
+                    "reward_binary",
+                    4,
+                    _parse_lat_or_thr,
+                    lambda x: x,
+                )
+                _bind_axis_table(
+                    "reward_layered",
+                    "reward_layered",
+                    4,
+                    _parse_lat_or_thr,
+                    lambda x: x,
+                )
+                _bind_delta_table("Latency \u0394%", "delta_per_sample_latency_ms_pct")
+                _bind_delta_table("Throughput \u0394%", "delta_throughput_samples_per_s_pct")
+                _bind_delta_table("Reward layered \u0394%", "delta_reward_layered_pct")
+            finally:
+                type(readme_path).read_text = orig_read
+                globals()["_expect"] = orig_expect
+                _bi.print = original_print
+            return captured
+
+        original_readme = readme_path.read_text(encoding="utf-8")
+        # Mutation 1: SmolLM2-360M transformers b=1 latency.
+        mutated_1 = original_readme.replace(
+            "| SmolLM2-360M-Instruct | 1555.3 | 488.4 | 1001.9 | 285.4 |",
+            "| SmolLM2-360M-Instruct | 9999.9 | 488.4 | 1001.9 | 285.4 |",
+        )
+        assert mutated_1 != original_readme
+        failures_1 = _run_bindings_on_text(mutated_1)
+        _expect(
+            "test_readme_negative_latency_mutation_caught",
+            any("SmolLM2-360M-Instruct_transformers_b1" in n for n, _ in failures_1),
+            hint=f"failures={[n for n,_ in failures_1 if 'SmolLM2' in n]}",
+        )
+
+        # Mutation 2: SmolLM2-1.7B vLLM b=4 throughput.
+        mutated_2 = original_readme.replace(
+            "| SmolLM2-1.7B-Instruct | 1119.7 | 381.1 | 677.3 | 196.0 |",
+            "| SmolLM2-1.7B-Instruct | 1119.7 | 381.1 | 677.3 | 999.99 |",
+        )
+        assert mutated_2 != original_readme
+        failures_2 = _run_bindings_on_text(mutated_2)
+        _expect(
+            "test_readme_negative_throughput_mutation_caught",
+            any("SmolLM2-1.7B-Instruct_vllm_b4" in n for n, _ in failures_2),
+            hint=f"failures={[n for n,_ in failures_2 if 'SmolLM2-1.7B' in n]}",
+        )
+
+        # Mutation 3: Qwen2.5-0.5B vLLM b=1 reward_layered.
+        mutated_3 = original_readme.replace(
+            "| Qwen2.5-0.5B-Instruct | 0.3676 | 0.3662 | 0.3601 | 0.3601 |",
+            "| Qwen2.5-0.5B-Instruct | 0.3676 | 0.3662 | 0.5000 | 0.3601 |",
+        )
+        assert mutated_3 != original_readme
+        failures_3 = _run_bindings_on_text(mutated_3)
+        _expect(
+            "test_readme_negative_reward_layered_mutation_caught",
+            any("Qwen2.5-0.5B-Instruct_vllm_b1" in n for n, _ in failures_3),
+            hint=f"failures={[n for n,_ in failures_3 if 'Qwen2.5-0.5B' in n]}",
+        )
+
+        # Mutation 4: Qwen2.5-0.5B latency delta b=1.
+        mutated_4 = original_readme.replace(
+            "| Qwen2.5-0.5B-Instruct | -41.48% | -47.32% |",
+            "| Qwen2.5-0.5B-Instruct | -99.99% | -47.32% |",
+        )
+        assert mutated_4 != original_readme
+        failures_4 = _run_bindings_on_text(mutated_4)
+        _expect(
+            "test_readme_negative_delta_mutation_caught",
+            any("Qwen2.5-0.5B-Instruct_b1" in n for n, _ in failures_4),
+            hint=f"failures={[n for n,_ in failures_4 if 'Qwen2.5-0.5B' in n]}",
+        )
 
     print("[selftest] CLI", flush=True)
     # argparse defaults

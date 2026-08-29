@@ -42,7 +42,7 @@ class Backend(Protocol):
     def metadata(self) -> dict[str, Any]: ...
 ```
 
-两个真实实现：`TransformersBackend`（封装 `eval_transformers._greedy_generate` 等价逻辑 + left-padding 适配 batched generation）与 `VLLMBackend`（封装 vLLM `LLM.generate` + 同一 chat template 渲染 + P5-03 WSL2 workarounds）；测试通过脚本嵌入的 `--selftest` 子命令（24 测试点，95 断言）验证。
+两个真实实现：`TransformersBackend`（封装 `eval_transformers._greedy_generate` 等价逻辑 + left-padding 适配 batched generation）与 `VLLMBackend`（封装 vLLM `LLM.generate` + 同一 chat template 渲染 + P5-03 WSL2 workarounds）；测试通过脚本嵌入的 `--selftest` 子命令（~36 测试点，~178 断言：round-12 manifest 干净 checkout 复原 + round-13 两后端 revision metadata 对称 + round-14 full-aggregate 完整性 6 个 + round-15 README/CSV 同步 65 个）验证。
 
 ## 3. CLI 接口
 
