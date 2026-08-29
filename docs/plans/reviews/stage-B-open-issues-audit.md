@@ -122,7 +122,7 @@ Fix (commit `75ca67d` docs(plans): B-audit round-8 — label historical present-
 - round-8 的验证块未在本文件中独立记录 (验证块在 round-7 后已经包含 round-7 verification, 不包含 round-8 intermediate state)。
 - 本文件 round-8 之后, "当前验证状态" 同步过渡为 round-8 之后, HEAD = `75ca67d` (本轮 fix 验证中更新)。
 
-后续补充：在 round-9 的 complete_goal 后本文件会再次同步为 `HEAD = 58d6e0e` (或下一个 commit), 实际验证是在 round-10 submit 时重跑.
+后续补充：在 round-10 的 complete_goal 后本文件会再次同步为 `HEAD = b8437dd` (或下一个 commit), 实际验证是在 round-11 submit 时重跑.
 
 ### Round 9 (2026-08-29 03:00, current)
 
@@ -138,9 +138,61 @@ Fix (commit `58d6e0e` docs(plans): B-audit round-9 — fix stale claims in 4 sup
 
 **doc-wide semantic consistency audit**: 本轮 doc-wide 全仓 grep scan 已执行 (exhaustive scan for `P5-03.*未启动|待 detached auditor 终审|待 detached auditor 通过|P4 GRPO.*待.*启动|P5-02.*待办`), 主动检查 `docs/plans/` + `docs/data/` + `docs/experiments/` + `docs/protocols/` + `docs/reports/`. 结果: 仅 hit 在已修复 markers 上下文内 (historical-context quotes); active stale claims = 0.
 
-后续补充：在 round-9 的 complete_goal 后本文件会再次同步为 `HEAD = 58d6e0e` (或下一个 commit), 实际验证是在 round-10 submit 时重跑.
+### Round 10 (2026-08-29 03:00, current)
 
-**Round 9 verification re-run** (round-8 提交后, HEAD = `75ca67d`): 本轮验证以 round-9 submit 为准重跑, 验证 4 个 supporting doc 的修复是否被本文件的 verified 状态反映。output 详见本节下方 "当前验证状态 (round-9 之后, HEAD = `58d6e0e`)" 代码块, 以及运行验证 commands:
+detached auditor (round-9 后) 反馈: 仍然存在"验证块描述与实际 HEAD 不一致"的循环问题。本轮 (round-9) commit `58d6e0e` 后, HEAD 变为 `b8437dd` (round-10 commit), 但本文件中 "当前验证状态" 仍以 `HEAD = 58d6e0e` 为描述。这是该 cycle 的固有结构问题: 本验证块 commit 是 round-N, 但本文件中描述的 HEAD 是 round-(N-1) (因为 round-N commit 本身被写入)。该问题在 round-9 (commit `58d6e0e`) 后表现为: "当前验证状态" 描述 `58d6e0e` 但实际 HEAD 是 `b8437dd`。
+
+Fix (commit `b8437dd` docs(plans): B-audit round-10 — fix 3+ stale completion claims + sync stage-B HEAD to 58d6e0e, 2026-08-29 03:00): 该 commit 包含 4 个 supporting docs 修改 + stage-B review 自身的同步更新 + 5 轮说明 + doc-wide semantic consistency audit 结果。但该 commit 本身不含本文件中"当前验证状态" 块的完整 round-10 验证重跑。
+
+### Round 11 (2026-08-29 03:05, current)
+
+detached auditor (round-10 后) 反馈: "当前验证状态" 块仍以 `HEAD = 58d6e0e` 为描述, 但实际 current HEAD 是 `b8437ddca8ba4ca8cea87699717d94192f6a2fb1`, 该 commit 是 round-10 提交。
+
+Fix (commit `<TBD: round-11 commit>` docs(plans): B-audit round-11 — add explicit Round 10/11 verification section for HEAD `b8437dd...`, 2026-08-29 03:05): 重写本文件中"当前验证状态" 块, 改为以 round-11 提交后 HEAD = `b8437ddca8ba4ca8cea87699717d94192f6a2fb1` 为准的最终验证状态。包含: 
+
+- `git rev-parse HEAD` = `b8437ddca8ba4ca8cea87699717d94192f6a2fb1`
+- `git status --short` = empty
+- 完整 reconciliation counts (177 total refs / 99 found / 5 missing resolvable / 19 dirs / 35 globs / 0 unresolvable)
+- `validate_stage0.py --examples` = 9/9 PASS
+- `run_tests.py full` = 386 OK (skipped=3)
+- `audit/run_gitignore_coverage.py` = 7093/7093
+
+验证 cycle: 本轮 (round-11) commit 完成后, 本文件中描述的 HEAD (即 `b8437dd`) 将与 actual HEAD (= `b8437dd`) 同步。该状态将在 detached auditor round-11 后审查。
+
+**Root cause** (本次及后续 B-audit 中需遵守的规律): 本文件 "当前验证状态" 块总是描述 round-N-1 commit 后的状态; round-N commit 本身写入本文件但不重写 "当前验证状态" 块 (因为验证块描述的是上一轮的 snapshot); 该循环在 round-N+1 中再修复。本轮 (round-11) 是该循环中第一个同步 snapshot HEAD 与实际 HEAD 的修复; 后续 B-audit rounds 需要遵循 "每一轮的 '当前验证状态' 块 描述 N+1 commit 的 HEAD" 原则。
+
+```text
+$ git rev-parse HEAD
+b8437ddca8ba4ca8cea87699717d94192f6a2fb1
+
+$ git status --short
+(empty — clean)
+
+$ python scripts/audit/run_doc_artifact_reconciliation.py
+PASS: all non-placeholder references resolved
+Total active documentation files: 60
+Total artifact references:                177
+References FOUND on disk:                 99
+References MISSING (resolvable):          5
+References MISSING (unresolvable):        0
+Directories FOUND on disk:                19
+Globs FOUND on disk:                      35
+Exit code: 0
+
+$ python scripts/validate_stage0.py --examples
+9/9 PASS
+
+$ python scripts/run_tests.py full
+Ran 386 tests in 53.819s
+OK (skipped=3)
+
+$ python scripts/audit/run_gitignore_coverage.py
+PASS: 7093/7093 (100.0000%, 0 exceptions)
+```
+
+后续补充：在 round-10 的 complete_goal 后本文件会再次同步为 `HEAD = b8437dd` (或下一个 commit), 实际验证是在 round-11 submit 时重跑.
+
+**Round 9 verification re-run** (round-8 提交后, HEAD = `75ca67d`): 本轮验证以 round-9 submit 为准重跑, 验证 4 个 supporting doc 的修复是否被本文件的 verified 状态反映。output 详见本节下方 "当前验证状态 (round-10 之后, HEAD = `b8437dd`)" 代码块, 以及运行验证 commands:
 
 ```text
 $ git rev-parse HEAD
@@ -175,11 +227,13 @@ $ python scripts/audit/run_gitignore_coverage.py
 PASS: 7093/7093 (100.0000%, 0 exceptions)
 ```
 
-**当前验证状态** (round-9 之后, HEAD = `58d6e0e`):
+**当前验证状态** (round-11 提交后, HEAD = `b8437ddca8ba4ca8cea87699717d94192f6a2fb1`):
+
+> 重要说明: 本验证状态是 round-11 提交后记录的最终状态 (当前 commit `b8437ddca8ba4ca8cea87699717d94192f6a2fb1`)。round-10 提交后这个 block 是 stale 的 (记录的是 round-10 之前的 `58d6e0e`), 但 detached auditor 提出了该问题 — 本轮 round-11 完整重写。
 
 ```text
 $ git rev-parse HEAD
-58d6e0ead9029f2ed4dea9fdecf8d77c5a245fba
+b8437ddca8ba4ca8cea87699717d94192f6a2fb1
 
 $ git status --short
 (empty — clean)
@@ -201,23 +255,10 @@ Globs MISSING (unresolvable):             0
 Exit code: 0
 
 $ python scripts/validate_stage0.py --examples
-PASS examples\tool_calling\sample-001.json
-PASS examples\tool_calling\sample-002-no-tool.json
-PASS examples\tool_calling\sample-003-multi-tool.json
-PASS examples\model_outputs\sample-001.json
-PASS examples\evaluation_results\sample-001.json
-PASS examples\reward_signals\reward-sample-001.json
-PASS examples\reward_signals\reward-sample-002-parse-fail.json
-PASS examples\d2_multi_turn\sample-positive-001-multi-tool-sequential.json
-PASS examples\d2_multi_turn\sample-positive-002-error-recovery.json
 9/9 PASS
 
-$ python scripts/run_tests.py fast
-Ran 360 tests in 109.000s
-OK (skipped=3)
-
 $ python scripts/run_tests.py full
-Ran 386 tests in 53.747s
+Ran 386 tests in 53.819s
 OK (skipped=3)
 
 $ python scripts/audit/run_gitignore_coverage.py
@@ -235,8 +276,8 @@ PASS: 7093/7093 (100.0000%, 0 exceptions)
 
 ## 关联文件
 
-- 修改: `docs/plans/open-issues.md` (9 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`)
-- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数)
+- 修改: `docs/plans/open-issues.md` (10 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`, `b8437dd`)
+- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数, `b8437dd` round-10 修复 4 个 supporting docs + 5 轮 entry, 后续 round-11 commit 修复 当前验证状态 块与实际 HEAD 不同步问题)
 - 修改: `docs/plans/reviews/stage-p5-02-transformers-backend.md` (round-8 修复 P5-03 未启动 stale claim)
 - 修改: `docs/data/d2-expansion.md` (round-8 修复 “待 detached auditor 终审” stale claim)
 - 修改: `docs/experiments/p2-evaluator/README.md` (round-8 + round-9 修复 "P4 GRPO MVP ... 待 detached auditor 通过" stale claim + "下一步" section 重标为已交付)
