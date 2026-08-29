@@ -160,7 +160,7 @@ manifest 校验 + batch 重试到位后, 全部 20 个组合 1800 row 全部成�
 
 ## 测试覆盖 (`--selftest`, no GPU)
 
-覆盖 28 测试点, ~96 断言 (~3.5s):
+覆盖 ~30 测试点, ~106 断言 (~5s, 含 round-12 新增 6 个断言: manifest 干净 checkout 复原 + 两后端 revision metadata 对称):
 
 - Backend tuple 接口 + TransformersBackend / VLLMBackend metadata
 - terminal assistant removal + batched `_strip_terminal_assistant`
@@ -174,7 +174,7 @@ manifest 校验 + batch 重试到位后, 全部 20 个组合 1800 row 全部成�
 
 ```text
 $ python scripts/eval_backend_comparison.py --selftest
-... 96 [PASS] lines ...
+... 106 [PASS] lines ...
 [selftest] all tests PASSED
 ```
 

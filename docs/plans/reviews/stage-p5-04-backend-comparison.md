@@ -219,3 +219,46 @@ python scripts/run_tests.py full
 ## 9. Final disposition
 
 P5-04 的代码入口、双 backend 实现、20 个真实组合、P5-02 精确历史 benchmark subset (manifest + SHA 校验)、4 轴指标、同模型 Δ%、reader-facing README、protocol 与 stage-review record 均已 root-cause 修复并交付。更大数据集、服务化、多 GPU、自研模型 vLLM 适配属于后续阶段，不阻塞本目标。
+
+## 10. Round-12 复现耐久性加固 (2026-08-29)
+
+detached auditor round-12 针对三件事提出修复要求。本节记录针对每一条要求做出的 durable 修复与 git 证据：
+
+### 10.1 干净 checkout 复原 90 个 gitignored 样本
+
+- **症状**: 样本文件位于 `datasets/tool-calling-d2/p5-02-benchmark/` (被 `.gitignore:81 datasets/` 覆盖)，manifest 是装饰；干净 checkout 后 `_load_samples_from_manifest()` 会直接 `abs_path.read_bytes()` 失败。
+- **修复**: 新增 `_materialize_manifest_samples()` (脚本 L146-194) — 在加载任何 manifest entry 之前，先扫描所有 entry 的 `path` 是否存在；缺失样本用 `git -C <repo> show b4fd879:datasets/tool-calling-d2/dev/<id>.json` 提取，提取后调用方会立刻 SHA256 校验，不匹配 raise `ValueError`。已写入并提取 CRLF 规范化以匹配 `_sha256_file` 历史口径。
+- **selftest**: `test_materialize_creates_all_files` 与 `test_materialize_aggregate_sha_matches` 在临时目录验证：样例从空目录复原到与 manifest 完全一致 + aggregate SHA = `d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282` 与历史 `b4fd879:MANIFEST-dev.json` count=90 一致。
+- **干净 checkout 实测**: `rm -rf datasets/tool-calling-d2/p5-02-benchmark && python scripts/eval_backend_comparison.py --samples-manifest docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json …` (limit=3, transformers, SmolLM2-360M pinned revision) 跑通并报告 `aggregate_sha256=d44fa149af7d1b22…`。Manifest 中 d2-dev-0001/0002/0003 的 SHA 与磁盘上复原文件 SHA 完全一致。
+
+### 10.2 Tracked immutable archive 交付 20 个实证产物
+
+- **症状**: `artifacts/**/*.json` 被 `.gitignore:89` 覆盖，20 个 run_*.json + comparison.csv/json + comparison_delta.csv/json 是 gitignored local-only；detached auditor 只有 README 表格与散落本地文件作为证据。
+- **修复**: 把 24 个文件打包到 `docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz` (tracked, 137,321 bytes)，并附 `p5-04-runs.archive-manifest.json` (tracked) 记录每个 entry 的 `path` / `bytes` / `sha256` + archive 自身 SHA256 (`d2c85e48e424448aa41f0aee1fe4315dcc2cda9e5c72b65be2ce790c0ef5e3b8`) + aggregate SHA (`5cafad3e00d867a5997d7786e0ba8dd3db8994c834b021899acf81a36fbcfb78`)。
+- **复现验证脚本**: 协议 §9.1 提供 5 行 Python 脚本，detached auditor / 第三方可在干净 checkout 中独立运行：实测 `archive_sha_match=True` + 24/24 entries sha_match=True。
+
+### 10.3 两后端 immutable revision 对称
+
+- **症状**: `TransformersBackend.setup()` 在 round-7 之前没有读取 `kwargs["revision"]`；`AutoTokenizer.from_pretrained()` 与 `AutoModelForCausalLM.from_pretrained()` 都没传入 revision 参数。`VLLMBackend.setup()` 传了 revision。同一份 DEFAULT_MODELS revision 在 vLLM 侧被尊重、在 Transformers 侧可能漂移到 main/HEAD。
+- **修复**: `TransformersBackend.setup()` 读取 `kwargs.get("revision", "main")` 并同时传入两个 `from_pretrained` 调用；`self.revision` 写入 `backend_metadata`；`VLLMBackend.setup()` 同步设 `self.revision`。`run_one_combination()` 通过 `backend.setup(model_id, revision=revision)` 对两端使用同一 canonical revision。
+- **selftest**: `test_transformers_records_revision` / `test_transformers_metadata_has_revision` / `test_vllm_records_revision` / `test_vllm_metadata_has_revision` 全部 PASS。
+
+### 10.4 协议与 README 同步
+
+- `docs/experiments/p5-04-backend-comparison/README.md` 新增 “Round-12 复现耐久性加固” 段，列出上述四点修复；
+- `docs/protocols/backend-comparison.md` §3.1 同步说明干净 checkout 复原能力；新增 §6.2 “两后端 immutable revision 对称”；§9.1 新增 “干净 checkout 复原 + tracked archive 验证” 可独立复现命令。
+
+### 10.5 Stage review verification block
+
+```text
+P5-04 final objective (90-sample interpretation; list item D):
+- abstract HEAD pointer: HEAD is on a commit that contains all of:
+    - scripts/eval_backend_comparison.py  (with _materialize_manifest_samples + revision symmetry + tracked archive delivery)
+    - docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json  (tracked, 90 entries, source_commit=b4fd879, aggregate_sha256=d44fa149af7d1b229305016711d148642fa1f4bf86f5dae3aab4fd0846b07282)
+    - docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz  (tracked, 137,321 bytes, archive_sha256=d2c85e48e424448aa41f0aee1fe4315dcc2cda9e5c72b65be2ce790c0ef5e3b8)
+    - docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.archive-manifest.json  (tracked, 24 entries + aggregate_sha256)
+    - docs/experiments/p5-04-backend-comparison/README.md  (round-12 加固段)
+    - docs/protocols/backend-comparison.md  (§3.1 / §6.2 / §9.1 加固)
+    - docs/plans/reviews/stage-p5-04-backend-comparison.md  (本节)
+- detached auditor must resolve the abstract HEAD pointer to a concrete SHA after each round, then re-verify against the above.
+```

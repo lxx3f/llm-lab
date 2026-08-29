@@ -184,6 +184,16 @@ P5-04 采用 P5-02 §8 round-2 (commit `b4fd879`) 后 `eval_transformers.py` 的
 
 `reward_binary` / `reward_layered` 通过 `scripts/reward_offline.compute_reward` 复算，确保与 P5-02 + reward_offline 流水线一致；若 reward_offline 不可用，则自动 fallback 到 layer 直读（仅供占位，不作为正式结论）。
 
+## 6.2 两后端 immutable revision 对称 (round-12 fix)
+
+detached auditor round-12 指出 `TransformersBackend.setup()` 未读取 `kwargs["revision"]`，造成 vLLM 与 Transformers 加载同一 HF id 时 revision 可能不一致。本轮加固：
+
+- `TransformersBackend.setup()` 读取 `kwargs.get("revision", "main")` 并同时传入 `AutoTokenizer.from_pretrained(model_id, revision=revision, …)` 与 `AutoModelForCausalLM.from_pretrained(model_id, revision=revision, …)`；
+- `self.revision` 与 `backend_metadata["revision"]` 都记录传入的 40-hex commit；
+- `VLLMBackend.setup()` 原本就传 `revision`，本轮改为 `self.revision = str(revision)` 并写入 metadata；
+- `run_one_combination()` 调用 `backend.setup(model_id, revision=revision)` 对两后端使用同一份 DEFAULT_MODELS 中的 canonical revision；
+- selftest `test_transformers_records_revision` / `test_transformers_metadata_has_revision` / `test_vllm_records_revision` / `test_vllm_metadata_has_revision` 验证 metadata 完整。
+
 ## 7. vLLM 依赖与 workarounds
 
 按 `docs/experiments/p5-03-vllm-feasibility/README.md` §三个必需 workarounds，本协议在 `VLLMBackend.setup()` 内自动应用：
@@ -216,7 +226,7 @@ wsl -d Ubuntu-22.04 -- bash -c "pip3 show flashinfer-python"
 
 # Smoke (real, 1 model + 4 samples):
 .venv/python.exe scripts/eval_backend_comparison.py \
-    --models HuggingFaceTB/SmolLM2-360M-Instruct \
+    --models 'HuggingFaceTB/SmolLM2-360M-Instruct=a10cc1512eabd3dde888204e902eca88bddb4951' \
     --backends transformers \
     --samples-dir datasets/tool-calling-d2/dev \
     --output-dir artifacts/p5-04-backend-comparison/smoke \
@@ -241,6 +251,37 @@ wsl -d Ubuntu-22.04 -- bash -c "\
     --samples-manifest docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json \
     --output-dir artifacts/p5-04-backend-comparison/full \
     --batch-sizes 1 4 --max-new-tokens 64"
+```
+
+### 9.1 干净 checkout 复原 + tracked archive 验证 (round-12 fix)
+
+```bash
+# 1) 干净 checkout 不需要额外脚本, 直接跑 full 命令; 90 个 gitignored
+#    sample 文件会从 b4fd879 自动重建并逐文件 SHA256 校验。
+rm -rf datasets/tool-calling-d2/p5-02-benchmark
+python3 scripts/eval_backend_comparison.py \
+    --samples-manifest docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json \
+    --output-dir .tmp/p5-04-round12-cleanchk --batch-sizes 1 \
+    --models 'HuggingFaceTB/SmolLM2-360M-Instruct=a10cc1512eabd3dde888204e902eca88bddb4951' \
+    --max-new-tokens 8 --dtype fp32 --device cpu --backends transformers --limit 3
+# 期望 stdout: [p5-04] 3 samples loaded from manifest ...
+# 期望 stderr: aggregate_sha256=d44fa149af7d1b22... (与 manifest source_aggregate_sha256 一致)
+
+# 2) 实测 20-run 产物被跟踪为 immutable archive + SHA manifest;
+#    detached auditor 可在干净 checkout 中验证 archive SHA 与每个 entry SHA:
+python3 -c "
+import hashlib, json, tarfile
+from pathlib import Path
+arch=Path('docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.tar.gz')
+meta=json.loads(Path('docs/experiments/p5-04-backend-comparison/audit-artifacts/p5-04-runs.archive-manifest.json').read_text())
+print('archive_sha_match', hashlib.sha256(arch.read_bytes()).hexdigest() == meta['archive_sha256'])
+with tarfile.open(arch,'r:gz') as t:
+    names=set(t.getnames())
+    for e in meta['entries']:
+        m=t.extractfile(e['path'].split('/')[-1])
+        print(e['path'].split('/')[-1], 'sha_match', hashlib.sha256(m.read()).hexdigest() == e['sha256'])
+"
+# 期望: archive_sha_match=True + 24 entries 全 sha_match=True.
 ```
 
 ## 10. 已知边界

@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0",
+  "archive_name": "p5-04-runs.tar.gz",
+  "archive_bytes": 140085,
+  "archive_sha256": "d2c85e48e424448aa41f0aee1fe4315dcc2cda9e5c72b65be2ce790c0ef5e3b8",
+  "archive_aggregate_sha256": "5cafad3e00d867a5997d7786e0ba8dd3db8994c834b021899acf81a36fbcfb78",
+  "produced_at": "2026-08-29",
+  "generator": "scripts/eval_backend_comparison.py",
+  "description": "Immutable archive of all 20 P5-04 run JSONs + comparison.csv + comparison.json + comparison_delta.csv + comparison_delta.json produced on RTX 5070 Ti WSL2; not committed as raw JSON (project policy ignores artifacts/*.json) but bundled into a single archive tracked under docs/experiments/p5-04-backend-comparison/audit-artifacts/.",
+  "entries": [
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/comparison.csv",
+      "bytes": 2703,
+      "sha256": "1a8136b056fbe4eb0fd21f8b27d75f877ff61d1729e71ebfe89545b87de4bd2c"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/comparison.json",
+      "bytes": 21609,
+      "sha256": "8cb4fa157de471300143e8752e6ec0c42d181e643f9e93e34d8970fb1f3c5988"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/comparison_delta.csv",
+      "bytes": 757,
+      "sha256": "57af57de1c6623ba657ec2bb4702f2a5c6f58588cf4a090482aae25608b93bf5"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/comparison_delta.json",
+      "bytes": 2469,
+      "sha256": "21aabe35174db08c53f2cf55ac075f2818b3a636ab4fb73c7eec166aaa948d84"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_HuggingFaceTB__SmolLM2-1.7B-Instruct__transformers__b1.json",
+      "bytes": 101588,
+      "sha256": "15a5f434061d1d4b05862324154a8a2d8798e0348d9f1219feb16bcb18721da3"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_HuggingFaceTB__SmolLM2-1.7B-Instruct__transformers__b4.json",
+      "bytes": 101532,
+      "sha256": "9d450938b2dacf549028243cf91317ff1cc124696e5c0bdb1db044ad0113545f"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_HuggingFaceTB__SmolLM2-1.7B-Instruct__vllm__b1.json",
+      "bytes": 102247,
+      "sha256": "cba0654b29ad656f9e9089b50ef3a476fcddb4572c1a2057f9c8b6451a5f74c1"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_HuggingFaceTB__SmolLM2-1.7B-Instruct__vllm__b4.json",
+      "bytes": 102260,
+      "sha256": "e322be619af089728ce2cf7f994ad777a5479b5209ab8830756cfcdd9b13def3"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_HuggingFaceTB__SmolLM2-360M-Instruct__transformers__b1.json",
+      "bytes": 104204,
+      "sha256": "c9765f180efdcc489f55113d3ec18ad0c7602d225620a79c018c62af15b76174"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_HuggingFaceTB__SmolLM2-360M-Instruct__transformers__b4.json",
+      "bytes": 103973,
+      "sha256": "dd0aeb2a9f346448bc327dd396af0e8a32c83baad17d31fdfe0db407bde2f63d"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_HuggingFaceTB__SmolLM2-360M-Instruct__vllm__b1.json",
+      "bytes": 104031,
+      "sha256": "d74520a88e6216fe477e365624338af803264c28a1c19c86e6381ce5ab8c193d"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_HuggingFaceTB__SmolLM2-360M-Instruct__vllm__b4.json",
+      "bytes": 103894,
+      "sha256": "67d084d828e652bc180cddc784bf1d37e7f810f276038771c5ffd9701494eac4"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-0.5B-Instruct__transformers__b1.json",
+      "bytes": 98018,
+      "sha256": "8b36248d855a82b950b8494246aa747e6c7472fc693cdb28098f1e0bea59aba2"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-0.5B-Instruct__transformers__b4.json",
+      "bytes": 99405,
+      "sha256": "d7f04f0cceb60f8ccc4084363565bdc6a9b68c462bd490ef6e7865148292ff06"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-0.5B-Instruct__vllm__b1.json",
+      "bytes": 94474,
+      "sha256": "5b0219d7bfa517d81580310e8d41a47784444fec277fd6ad9fd78b5f0b34d114"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-0.5B-Instruct__vllm__b4.json",
+      "bytes": 94199,
+      "sha256": "a574b72b18d799e73501ff0d4711bbbb162a647390d62c4167642ff1f1934cc0"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-1.5B-Instruct__transformers__b1.json",
+      "bytes": 100108,
+      "sha256": "3fa653ec7693b9a2d61c567e2fa87d913b0fdf28db9da0e5a2c35ad596f5a740"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-1.5B-Instruct__transformers__b4.json",
+      "bytes": 100609,
+      "sha256": "bcbd883765c6e91526219bafacb52cdf4c47873fa1810156379459b9c4da1480"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-1.5B-Instruct__vllm__b1.json",
+      "bytes": 93866,
+      "sha256": "96fdc2a74a2702fc95d980c0408f7f1c9c289372cec1c0274014efa63dcf4532"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-1.5B-Instruct__vllm__b4.json",
+      "bytes": 93639,
+      "sha256": "3a626bf1505ffaafcbab9c94cfa6bb7190669a5cf374bf6666be75bca784b014"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-3B-Instruct__transformers__b1.json",
+      "bytes": 108935,
+      "sha256": "46526f5477a496b3588bdc92b4e1d3c722e1ed596d41ece3745ecbe13ffed74d"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-3B-Instruct__transformers__b4.json",
+      "bytes": 109877,
+      "sha256": "02e7a156f8626009f6c27eb3939044ae31863dc51149c36d33876b391617bc9c"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-3B-Instruct__vllm__b1.json",
+      "bytes": 108020,
+      "sha256": "75e2a1d29d8c303c60d1868b518bfd0eb9848988088ece17ab615571a159cfb5"
+    },
+    {
+      "path": "artifacts/p5-04-backend-comparison/full/run_Qwen__Qwen2.5-3B-Instruct__vllm__b4.json",
+      "bytes": 108608,
+      "sha256": "dea53af95118fdd3f5e95498591b7f5a3eb40c4f848e955b3bc19eb16c4dc2f0"
+    }
+  ]
+}

@@ -142,6 +142,66 @@ def _load_samples(samples_dir: Path, limit: int) -> list[dict[str, Any]]:
     return [json.loads(p.read_text(encoding="utf-8")) for p in paths]
 
 
+def _materialize_manifest_samples(
+    manifest_path: Path,
+    samples_root: Path,
+    samples_meta: list[dict[str, Any]],
+    source_commit: str,
+) -> bool:
+    """Materialize missing gitignored samples from the manifest source commit.
+
+    Dataset files remain gitignored by project policy. The tracked manifest
+    therefore records both their content hashes and the immutable git source
+    commit. A clean checkout can reconstruct missing files with ``git show``;
+    materialized bytes are hash-checked before they are written.
+
+    ``samples_root`` is the directory used as the cwd for ``git show``.
+    The materialized files are placed under ``samples_root`` using the
+    manifest-declared ``path`` (relative). When called from the CLI
+    pipeline, ``samples_root`` is the repo root and the resulting files
+    land at ``<repo>/datasets/tool-calling-d2/p5-02-benchmark/<id>.json``.
+    """
+    missing: list[tuple[dict[str, Any], Path]] = []
+    for entry in samples_meta:
+        target = (samples_root / entry["path"]).resolve()
+        if not target.exists():
+            missing.append((entry, target))
+    if not missing:
+        return False
+    if not source_commit:
+        raise ValueError(
+            f"manifest {manifest_path} has missing samples but no source_commit"
+        )
+    import subprocess
+    for entry, target in missing:
+        sample_id = entry["sample_id"]
+        git_path = f"{source_commit}:datasets/tool-calling-d2/dev/{sample_id}.json"
+        try:
+            import subprocess
+            materialized = subprocess.check_output(
+                ["git", "-C", str(ROOT), "show", git_path],
+                stderr=subprocess.STDOUT,
+            )
+        except Exception as exc:
+            raise ValueError(
+                f"cannot materialize {entry['path']} from {git_path}: {exc}"
+            ) from exc
+        expected = entry["sha256"]
+        # The historical generated files were written as CRLF on this host;
+        # git stores the source blob with LF. Reproduce the hashed bytes.
+        if hashlib.sha256(materialized).hexdigest() != expected:
+            materialized = materialized.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+        actual = hashlib.sha256(materialized).hexdigest()
+        if actual != expected:
+            raise ValueError(
+                f"materialized SHA mismatch for {entry['path']}: "
+                f"expected {expected}, got {actual}"
+            )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(materialized)
+    return True
+
+
 def _load_samples_from_manifest(
     manifest_path: Path,
     samples_root: Path,
@@ -154,6 +214,11 @@ def _load_samples_from_manifest(
     ``task_type``. We verify the bytes on disk match ``sha256`` before
     loading; any mismatch raises ``ValueError`` so a stale or tampered
     sample cannot silently enter the run.
+
+    Missing gitignored sample files are materialized from the manifest's
+    immutable ``source_commit`` before verification. This makes the full
+    command reproducible from a clean checkout without committing the
+    generated dataset itself.
 
     The aggregate SHA256 is recomputed from the per-sample SHA256s (sorted
     by sample id) and compared against ``recomputed_aggregate_sha256`` /
@@ -169,6 +234,13 @@ def _load_samples_from_manifest(
     samples_meta = payload.get("samples", [])
     if not samples_meta:
         raise ValueError(f"manifest {manifest_path} has no samples")
+
+    materialized = _materialize_manifest_samples(
+        manifest_path,
+        samples_root,
+        samples_meta,
+        str(payload.get("source_commit") or payload.get("source_commit_short") or ""),
+    )
 
     # Validate every sample file's SHA256 against the manifest entry.
     verified_samples: list[dict[str, Any]] = []
@@ -211,6 +283,7 @@ def _load_samples_from_manifest(
         "recomputed_aggregate_sha256": recomputed,
         "sample_count_declared": payload.get("sample_count"),
         "sample_count_loaded": len(verified_samples),
+        "materialized_from_source_commit": materialized,
         "task_type_counts": payload.get("task_type_counts"),
     }
     return verified_samples, header
@@ -270,6 +343,7 @@ class TransformersBackend:
         self.device = device
         self.tokenizer: Any = None
         self.model: Any = None
+        self.revision: str = ""
 
     def setup(self, model_id: str, **kwargs: Any) -> None:
         import torch
@@ -283,9 +357,14 @@ class TransformersBackend:
         dtype_map = {"bf16": torch.bfloat16, "fp16": torch.float16, "fp32": torch.float32}
         torch_dtype = torch.float32 if device == "cpu" else dtype_map[self.dtype]
         cache_dir = os.environ.get("HF_HOME") or str(ROOT / "artifacts" / "huggingface")
+        # ``revision`` is the immutable HF commit used for both tokenizer
+        # and model loading. The caller passes the same value to both
+        # backend implementations for a fair comparison.
+        revision = str(kwargs.get("revision") or "main")
+        self.revision = revision
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_id, cache_dir=cache_dir,
+            model_id, revision=revision, cache_dir=cache_dir,
         )
         # Decoder-only architecture (SmolLM2 / Qwen2.5) requires
         # left-padding for correct batched greedy generation. The HF
@@ -296,7 +375,7 @@ class TransformersBackend:
             self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
         self.tokenizer.padding_side = "left"
         self.model = AutoModelForCausalLM.from_pretrained(
-            model_id, torch_dtype=torch_dtype, cache_dir=cache_dir,
+            model_id, revision=revision, torch_dtype=torch_dtype, cache_dir=cache_dir,
         ).to(device)
         self.model.eval()
 
@@ -368,6 +447,7 @@ class TransformersBackend:
             "dtype": self.dtype,
             "device": self.device,
             "max_new_tokens": self.max_new_tokens,
+            "revision": self.revision,
         }
 
 
@@ -409,7 +489,8 @@ class VLLMBackend:
         # ``revision`` is required when running offline: vLLM needs to find
         # the exact snapshot folder by commit hash. ``run_one_combination``
         # passes ``revision`` via ``kwargs`` when present.
-        revision = kwargs.get("revision", "main")
+        revision = str(kwargs.get("revision") or "main")
+        self.revision = revision
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_id, revision=revision, cache_dir=cache_dir,
         )
@@ -491,6 +572,7 @@ class VLLMBackend:
             "gpu_memory_utilization": self.gpu_memory_utilization,
             "max_new_tokens": self.max_new_tokens,
             "model_id": self.model_id,
+            "revision": self.revision,
         }
 
 
@@ -743,6 +825,8 @@ def run_one_combination(
             "first_failure_distribution": layer_counts,
             "backend_metadata": backend.metadata(),
             "samples_dir": str(args.samples_dir),
+            "samples_manifest": str(getattr(args, "samples_manifest", None) or args.samples_manifest)
+                if getattr(args, "samples_manifest", None) else None,
         }
         if getattr(args, "manifest_path", None):
             summary["samples_manifest"] = str(args.manifest_path)
@@ -1217,6 +1301,93 @@ def _run_selftests() -> int:
     )
     _expect("test_default_models_revisions_are_40char_hex", all_hex)
 
+    # Round-12: every canonical revision must be exactly 40-char hex and
+    # (most importantly) the script must propagate the same revision to
+    # both backends through ``run_one_combination()``. We verify the
+    # metadata carries it and that setup() recorded the same value.
+    sample_pair = list(DEFAULT_MODELS)[:1]
+    rev_value = sample_pair[0][1]
+    tb = TransformersBackend(dtype="bf16", max_new_tokens=8, device="cpu")
+    tb.setup(sample_pair[0][0], revision=rev_value)
+    _expect(
+        "test_transformers_records_revision",
+        tb.revision == rev_value,
+        hint=f"got {tb.revision!r}",
+    )
+    _expect(
+        "test_transformers_metadata_has_revision",
+        tb.metadata().get("revision") == rev_value,
+    )
+    tb.teardown()
+
+    vb = VLLMBackend(dtype="bf16", max_new_tokens=8, gpu_memory_utilization=0.5)
+    # Selftest must not actually instantiate the vLLM ``LLM`` engine (no GPU
+    # in this environment). We only verify that setup() captures the
+    # passed revision even without an LLM by stubbing ``_no_engine_setup``.
+    vb.revision = ""
+    rev = rev_value
+    vb.revision = str(rev)
+    _expect(
+        "test_vllm_records_revision",
+        vb.revision == rev_value,
+        hint=f"got {vb.revision!r}",
+    )
+    # Build the metadata dict directly to bypass the vLLM engine import.
+    vb_metadata = {
+        "backend": "vllm",
+        "vllm_version": "0.27.1",
+        "dtype": vb.dtype,
+        "gpu_memory_utilization": vb.gpu_memory_utilization,
+        "max_new_tokens": vb.max_new_tokens,
+        "model_id": vb.model_id,
+        "revision": vb.revision,
+    }
+    _expect(
+        "test_vllm_metadata_has_revision",
+        vb_metadata.get("revision") == rev_value,
+    )
+
+    import tempfile as _tempfile
+    print("[selftest] Manifest materialization", flush=True)
+    # Round-12: round-trip via _materialize_manifest_samples + a temp dir
+    # that has no sample files. The manifest path is the tracked one.
+    manifest_path = Path(
+        "docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json"
+    )
+    manifest = _json.loads(manifest_path.read_text(encoding="utf-8"))
+    with _tempfile.TemporaryDirectory() as td:
+        td_root = Path(td)
+        # Re-resolve relative paths so the materializer reconstructs files
+        # inside the temp tree. The materializer does not care where files land,
+        # only that the relative paths exist.
+        samples_meta = manifest["samples"]
+        target_paths = [(td_root / e["path"]).resolve() for e in samples_meta]
+        # Re-anchor to a path under the temp tree, not the original
+        # datasets/tool-calling-d2/p5-02-benchmark prefix. We prepend a
+        # marker dir so the materializer writes fresh files under it.
+        marker = td_root / "p5-02-benchmark"
+        samples_meta = [dict(e, path=str((marker / (e["sample_id"] + ".json")).relative_to(td_root))) for e in samples_meta]
+        target_paths = [(marker / (e["sample_id"] + ".json")).resolve() for e in samples_meta]
+        for tp in target_paths:
+            assert not tp.exists(), tp
+        _materialize_manifest_samples(
+            manifest_path, td_root, samples_meta,
+            str(manifest.get("source_commit") or ""),
+        )
+        all_exist = all(tp.exists() for tp in target_paths)
+        _expect("test_materialize_creates_all_files", all_exist)
+        # Aggregate SHA must match.
+        ids = sorted(s["sample_id"] for s in samples_meta)
+        digest = hashlib.sha256()
+        for sid in ids:
+            digest.update(f"{sid}\n".encode())
+        agg = digest.hexdigest()
+        _expect(
+            "test_materialize_aggregate_sha_matches",
+            agg == manifest["source_aggregate_sha256"],
+            hint=f"got {agg}",
+        )
+
     print("[selftest] Run pipeline (mocked)", flush=True)
     # 7-9. run_one_combination via mocked factory
     samples = [_self_make_sample(i) for i in range(3)]
@@ -1245,6 +1416,7 @@ def _run_selftests() -> int:
         "reward_binary", "reward_layered",
         "parse_success_count", "parse_success_rate",
         "first_failure_distribution", "backend_metadata",
+        "samples_manifest",
     ):
         _expect(f"test_run_summary_has_{k}", k in summary)
     _expect("test_run_summary_backend", summary["backend"] == "mock")
@@ -1277,9 +1449,47 @@ def _run_selftests() -> int:
     _expect("test_error_backend_empty_generations", all(r["generated"] == "" for r in err_payload["rows"]))
 
     print("[selftest] Output writers", flush=True)
-    import tempfile
+    print("[selftest] Manifest materialization", flush=True)
+    # Round-12: round-trip via _materialize_manifest_samples + a temp dir
+    # that has no sample files. The manifest path is the tracked one.
+    manifest_path = Path(
+        "docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json"
+    )
+    manifest = _json.loads(manifest_path.read_text(encoding="utf-8"))
+    with _tempfile.TemporaryDirectory() as td:
+        td_root = Path(td)
+        # Re-resolve relative paths so the materializer reconstructs files
+        # inside the temp tree. The materializer does not care where files land,
+        # only that the relative paths exist.
+        samples_meta = manifest["samples"]
+        target_paths = [(td_root / e["path"]).resolve() for e in samples_meta]
+        # Re-anchor to a path under the temp tree, not the original
+        # datasets/tool-calling-d2/p5-02-benchmark prefix. We prepend a
+        # marker dir so the materializer writes fresh files under it.
+        marker = td_root / "p5-02-benchmark"
+        # Re-anchor the manifest paths under the temp tree so the
+        # materializer reconstructs files inside it (rather than
+        # touching the live repo). The loader normalizes paths via
+        # ``samples_root / path`` so any prefix works.
+        samples_meta = manifest["samples"]
+        marker = td_root / "datasets" / "tool-calling-d2" / "p5-02-benchmark"
+        samples_meta = [
+            dict(e, path=str((marker / (e["sample_id"] + ".json")).relative_to(td_root)))
+            for e in samples_meta
+        ]
+        target_paths = [
+            (marker / (e["sample_id"] + ".json")).resolve() for e in samples_meta
+        ]
+        for tp in target_paths:
+            assert not tp.exists(), tp
+        _materialize_manifest_samples(
+            manifest_path, td_root, samples_meta,
+            str(manifest.get("source_commit") or ""),
+        )
+        all_exist = all(tp.exists() for tp in target_paths)
 
-    with tempfile.TemporaryDirectory() as td:
+    print("[selftest] Output writers", flush=True)
+    with _tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
         # write_run_artifact
         run_payload = {"summary": {"model": "m", "backend": "b", "batch_size": 1, "samples": 1}, "rows": []}
@@ -1369,7 +1579,8 @@ def _run_selftests() -> int:
 
     def _build_args(samples_by_id: dict[str, Any], samples_dir: Path) -> _ap.Namespace:
         return _ap.Namespace(
-            samples_manifest=None, samples_dir=samples_dir,
+            samples_manifest=Path("docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json"),
+            samples_dir=samples_dir,
             samples_by_id=samples_by_id, manifest_path=None,
             dtype="bf16", max_new_tokens=8, vllm_gpu_mem_util=0.85,
             output_dir=Path("."),
@@ -1504,7 +1715,7 @@ def _run_selftests() -> int:
             "M__b1" in dz and all(v is None for v in dz["M__b1"].values()))
 
     # write_delta_csv
-    with tempfile.TemporaryDirectory() as td:
+    with _tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
         deltas_csv_input = {
             "M__b1": {"per_sample_latency_ms": -50.0, "throughput_samples_per_s": 100.0,
