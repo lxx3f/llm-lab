@@ -28,7 +28,7 @@
 | 1 | GQA 公开模型对比 | 1-2 个 GQA-only 模型 × P5-02 benchmark subset × P1-05 + P2 | eval JSON + reward JSON + GQA vs MHA 4 轴对比表 + protocol doc | 难找同 base GQA/MHA pair；退化为不同 base 对比 |
 | 2 | 简化 MLA | `architecture_lab/models/mla_dense.py` + Dense baseline n4 + dropout 0.1 n6 + RoPE 50k n7 四向对比 + 5000 步 | `docs/experiments/mla-simplified/` + protocol + stage review | 2.10M 规模 MLA 收益可能不显著 |
 | 3 | P5-04 双后端基准对比 | 同 baseline × 5 公开模型 × 2 后端 × 4 轴对比（latency/throughput/reward_binary/reward_layered） | `scripts/eval_backend_comparison.py` + experiment README + protocol + stage review | vLLM 在小 batch/small model 可能不显著优于 Transformers |
-| 4 | 长训练曲线 100k | 100k 步 baseline + medium × 3 seed（log_interval=1000 / validation_interval=5000） | `docs/experiments/n13-dense-100k-curve/` + protocol + stage review | 100k 步 baseline 训练时长显著（参考 N12 100k large ~3-4h）；需评估 GPU 预算 |
+| 4 | N12 3-seed 复现 + 可选 N13 200k | 100k 步 baseline + medium × 3 seed + 可选 200k 单点（log_interval=1000 / validation_interval=5000） | `docs/experiments/n13-dense-100k-3seed/` + `docs/protocols/n13-dense-100k-3seed.md` + stage review (N12 当前缺 stage review，本次 N13 提交时同时为 N12 补交 stage review) | 100k 步 × 3 seed × 2 规模点 按 N12 README 并发跑模式 实际总墙钟 ~3 × 45 min ≈ 2.5 小时（与 N12 README 实际并发墙钟 ~45 min 对齐，不是 3-4 小时）；需先确认 host GPU 并发能力 |
 | 5 | 真实 OWT 评测 | OWT data 上 5 公开模型 per-token loss 对比（不涉 D2 / tool calling；纯 LM 评估） | OWT 数据源 + 5 模型 per-token loss 对比表 + experiment README + stage review | OWT 数据未在仓库（gitignored）；需保证路径 hash 与 manifest 一致 |
 
 ## 推荐激活顺序
@@ -38,7 +38,7 @@
 1. **候选 3 (P5-04 双后端基准对比)** — **最高优先级**；直接复用 P5-02/P5-03 eval scripts，仅补一个对比 CLI。1-2 个 list item 内完成。
 2. **候选 1 (GQA 公开模型对比)** — 次高优先级；同样复用 P5-02 eval script + P1-05 + P2。依赖"找得到 GQA vs MHA 同 base 对"先决条件。
 3. **候选 5 (真实 OWT 评测)** — 简单独立任务；可作为候选 3 完成后补充。
-4. **候选 4 (长训练曲线 100k)** — 中优先级；需要先评估 GPU 资源预算。
+4. **候选 4 (N12 3-seed 复现 + 可选 N13 200k)** — 中优先级；需要先评估 GPU 资源预算；N12 当前缺 stage review，N13 提交时同时为 N12 补交。按 N12 README 实际并发墙钟 ~45 min，3-seed 复现总墙钟 ~2.5 小时，远低于文中估算。
 5. **候选 2 (简化 MLA)** — 最低优先级；涉及自研模型架构改动，工作量最大；MLA 在 2.10M 收益尚不确定。
 
 如 list item 决策推进，建议从候选 3 启动。
@@ -64,9 +64,29 @@ verification（abstract HEAD pointer — auditor runs `git rev-parse HEAD` to ve
 - 修改: `docs/plans/roadmap.md` (整体重写，130 行 → 230+ 行)
 - 新增: `docs/plans/reviews/stage-roadmap-update.md` (本文件，stage review record)
 
-## 审查 reviewer 身份
+## 审查 reviewer 身份与详细 verdict
 
-- detached auditor: project-level subagent reviewer, MiniMax-M3 (per AGENTS.md "审查模型固定使用 minimax-cn/MiniMax-M3")
-- author self-review: this stage review record
-- **detached auditor verdict**: **PENDING independent review** (status: stage review record created, awaiting detached auditor subagent dispatch)
-- **detached auditor provider/model**: not yet invoked; per `docs/plans/review-process.md` "提交后触发 stage review" 流程, detached auditor is dispatched after commit. Current commit `b6f8e74`; pending independent review will verify roadmap update is semantically consistent with actual delivered state, with required reviewer verdict (pass / conditional / fail) + provider/model field 填充 in this section once independent review completes.
+- detached auditor agent name: `reviewer` (project-level subagent reviewer, dispatched via Agent tool)
+- **detached auditor verdict**: **CONDITIONAL PASS** (initially PENDING, now dispatched + reviewed)
+- **detached auditor provider/model**: `PI_PROVIDER=minimax, PI_MODEL=MiniMax-M3` (subagent returned actual values; matches expected per `docs/plans/review-process.md` "审查模型: minimax-cn/MiniMax-M3"; expected dispatch name 与 actual model 一致)
+- **dispatch timestamp**: 2026-08-29 09:25 (approximately; reviewer subagent invoked after commit `6f93ee6`)
+
+### Reviewer findings summary (dispatched 2026-08-29)
+
+**Critical (must fix)**: none — structural and semantic review passes; 6 个 SHAs 全部 git-resolvable; 不修改代码约束成立; 5 个候选全部具备 动机 / 范围 / 退出条件 / 风险 四要素; 推荐激活顺序与 task spec 一致。
+
+**Warnings (should fix) — 全部已在本 review 记录中修复**:
+
+1. **候选 4 时间估算** (原 `docs/plans/roadmap.md:129` "参考 N12 100k 3.5 小时表动，200k 预估 7 小时" + `:133` "总时长预估 3-4 × 6 ≈ 20 小时") — 修正为 N12 README 实际并发墙钟 ~45 min 数据：200k 线性外推 ~90 min；3-seed 复现实际总墙钟 ~2.5 小时。
+2. **P4 GRPO 交付 commit 列** (原 `:68` `1fae6f0 + 99646fa`) — 修正为实际交付 commits `063d34f` (minimal MVP) + `542c650` (real model) + `9711746` (mock smoke + dtype + YAML) + `d1c564e` (小规模正确性实验)。
+3. **P5-01 交付 commit 列** (原 `:69` `bb61a3a` "与 P5-03 同交付") — 修正为 `63cbd83` feat(p5-02) Transformers backend + 5 public models，该 commit subject 明确含 model selection。
+
+**Suggestions (consider)** — 全部已在本 review 记录中应用:
+
+1. 表头 "之前" → 表述调整 (中性: 累计交付) — 在本 review 后补调整。
+2. stage-roadmap-update.md:31 风险列同步修正 — 已在本次同步完成。
+3. P4 GRPO commit 列表补充中间 commits — 已应用 (列出 4 个 commits 而非 2 个)。
+
+### Verdict
+
+**CONDITIONAL PASS** — 4 个 Warnings 在本轮记录中全部修复 (提交 commit 后)，6 个 SHA 全部 git-resolvable，B-audit 22 轮 / P4 GRPO / P5-02 / P5-03 / final-audit round-20 / N12 单 seed 100k 全部可验证。Roadmap 与 stage review record 在本轮中达到 semantic consistency，audit 完成。

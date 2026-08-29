@@ -65,8 +65,8 @@
 
 | 子阶段 | 状态 | 交付 commit | stage review |
 |---|---|---|---|
-| P4 GRPO MVP + 小规模正确性实验 | ✅ 已交付 | `1fae6f0` + `99646fa` | `stage-p4-grpo-mvp.md` + `stage-p4-grpo-smoketest.md` |
-| P5-01 开源 instruction-tuned 模型选定 | ✅ 已交付 | `bb61a3a` (与 P5-03 同交付) | `stage-p5-03-vllm-feasibility.md` |
+| P4 GRPO MVP + 小规模正确性实验 | ✅ 已交付 | `063d34f` (minimal MVP) + `542c650` (real model + optimizer + RNG + resume) + `9711746` (mock smoke + dtype + YAML) + `d1c564e` (小规模正确性实验) | `stage-p4-grpo-mvp.md` + `stage-p4-grpo-smoketest.md` |
+| P5-01 开源 instruction-tuned 模型选定 | ✅ 已交付 | `63cbd83` feat(p5-02): Transformers backend + 5 public models x D2 dev reward (含 model selection + model 卡 + LICENSE) | `stage-p5-02-transformers-backend.md` |
 | P5-02 Transformers 后端接入（公开模型） | ✅ 已交付 (round 2 修复 target-answer 泄漏后) | `63cbd83` + `b4fd879` + `66ff9eb` | `stage-p5-02-transformers-backend.md` |
 | P5-03 vLLM 后端接入（公开模型） | ✅ 已交付 (WSL2 smoke PASS) | `bb61a3a` | `stage-p5-03-vllm-feasibility.md` |
 
@@ -126,11 +126,11 @@ P5 阶段（P5-01/P5-02/P5-03）已 100% delivered，**P5-04 双后端基准对�
 - 复用 N11/N12 dense 长曲线协议；增加 100000 步 baseline + medium × 3 seed (= N12 3-seed follow-up)；
 - log_interval=1000 / validation_interval=5000（避免 validation 过密）；
 - 3-seed val_min aggregation：mean / std / per-seed 改善；与 N12 单 seed 数字交叉对比，判断单 seed 是否为 noise；
-- 可选 N13 追加 200000 步 baseline 单点（如 GPU 资源允许；参考 N12 100k 3.5 小时表动，200k 预估 7 小时）；不需 3-seed，只验证 plateau 假设。
+- 可选 N13 追加 200000 步 baseline 单点（如 GPU 资源允许；参考 N12 100k 并发跑实际墙钟 ~45 分钟（baseline 0.66M 100000 步约 17 min；medium 2.10M 100000 步约 44 min；两个并发跑实际总墙钟 ~45 min，见 `docs/experiments/n12-dense-ultra-curve/README.md` line 17），200k 预估 ~90 min 墙钟）；不需 3-seed，只验证 plateau 假设。
 
 **退出条件**：`docs/experiments/n13-dense-100k-3seed/` + `docs/protocols/n13-dense-100k-3seed.md` + stage review (N12 当前缺 stage review，本次 N13 提交时同时为 N12 补交 stage review)。
 
-**风险**：100k 步 × 3 seed × 2 规模点 (baseline + medium) = 6 个长 run，总时长预估 3-4 × 6 ≈ 20 小时；需先评估 host GPU 时间预算。200k 步超长曲线（若推进）需提前评估是否值得。
+**风险**：100k 步 × 3 seed × 2 规模点 (baseline + medium) = 6 个长 run，按 N12 README 并发跑模式实际总墙钟预估 ~3 × 45 min ≈ 2.5 小时（远低于表中 20 小时估算；该错误估算源于早期误记 N12 墙钟为 3.5 小时，由 B-audit round-22 后独立 reviewer 发现并修正）；需先确认 host GPU 并发能力。200k 步超长曲线（若推进）预估 ~90 min 墙钟（按线性外推）。
 
 ### 候选 5: 真实 OWT 评测（不是 D2 sampling 子集）
 
