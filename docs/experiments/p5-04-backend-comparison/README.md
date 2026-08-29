@@ -1,6 +1,6 @@
 # P5-04 双后端基准对比实验 (Transformers vs vLLM)
 
-> **状态**: ✅ 完成 (list item D round-7)。20 组合 (5 模型 × 2 后端 × 2 batch sizes) × **90 样本** (历史 P5-02 benchmark evaluation subset, manifest-driven + SHA256 校验) 全部跑完, 4 轴对比表 + 同模型 Δ% 已落盘。
+> **状态**: ✅ 完成 (list item D round-8)。20 组合 (5 模型 × 2 后端 × 2 batch sizes) × **90 样本** (历史 P5-02 benchmark evaluation subset, manifest-driven + SHA256 校验 + reward 计算以 manifest sample 为准) 全部跑完, 4 轴对比表 + 同模型 Δ% 已落盘。
 
 ## 范围
 
@@ -86,7 +86,7 @@
 | Qwen2.5-1.5B-Instruct | 0.3745 | 0.3745 | 0.3653 | 0.3653 |
 | Qwen2.5-3B-Instruct | 0.3852 | 0.3801 | 0.3694 | 0.3662 |
 
-注: 早期轮次 `reward_layered=0.0` 是 root-cause 错误：原代码从 `args.samples_dir` (=manifest 父目录) `glob("*.json")` 读不到任何 sample，`reward_offline.load_samples()` 返回空 dict 后 `0 / max(0, 1) = 0.0`。round-7 后改为在 CLI 处把 manifest 加载出的 sample 字典存到 `args.samples_by_id`，由 `run_one_combination()` 直接传入 `compute_reward()`。重新计算后与 P5-02 §8 round-2 历史表 (0.33–0.43) 吻合。
+注: 早期轮次 `reward_layered=0.0` 是 root-cause bug (round-7)：原代码从 `args.samples_dir` (=manifest 父目录) `glob("*.json")` 读不到任何 sample，`reward_offline.load_samples()` 返回空 dict 后 `0 / max(0, 1) = 0.0`。round-8 改为在 CLI 处把 manifest 加载出的 sample 字典存到 `args.samples_by_id`，由 `run_one_combination()` 直接传入 `compute_reward()`。重新计算后与 P5-02 §8 round-2 历史表 (0.33–0.43) 吻合。
 
 ## 同模型 Δ% (vLLM − Transformers / Transformers × 100)
 
@@ -153,7 +153,7 @@ b=4 优势比 b=1 高 ~21 个百分点（throughput）。
 
 ### 5. parse_success_rate = 1.0, generation_failure_count = 0
 
-manifest 校验 + batch 重试到位后, 全部 20 个组合 1800 row 全部成功 generation, `parse_success` 全部 True; 没有 `generation_failed`。证明 round-7 的修复有效解决了 round-6 静默替换 `generated=""` 的根因。
+manifest 校验 + batch 重试到位后, 全部 20 个组合 1800 row 全部成功 generation, `parse_success` 全部 True; 没有 `generation_failed`。证明 round-7 (manifest + batch retry) + round-8 (reward 计算 wiring) 的修复有效解决了前几轮的根因问题。
 
 ## 测试覆盖 (`--selftest`, no GPU)
 
@@ -163,11 +163,11 @@ manifest 校验 + batch 重试到位后, 全部 20 个组合 1800 row 全部成�
 - terminal assistant removal + batched `_strip_terminal_assistant`
 - timing 空输入/零耗时边界
 - model/revision 默认集合 (5 个 canonical 模型 + 40-hex revisions)
-- mocked run pipeline, setup/teardown 计数, batch/error fallback (含 round-7 修复后的 per-sample retry)
+- mocked run pipeline, setup/teardown 计数, batch/error fallback (含 round-7 修复后的 per-sample retry + round-8 reward wiring)
 - JSON/CSV/Delta CSV writer
 - CLI defaults + overrides + `--models=<id>=<rev>` + `--samples-manifest`
 - Δ% 符号 + batch 分组 + missing backend + zero baseline
-- `_load_samples_from_manifest` 校验路径/sha256/aggregate (新增 round-7 覆盖)
+- `_load_samples_from_manifest` 校验路径/sha256/aggregate (round-7 覆盖)
 
 ```text
 $ python scripts/eval_backend_comparison.py --selftest
@@ -196,7 +196,7 @@ Wall clock: ~30 min (5 models × 4 combos, 含 vLLM EngineCore 启动)。
 
 ## 关键文件
 
-- `scripts/eval_backend_comparison.py` — round-7 manifest loader + batch retry + failure tracking
+- `scripts/eval_backend_comparison.py` — round-7 manifest loader + batch retry + failure tracking + round-8 reward wiring 修复 (samples_by_id 直传)
 - `scripts/eval_transformers.py` — P5-02 baseline
 - `docs/protocols/backend-comparison.md` — P5-04 协议（manifest + generation failure semantics）
 - `docs/experiments/p5-04-backend-comparison/README.md` — 本文件

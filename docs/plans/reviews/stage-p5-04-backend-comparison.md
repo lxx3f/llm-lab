@@ -1,7 +1,7 @@
 # Stage Review — P5-04 双后端基准对比（Transformers vs vLLM）
 
 - **List item**: D
-- **状态**: ✅ PASS；本记录为 round-7 的最终 stage-review record（manifest-driven + batch retry + generation-failure tracking）
+- **状态**: ✅ PASS；本记录为 round-8 的最终 stage-review record（manifest-driven + batch retry + generation-failure tracking + reward 计算以 manifest sample 为准）
 - **日期**: 2026-08-29
 - **当前提交指针**: 使用抽象 HEAD 指针；审核时运行 `git rev-parse HEAD` 核验
 - **Canonical reviewer**: `minimax-cn/MiniMax-M3` (per `docs/plans/review-process.md`)
@@ -110,7 +110,7 @@ PY
 python scripts/eval_backend_comparison.py --selftest
 ```
 
-结果: 96 assertions PASS (含 round-7 新增 manifest 加载 / SHA mismatch / aggregate mismatch 覆盖)。
+结果: 96 assertions PASS (含 round-7 新增 manifest 加载 / SHA mismatch / aggregate mismatch 覆盖 + round-8 新增 reward wiring 覆盖)。
 
 ### 5.2 Full project tests
 
@@ -141,26 +141,43 @@ python scripts/run_tests.py full
 
 历史提交 SHA 仅用于描述变更；当前状态由本文件中的 live commands 实时核验。
 
-## 7. Detached reviewer verdict (round-8 fix)
+## 7. Detached auditor verdict (round-9 doc sync)
+
+### round-8 audit (calculet/gpt-5.6-terra)
+
+- **Verdict**: disapproved (3 blocking doc consistency issues)
+  1. Protocol §9 "Full" command still used `--samples-dir datasets/tool-calling-d2/dev --limit 90` — would silently select a different non-SHA-verified sample set.
+  2. Stage review (round-8) wrongly claimed "no longer overwrites `args.samples_dir` as the manifest parent" — the code at line 913 still does `args.samples_dir = Path(args.samples_manifest).parent`; the actual fix is the *direct use of* `args.samples_by_id` for `compute_reward()`.
+  3. README / protocol / stage review still described the work as "round-7" while the committed root-cause fix is round-8 and the audit history shows prior rounds were disapprovals.
+- **Auditor verified substantive items**: 20 runs / 1800 rows / 0 empty generations / 0 SHA mismatches / 96 selftest assertions PASS / independently recomputed `reward_binary` and `reward_layered` from the manifest samples matched all 20/20 summaries bit-for-bit.
+
+### round-9 doc sync (this commit)
+
+- Protocol §9 "Full" command now uses `--samples-manifest docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json` (the actual command used to produce the 20 published runs); also adds the WSL2 offline-friendly form with the same flag.
+- README status header + 5 inline references switched "round-7" → "round-8" (or split into round-7 / round-8 contributions where the fix spans two rounds).
+- Protocol status header + §3.1 / §6 / §6.1 sub-section titles + §6.1 wording sync'd.
+- Stage review §7 rewritten to accurately describe the round-8 fix (passing `args.samples_by_id` directly to `compute_reward()`; `args.samples_dir` is retained for log path only — NOT used by the reward code path).
+- Round-7 audit block retained as historical evidence (auditor's repro is the contract we satisfied in round-8).
 
 ### round-7 audit (calculet/gpt-5.6-terra)
 
 - **Verdict**: disapproved
 - **Blocking**: 全部 20 run `reward_layered = 0.0` 是 root-cause bug — 原代码从 `args.samples_dir` (=manifest 父目录) `glob("*.json")` 读样本，该目录里只有 manifest 本身，故 `samples_by_id={}` → signals=[] → silent 0。
-- **Auditor repro**: 直接用 manifest 路径 + 真实 sample 重算 SmolLM2-360M transformers b1 得到 0.4236，与本轮修复后值一致。
+- **Auditor repro**: 直接用 manifest 路径 + 真实 sample 重算 SmolLM2-360M transformers b1 得到 0.4236。
 
-### round-8 fix (this commit)
+### round-8 fix (commit b14e732)
 
-- `main()` 不再覆盖 `args.samples_dir` 为 manifest 父目录; 改为 `args.samples_by_id = {s['id']: s for s in samples}` 把 manifest 加载出的样本字典挂到 args;
-- `run_one_combination()` 从 `args.samples_by_id` 取样本直接调 `compute_reward(sample, row)`; 不再走 `reward_offline.load_samples()`;
-- 负向断言: `samples_by_id` 为空 / 无 overlap 时 raises `RuntimeError`, 绝不 silent zero;
-- 同步重写 20 个 run artifact summary + comparison.csv + comparison_delta.csv + README + protocol;
-- 重建 reward_layered 取值 0.3601–0.4236, 与 P5-02 §8 历史 0.33–0.43 吻合; Qwen2.5 vLLM 略低于 transformers (~0.005–0.02 abs), 属 vLLM 数值抖动诚实记录。
+- `main()` 把 `args.samples_by_id = {s['id']: s for s in samples}` 挂到 args; `args.samples_dir` 仍然被覆盖为 `Path(args.samples_manifest).parent`（仅用于 summary 报告路径, 不参与 reward 计算）。
+- `run_one_combination()` 从 `args.samples_by_id` 取样本直接调 `compute_reward(sample, row)`; 不再走 `reward_offline.load_samples()`。
+- 负向断言: `samples_by_id` 为空 / 无 overlap 时 raises `RuntimeError`, 绝不 silent zero; `RuntimeError` 不再被 fallback `except Exception` 吞掉。
+- 同步重写 20 个 run artifact summary + comparison.csv + comparison_delta.csv + README + protocol。
+- 重建 reward_layered 取值 0.3601–0.4236, 与 P5-02 §8 历史 0.33–0.43 吻合。
 
 ### Stage reviewer
 
 - round-7 reviewer: PASS
-- round-8 reviewer: 待本轮 detached auditor 核验
+- round-8 reviewer: PASS (subagent dispatched, `PI_PROVIDER=minimax-cn`, `PI_MODEL=MiniMax-M3`)
+- round-9 (this commit) reviewer: 待本轮 detached auditor 核验
 
 ## 8. Final disposition
 

@@ -1,6 +1,6 @@
 # P5-04 双后端基准对比协议 (Transformers vs vLLM)
 
-> 状态：阶段交付（2026-08-29，list item D round-7）。Manifest-driven 90 样本 + per-sample batch retry + generation-failure tracking。
+> 状态：阶段交付（2026-08-29，list item D round-8）。Manifest-driven 90 样本 + per-sample batch retry + generation-failure tracking + reward 计算以 manifest sample 为准。
 
 本协议固定 `scripts/eval_backend_comparison.py` 的输入 / 输出契约、backend 接口、四轴对比指标与 reduced-precision 复用策略。
 
@@ -66,7 +66,7 @@ class Backend(Protocol):
 | `--vllm-gpu-mem-util` | 0.85 | vLLM `gpu_memory_utilization` 参数 |
 | `--parallel` | off | 跨 model+backend 组合的线程并行（仅限组合之间；同一组合内 batch 仍走串行） |
 
-## 3.1 Manifest 路径与 SHA 校验（round-7 required）
+## 3.1 Manifest 路径与 SHA 校验（round-7 required，round-8 保留）
 
 `--samples-manifest <path>` 加载逻辑：
 
@@ -159,11 +159,11 @@ HuggingFaceTB/SmolLM2-360M-Instruct,vllm,1,3,1.0,333.3,3.0,0.0,0.42,0.66
 - 现在：batch 异常 → 逐 sample 用 batch=1 重试 → 仍失败的 row 写 `first_failure = "generation_failed"` + `layers.parse_success = False` + `row.generation_error = <repr>`；汇总中记录 `generation_failure_count` + `generation_failed_sample_ids`。
 - 该 round 20 个组合 × 90 样本实测 `generation_failure_count=0`。
 
-## 6.1 reward_layered 口径说明 (round-7 fix)
+## 6.1 reward_layered 口径说明 (round-8 fix)
 
 P5-04 采用 P5-02 §8 round-2 (commit `b4fd879`) 后 `eval_transformers.py` 的 8 层口径；`scripts.reward_offline.compute_reward()` 接受 `(sample, row)` 计算 8 层 `parse_success` → `final_answer_correct` 并归一化到 `reward_layered ∈ [0, 1]`。
 
-**重要**: 必须传入 manifest 加载出的 sample 对象 (`args.samples_by_id`)，**不能**从 `args.samples_dir` (=manifest 父目录) `glob("*.json")` 读 —— manifest 父目录只有 manifest 文件本身，不会被算成 sample。round-7 修复前正因这点错误，导致全部 20 组合 `reward_layered = 0.0` (silently zero input)。修复后取值集中在 0.36–0.42，与 P5-02 历史吻合。
+**重要**: 必须传入 manifest 加载出的 sample 对象 (`args.samples_by_id`)。`args.samples_dir` 是变量赋值, 仍然是 manifest 父目录（用于日志报告路径），但 reward 计算不再从那里 `glob("*.json")` —— manifest 父目录里只有 manifest 本身。round-7 时代码仍然走 `reward_offline.load_samples(args.samples_dir)`，导致 `samples_by_id={}` → signals=[] → 全部 20 组合 `reward_layered = 0.0` (silently zero input)。round-8 改为 `main()` 加载 manifest 后把 `args.samples_by_id = {s['id']: s for s in samples}` 挂到 args; `run_one_combination()` 直接传给 `compute_reward()`，不再调用 `reward_offline.load_samples()`。修复后取值集中在 0.36–0.42，与 P5-02 §8 round-2 历史表 (0.33–0.43) 吻合。
 
 负向断言：若 `samples_by_id` 为空 → raises `RuntimeError`；若 transcript-by-id 无 overlap → raises `RuntimeError`，绝不 silent zero。
 
@@ -214,12 +214,25 @@ wsl -d Ubuntu-22.04 -- bash -c "pip3 show flashinfer-python"
     --output-dir artifacts/p5-04-backend-comparison/smoke \
     --limit 4
 
-# Full (5 models × 2 backends × 2 batch sizes = 20 runs; exact P5-02 subset = 90 samples):
+# Full (5 models × 2 backends × 2 batch sizes = 20 runs; exact P5-02 subset = 90 samples via manifest):
 .venv/python.exe scripts/eval_backend_comparison.py \
-    --samples-dir datasets/tool-calling-d2/dev \
+    --samples-manifest docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json \
     --output-dir artifacts/p5-04-backend-comparison/full \
-    --limit 90 \
     --batch-sizes 1 4
+
+# Offline-friendly WSL2 invocation (used to produce the 20 published runs):
+wsl -d Ubuntu-22.04 -- bash -c "\
+  export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 \
+         HF_HUB_CACHE=/mnt/c/.../artifacts/huggingface \
+         HF_HOME=/mnt/c/.../artifacts/huggingface \
+         VLLM_WSL2_ENABLE_PIN_MEMORY=1 \
+         VLLM_USE_FLASHINFER_SAMPLER=0 \
+         VLLM_ATTENTION_BACKEND=TORCH_SDPA && \
+  cd /mnt/c/.../llm-lab && \
+  python3 scripts/eval_backend_comparison.py \
+    --samples-manifest docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset.manifest.json \
+    --output-dir artifacts/p5-04-backend-comparison/full \
+    --batch-sizes 1 4 --max-new-tokens 64"
 ```
 
 ## 10. 已知边界
