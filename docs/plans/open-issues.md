@@ -779,8 +779,8 @@ README 中的模型输出和评测结果示例缺少真实 Schema 要求的部�
     pipeline_version / created_at 六个必填子字段；messages 数组从空数组改为
     含一个 user message 的示例数组（满足 minItems=1）。
 交付 commit：`275a4a9` docs(plans): B-audit round-14 — fix P2-02 (README schema sync) + P2-04 disposition
-交付 commit：`8f3a2b1` docs(readme): B-audit round-15 — align README example schema_version + metadata + messages (本轮)
-验证：scripts/.tmp/validate_readme.py -> Block 0/1/2 PASS（直接验证 README fenced JSON blocks）
+交付 commit：`e7c6a16` docs(readme): B-audit round-15 — align README examples with schema const + metadata
+验证：scripts/audit/validate_readme.py -> Block 0/1/2 PASS（直接验证 README fenced JSON blocks; 该脚本位于 tracked 路径 scripts/audit/）
 验证：scripts/validate_stage0.py --examples -> 9/9 PASS（examples/*.json + schemas/*.schema.json 一致性）
 后续：README 示例与真实 schema 同步; schema 新增字段需同步更新 README 示例（跟踪项，见 P2-07）
 改动：

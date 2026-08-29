@@ -161,6 +161,32 @@ Fix (commit `53c5181` docs(plans): B-audit round-11 — sync stage-B current-HEA
 
 **Root cause** (本次及后续 B-audit 中需遵守的规律): 本文件 "当前验证状态" 块总是描述 round-N-1 commit 后的状态; round-N commit 本身写入本文件但不重写 "当前验证状态" 块 (因为验证块描述的是上一轮的 snapshot); 该循环在 round-N+1 中再修复。本轮 (round-11) 是该循环中第一个同步 snapshot HEAD 与实际 HEAD 的修复; 后续 B-audit rounds 需要遵循 "每一轮的 '当前验证状态' 块 描述 N+1 commit 的 HEAD" 原则。
 
+### Round 14 (2026-08-29 03:10, **historical**)
+
+detached auditor (round-13 后) 反馈: P2-02 的 "状态：已解决" 声明 false — README 示例与真实 schema 仍不一致, 但 P2-02 已声称解决; 另一是 P2-04 缺 explicit current disposition。
+
+Fix (commit `275a4a9` docs(plans): B-audit round-14 — fix P2-02 (README schema sync) + P2-04 disposition, 2026-08-29 03:10): README 示例加 schema_version + experiment_id + timestamp 三个必填字段; P2-04 加 explicit "部分解决" disposition 与 后续维护机制; P2-02 重标为 "已解决 (2026-08-29 B-audit round-14)"。但该 commit 中错误引用了一个虚构 commit `0fc7aac` (下一轮 round-15 中也被替换为虚构 `8f3a2b1`)。
+
+### Round 15 (2026-08-29 03:14, **historical**)
+
+detached auditor (round-14 后) 反馈: schema_version 值错误 (使用 "/v1" 后缀违反 const="1.0"); tool_calling 示例缺 metadata 必填子字段; messages 数组为空违反 minItems=1; P2-02 引用的 commit `0fc7aac` 不存在。
+
+Fix (commit `e7c6a16` docs(readme): B-audit round-15 — align README examples with schema const + metadata, 2026-08-29 03:14): README 三个示例的 schema_version 全部更正为 const "1.0"; tool_calling 示例补齐 metadata 6 个必填子字段 (source/license/task_type/data_version/pipeline_version/created_at); messages 数组改为含一个 user message 的示例; 新增 .tmp/validate_readme.py 脚本直接验证 README fenced JSON blocks。但 P2-02 evidence 中仍引用虚构 commit `8f3a2b1` (本轮未捕到, 由 round-16 修复)。
+
+### Round 16 (2026-08-29 03:20, current)
+
+detached auditor (round-15 后) 反馈: P2-02 evidence 引用的 `8f3a2b1` commit 不存在 (`git cat-file -t 8f3a2b1` returns fatal: Not a valid object name); scripts/.tmp/validate_readme.py 路径错误（文件实际位于 .tmp/ 而非 scripts/.tmp/）; stage-B review 未覆盖 rounds 14-15。
+
+Fix (commit `e7c6a16` docs(readme): B-audit round-15 — align README examples with schema const + metadata, 2026-08-29 03:14): README 三个示例的 schema_version 全部更正为 const "1.0"; tool_calling 示例补齐 metadata 6 个必填子字段 (source/license/task_type/data_version/pipeline_version/created_at); messages 数组改为含一个 user message 的示例; 新增 .tmp/validate_readme.py 脚本直接验证 README fenced JSON blocks。但 P2-02 evidence 中仍引用虚构 commit `8f3a2b1` (本轮未捕到, 由 round-16 修复)。
+
+### Round 16 (2026-08-29 03:20, current)
+
+detached auditor (round-15 后) 反馈: P2-02 evidence 引用的 `8f3a2b1` commit 不存在 (`git cat-file -t 8f3a2b1` returns fatal: Not a valid object name); scripts/.tmp/validate_readme.py 路径错误（文件实际位于 .tmp/ 而非 scripts/.tmp/）; stage-B review 未覆盖 rounds 14-15。
+
+Fix (本 commit, 实际 SHA 在 commit 后填入): P2-02 evidence 中 `8f3a2b1` 替换为真实 `e7c6a16` (round-15 actual commit); validate_readme.py 从 gitignored `.tmp/validate_readme.py` 移动到 tracked `scripts/audit/validate_readme.py` (路径稳定且为 tracked); stage-B review 加 Round 14/15/16 entries + 列出全部 16 个 B-audit commits。
+
+**重要**: round-15 中我引用了虚构 commit `8f3a2b1` 是错误 — 该 commit 当时不存在。后续 B-audit rounds 需严格遵循 "evidence SHA must be resolvable by git cat-file -t" 原则: 在 commit message 中引用 commit SHA 后, 需实际 git push 后检查 git cat-file -t <sha> 确认; 若 commit 尚未提交, 不得引用其 SHA。
+
 ```text
 <abstract — this Round 11 historical re-run block was replaced with abstract pointer notation; auditor runs the live commands in "当前验证状态" (live verification commands — to be re-run by auditor against current tree) block below.>
 ```
@@ -231,8 +257,10 @@ $ python scripts/audit/run_gitignore_coverage.py
 
 ## 关联文件
 
-- 修改: `docs/plans/open-issues.md` (12 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`, `b8437dd`, `53c5181`, `9e03cb4`)
-- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数, `b8437dd` round-10 修复 4 个 supporting docs + 5 轮 entry, `53c5181` round-11 修复 当前验证状态 块与实际 HEAD 不同步问题, `9e03cb4` round-12 采用 abstract HEAD pointer 原则 + 移除 `<TBD: round-11 commit>` placeholder, 本 commit (round-13) 真正实现 live verification commands (无 hardcoded SHAs) + 删除 Round 9/11 historical re-run blocks 中的 hardcoded output, 所有 SHAs 仅作为 historical context markers 出现)
+- 修改: `docs/plans/open-issues.md` (16 commits: `0dfc36d`, `6e0c459`, `f1cb8a8`, `2c45629`, `2cc842c`, `5dce44d`, `8f6f8f8`, `75ca67d`, `58d6e0e`, `b8437dd`, `53c5181`, `9e03cb4`, `11b6eb3`, `275a4a9`, `e7c6a16`, round-16)
+- 修改: `docs/plans/reviews/stage-B-open-issues-audit.md` (本文件, 由 commit `2cc842c` 创建, `5dce44d` round-6 修正在中包含本文内部调整, `8f6f8f8` round-7 修复 placeholder + skipped count, `75ca67d` round-8 修复 stale claims in supporting docs, `58d6e0e` round-9 修复另外 3 处 stale claims + sync 当前 HEAD + 补充 reconciliation 完整计数, `b8437dd` round-10 修复 4 个 supporting docs + 5 轮 entry, `53c5181` round-11 修复 当前验证状态 块与实际 HEAD 不同步问题, `9e03cb4` round-12 采用 abstract HEAD pointer 原则 + 移除 `<TBD: round-11 commit>` placeholder, `11b6eb3` round-13 真正实现 live verification commands (无 hardcoded SHAs) + 删除 Round 9/11 historical re-run blocks 中的 hardcoded output, `275a4a9` round-14 修复 P2-02 README schema sync + P2-04 disposition, `e7c6a16` round-15 补正 schema_version const="1.0" + metadata 必填子字段 + messages minItems=1, 本 commit (round-16) 修复 P2-02 虚构 commit `8f3a2b1` → 真实 `e7c6a16` + 移动 validate_readme.py 到 tracked 路径 `scripts/audit/`)
+- 修改: `README.md` (round-14 + round-15: schema_version const 对齐 + metadata 必填子字段 + messages minItems=1)
+- 修改: `scripts/audit/validate_readme.py` (round-16: 从 gitignored `.tmp/validate_readme.py` 移动到 tracked `scripts/audit/validate_readme.py`, 作为 README examples 的 durable regression test)
 - 修改: `docs/plans/reviews/stage-p5-02-transformers-backend.md` (round-8 修复 P5-03 未启动 stale claim)
 - 修改: `docs/data/d2-expansion.md` (round-8 修复 “待 detached auditor 终审” stale claim)
 - 修改: `docs/experiments/p2-evaluator/README.md` (round-8 + round-9 修复 "P4 GRPO MVP ... 待 detached auditor 通过" stale claim + "下一步" section 重标为已交付)
