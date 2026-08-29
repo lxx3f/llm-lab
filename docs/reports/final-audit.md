@@ -279,11 +279,7 @@ matched to its script.
 - **Globs MISSING (unresolvable)**: **0**
 - Exit code: **0**
 
-These numbers reflect the **current** tree state at HEAD (including
-both `docs/reports/final-audit/round-13-reviewer-evidence.md`
-(added in round-14, contributes 9 refs + 4 globs) AND
-`docs/reports/final-audit/round-17-reviewer-evidence.md`
-(added in round-18, contributes 2 refs + 1 glob)).
+These numbers reflect the **final-audit round-20 historical snapshot state at `HEAD f1fe61c`** (including both `docs/reports/final-audit/round-13-reviewer-evidence.md` (added in round-14, contributes 9 refs + 4 globs) AND `docs/reports/final-audit/round-17-reviewer-evidence.md` (added in round-18, contributes 2 refs + 1 glob)). **For current HEAD live-verification counts, see the "## Current live-verification (auditor runs against current tree)" section above.**
 
 Historical evidence (preserved for round traceability):
 

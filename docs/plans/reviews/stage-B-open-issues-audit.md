@@ -213,6 +213,15 @@ detached auditor (round-20-postfix 后) 反馈: final-audit.md Section 4 仍含 
 
 Fix (commit `320eee1` B-audit round-21: comprehensive current-HEAD/current-tree claim cleanup in final-audit.md + open-issues.md, 2026-08-29 04:00): (1) final-audit.md Section 4 子标题 "### Active documentation scope (round-12 fix)" 后面新增 Historical snapshot note 段 (本 section 描述的是 final-audit round-20 时点的状态; 后 section "Real results from this audit" 同样加 historical snapshot note); (2) final-audit.md 子标题 "### Real results from this audit (this host)" 改为 "(historical snapshot from final-audit round-20, commit `f1fe61c`; see Current live-verification above for current HEAD counts)"; (3) final-audit.md Section 4 "**Result (current HEAD)**" 改为 "(historical snapshot from final-audit round-20, commit `f1fe61c`; see Current live-verification above for current HEAD counts)"; (4) final-audit.md Section 4 文中 "58 active docs scanned" 加 historical snapshot note; (5) open-issues.md "### 最终全链路审查 round 1-20" 标题改为 "(historical snapshot from `HEAD f1fe61c`)" + section 顶部加 Historical snapshot note 段 + 指向 Current live-verification sections; (6) open-issues.md 该 section 验证 block + 最终 HEAD f1fe61c 行 + gitignore + reconciliation 行均加 "historical snapshot" label。
 
+### Round 22 (2026-08-29 04:10, **historical**, residual "current tree state" sentence at final-audit.md:282-286)
+
+detached auditor (round-21-postfix 后) 反馈: round-21 总体修复有效, 但 final-audit.md Section 4 内一行 "These numbers reflect the **current** tree state at HEAD ..." 仍存在, 与该 section 已加的 Historical snapshot note + 其他重标上下文件 内部矛盾 (本句声称 "current", 但 175/98/34 明显是 historical snapshot from f1fe61c)。
+
+Fix (本 commit, round-22): final-audit.md line 282-286 整句重写:
+  原: "These numbers reflect the **current** tree state at HEAD (including ..."
+  新: "These numbers reflect the **final-audit round-20 historical snapshot state at `HEAD f1fe61c`** (including ...). **For current HEAD live-verification counts, see the "## Current live-verification (auditor runs against current tree)" section above.**"
+该重写是纯 doc-only 修复, 未修改任何代码 / schema / config。本轮后续 B-audit rounds 需遵循原则: 每遇到 "current tree state at HEAD" 类表述与同一段 historical snapshot 上下文同时出现, 须立即重写为 "historical snapshot state at `HEAD f1fe61c`"。
+
 ```text
 <abstract — this Round 11 historical re-run block was replaced with abstract pointer notation; auditor runs the live commands in "当前验证状态" (live verification commands — to be re-run by auditor against current tree) block below.>
 ```
