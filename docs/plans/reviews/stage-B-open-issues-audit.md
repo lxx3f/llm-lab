@@ -217,7 +217,7 @@ Fix (commit `320eee1` B-audit round-21: comprehensive current-HEAD/current-tree 
 
 detached auditor (round-21-postfix 后) 反馈: round-21 总体修复有效, 但 final-audit.md Section 4 内一行 "These numbers reflect the **current** tree state at HEAD ..." 仍存在, 与该 section 已加的 Historical snapshot note + 其他重标上下文件 内部矛盾 (本句声称 "current", 但 175/98/34 明显是 historical snapshot from f1fe61c)。
 
-Fix (本 commit, round-22): final-audit.md line 282-286 整句重写:
+Fix (commit `013befd` B-audit round-22: fix residual 'These numbers reflect current tree state at HEAD' sentence at final-audit.md:282-286, 2026-08-29 04:10): final-audit.md line 282-286 整句重写:
   原: "These numbers reflect the **current** tree state at HEAD (including ..."
   新: "These numbers reflect the **final-audit round-20 historical snapshot state at `HEAD f1fe61c`** (including ...). **For current HEAD live-verification counts, see the "## Current live-verification (auditor runs against current tree)" section above.**"
 该重写是纯 doc-only 修复, 未修改任何代码 / schema / config。本轮后续 B-audit rounds 需遵循原则: 每遇到 "current tree state at HEAD" 类表述与同一段 historical snapshot 上下文同时出现, 须立即重写为 "historical snapshot state at `HEAD f1fe61c`"。
