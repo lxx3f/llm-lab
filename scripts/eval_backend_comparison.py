@@ -26,8 +26,8 @@ Usage:
         --backends transformers vllm \\
         --samples-dir datasets/tool-calling-d2/dev \\
         --output-dir artifacts/p5-04-backend-comparison/ \\
-        --batch-sizes 1 \\
-        --limit 20
+        --batch-sizes 1 4 \\
+        --limit 90
 """
 from __future__ import annotations
 
@@ -91,8 +91,8 @@ class Backend(Protocol):
     """Minimal interface every backend must implement.
 
     The two real backends in this script (``TransformersBackend`` and
-    ``VLLMBackend``) implement this. Tests use the mock backend in
-    ``tests/test_eval_backend_comparison.py``.
+    ``VLLMBackend``) implement this. The script's ``--selftest`` mode
+    provides deterministic no-GPU coverage for the interface and helpers.
     """
 
     name: str
@@ -838,5 +838,394 @@ def main() -> int:
     return 0
 
 
+# ---------------------------------------------------------------------------
+# Self-tests (run with ``python scripts/eval_backend_comparison.py --selftest``)
+# ---------------------------------------------------------------------------
+#
+# Per the project's task constraint ("代码改动局限于 scripts/eval_backend_comparison.py
+# 新文件 + docs/*") this script does NOT add a parallel ``tests/`` file;
+# instead it embeds its unit tests as a ``--selftest`` subcommand. Each test
+# returns ``None`` on pass and raises ``AssertionError`` on fail. Run via:
+#
+#     python scripts/eval_backend_comparison.py --selftest
+#     wsl -d Ubuntu-22.04 -- bash -c "python3 /mnt/c/.../eval_backend_comparison.py --selftest"
+# ---------------------------------------------------------------------------
+
+
+class _MockBackend:
+    """Deterministic backend used by self-tests (mirrors the former MockBackend)."""
+
+    def __init__(self, responses: dict[str, str] | None = None) -> None:
+        self.responses = responses or {}
+        self.setup_calls: list[str] = []
+        self.teardown_calls: int = 0
+        self.chat_calls: int = 0
+        self._setup_done = False
+
+    @property
+    def name(self) -> str:
+        return "mock"
+
+    def setup(self, model_id: str, **kwargs: Any) -> None:
+        self.setup_calls.append(model_id)
+        self._setup_done = True
+
+    def chat_generate(self, messages_batch, tools_batch):
+        assert self._setup_done, "setup() must be called before chat_generate()"
+        self.chat_calls += 1
+        out: list[str] = []
+        for messages in messages_batch:
+            sid = None
+            for m in reversed(messages):
+                if m.get("role") == "user":
+                    sid = m.get("content", "")[:8]
+                    break
+            out.append(self.responses.get(sid or "", '{"name": "echo", "arguments": {}}'))
+        prompt_previews = [(m[-1].get("content", "")[:200] if m else "") for m in messages_batch]
+        return out, prompt_previews
+
+    def teardown(self) -> None:
+        self.teardown_calls += 1
+        self._setup_done = False
+
+    def metadata(self):
+        return {"backend": "mock", "dtype": "bf16", "max_new_tokens": 32, "device": "cpu"}
+
+
+def _self_make_sample(idx: int, task_type: str = "echo") -> dict[str, Any]:
+    return {
+        "id": f"d2-dev-{idx:04d}",
+        "metadata": {"task_type": task_type},
+        "messages": [
+            {"role": "system", "content": "You are a helper."},
+            {"role": "user", "content": f"sid{idx:04d}: call the echo tool"},
+        ],
+        "tools": [
+            {
+                "type": "function",
+                "function": {
+                    "name": "echo",
+                    "description": "Echo back the input.",
+                    "parameters": {"type": "object", "properties": {"x": {"type": "string"}}},
+                },
+            },
+        ],
+        "expected_tool_calls": [{"call_id": "c1", "name": "echo", "arguments": {"x": "hi"}}],
+        "expected_answer": "echoed: hi",
+    }
+
+
+def _run_selftests() -> int:
+    """Run all 24 embedded unit tests; return 0 on success, 1 on failure."""
+    import argparse as _ap
+    import csv as _csv
+    import json as _json
+
+    failures: list[str] = []
+
+    def _expect(name: str, condition: bool, hint: str = "") -> None:
+        if condition:
+            print(f"  [PASS] {name}", flush=True)
+        else:
+            failures.append(f"{name}: {hint}")
+            print(f"  [FAIL] {name}: {hint}", flush=True)
+
+    def _expect_raises(name: str, fn, exc_type: type, hint: str = "") -> None:
+        try:
+            fn()
+        except exc_type:
+            print(f"  [PASS] {name}", flush=True)
+            return
+        except Exception as e:
+            failures.append(f"{name}: wrong exception {type(e).__name__}: {e}")
+            print(f"  [FAIL] {name}: wrong exception {type(e).__name__}: {e}", flush=True)
+            return
+        failures.append(f"{name}: no exception raised")
+        print(f"  [FAIL] {name}: no exception raised", flush=True)
+
+    print("[selftest] Backend interface + helpers", flush=True)
+    # 1. Backend returns (generations, prompt_previews) tuple
+    backend = _MockBackend()
+    backend.setup("any/model")
+    out = backend.chat_generate(
+        [[{"role": "user", "content": "sid00000001: hi"}]],
+        [None],
+    )
+    _expect("test_backend_returns_tuple", isinstance(out, tuple) and len(out) == 2)
+    gens, prompts = out
+    _expect("test_backend_tuple_gens_list", isinstance(gens, list) and len(gens) == 1)
+    _expect("test_backend_tuple_prompts_list", isinstance(prompts, list) and len(prompts) == 1)
+    backend.teardown()
+
+    # 2. _strip_terminal_assistant
+    msgs = [
+        {"role": "system", "content": "s"},
+        {"role": "user", "content": "u"},
+        {"role": "assistant", "content": "expected_answer"},
+    ]
+    out_msgs = _strip_terminal_assistant(msgs)
+    _expect("test_strip_removes_last_assistant", len(out_msgs) == 2 and out_msgs[-1]["role"] == "user")
+    msgs2 = [{"role": "system", "content": "s"}, {"role": "user", "content": "u"}]
+    out_msgs2 = _strip_terminal_assistant(msgs2)
+    _expect("test_strip_no_op_when_no_assistant", out_msgs2 == msgs2 or out_msgs2 is msgs2)
+
+    # 3. _slugify
+    _expect("test_slugify_basic",
+            _slugify("HuggingFaceTB/SmolLM2-360M-Instruct") == "HuggingFaceTB__SmolLM2-360M-Instruct")
+
+    # 4. _aggregate_timing
+    t = _aggregate_timing(samples=[{}, {}, {}, {}], prompts=["a", "b", "c", "d"], outputs=["x", "y", "z", "w"], elapsed_s=2.0)
+    _expect("test_aggregate_basic", t["samples"] == 4 and t["per_sample_latency_ms"] == 500.0 and t["throughput_samples_per_s"] == 2.0)
+    t0 = _aggregate_timing(samples=[], prompts=[], outputs=[], elapsed_s=0.0)
+    _expect("test_aggregate_empty", t0["samples"] == 0 and t0["per_sample_latency_ms"] == 0.0 and t0["throughput_samples_per_s"] == 0.0)
+    tz = _aggregate_timing(samples=[{}, {}], prompts=["a", "b"], outputs=["x", "y"], elapsed_s=0.0)
+    _expect("test_aggregate_zero_elapsed", tz["throughput_samples_per_s"] == 0.0)
+
+    # 5. Backend class metadata
+    tb = TransformersBackend(dtype="bf16", max_new_tokens=64, device="cpu")
+    _expect("test_transformers_metadata", tb.name == "transformers" and tb.dtype == "bf16" and tb.max_new_tokens == 64)
+    vb = VLLMBackend(dtype="bf16", max_new_tokens=64, gpu_memory_utilization=0.5)
+    _expect("test_vllm_metadata", vb.name == "vllm" and vb.gpu_memory_utilization == 0.5)
+
+    # 6. DEFAULT_MODELS coverage (5 models from P5-02 §8)
+    model_ids = [m for m, _ in DEFAULT_MODELS]
+    _expect("test_default_models_count", len(DEFAULT_MODELS) == 5)
+    expected = {
+        "HuggingFaceTB/SmolLM2-360M-Instruct",
+        "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        "Qwen/Qwen2.5-0.5B-Instruct",
+        "Qwen/Qwen2.5-1.5B-Instruct",
+        "Qwen/Qwen2.5-3B-Instruct",
+    }
+    _expect("test_default_models_p5_02_set", set(model_ids) == expected)
+    all_hex = all(
+        len(rev) == 40 and all(c in "0123456789abcdef" for c in rev)
+        for _, rev in DEFAULT_MODELS
+    )
+    _expect("test_default_models_revisions_are_40char_hex", all_hex)
+
+    print("[selftest] Run pipeline (mocked)", flush=True)
+    # 7-9. run_one_combination via mocked factory
+    samples = [_self_make_sample(i) for i in range(3)]
+    args = _ap.Namespace(
+        samples_dir="datasets/tool-calling-d2/dev",
+        dtype="bf16",
+        max_new_tokens=64,
+        device="cpu",
+        vllm_gpu_mem_util=0.85,
+    )
+    backend = _MockBackend()
+    payload = run_one_combination(
+        model_id="HuggingFaceTB/SmolLM2-360M-Instruct",
+        backend_name="mock",
+        batch_size=1,
+        samples=samples,
+        args=args,
+        backend_factory=lambda **_: backend,
+    )
+    summary = payload["summary"]
+    for k in (
+        "model", "backend", "batch_size", "samples", "elapsed_s",
+        "per_sample_latency_ms", "throughput_samples_per_s",
+        "reward_binary", "reward_layered",
+        "parse_success_count", "parse_success_rate",
+        "first_failure_distribution", "backend_metadata",
+    ):
+        _expect(f"test_run_summary_has_{k}", k in summary)
+    _expect("test_run_summary_backend", summary["backend"] == "mock")
+    _expect("test_run_summary_samples", summary["samples"] == 3)
+    _expect("test_run_rows_count", len(payload["rows"]) == 3)
+    for row in payload["rows"]:
+        for k in ("sample_id", "task_type", "user_turn", "generated", "generated_preview",
+                  "extracted_calls", "layers", "first_failure"):
+            _expect(f"test_run_row_has_{k}", k in row)
+
+    # setup/teardown counter
+    _expect("test_setup_called_once", backend.setup_calls == ["HuggingFaceTB/SmolLM2-360M-Instruct"])
+    _expect("test_teardown_called_once", backend.teardown_calls == 1)
+    _expect("test_chat_called_per_sample", backend.chat_calls == 3)  # batch=1, 3 samples
+
+    # Error backend (raises in chat_generate)
+    class _ErrorBackend(_MockBackend):
+        def chat_generate(self, messages_batch, tools_batch):
+            raise RuntimeError("simulated OOM")
+
+    err_payload = run_one_combination(
+        model_id="HuggingFaceTB/SmolLM2-360M-Instruct",
+        backend_name="mock",
+        batch_size=1,
+        samples=samples,
+        args=args,
+        backend_factory=lambda **_: _ErrorBackend(),
+    )
+    _expect("test_error_backend_still_emits_rows", len(err_payload["rows"]) == 3)
+    _expect("test_error_backend_empty_generations", all(r["generated"] == "" for r in err_payload["rows"]))
+
+    print("[selftest] Output writers", flush=True)
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        # write_run_artifact
+        run_payload = {"summary": {"model": "m", "backend": "b", "batch_size": 1, "samples": 1}, "rows": []}
+        out_path = write_run_artifact(td_path, "m", "b", 1, run_payload)
+        _expect("test_artifact_exists", out_path.exists())
+        loaded = _json.loads(out_path.read_text(encoding="utf-8"))
+        _expect("test_artifact_loadable", loaded["summary"]["model"] == "m")
+
+        # write_aggregate_comparison
+        runs = [
+            {"summary": {"model": "M", "backend": "transformers", "batch_size": 1,
+                         "samples": 3, "elapsed_s": 2.0, "per_sample_latency_ms": 666.6,
+                         "throughput_samples_per_s": 1.5, "reward_binary": 0.0,
+                         "reward_layered": 0.42, "parse_success_rate": 0.66}},
+            {"summary": {"model": "M", "backend": "vllm", "batch_size": 1,
+                         "samples": 3, "elapsed_s": 1.0, "per_sample_latency_ms": 333.3,
+                         "throughput_samples_per_s": 3.0, "reward_binary": 0.0,
+                         "reward_layered": 0.42, "parse_success_rate": 0.66}},
+        ]
+        cjson, ccsv = write_aggregate_comparison(td_path, runs)
+        loaded_json = _json.loads(cjson.read_text(encoding="utf-8"))
+        _expect("test_aggregate_json_count", len(loaded_json["runs"]) == 2)
+        with ccsv.open(newline="", encoding="utf-8") as fh:
+            csv_rows = list(_csv.DictReader(fh))
+        _expect("test_aggregate_csv_count", len(csv_rows) == 2)
+        _expect("test_aggregate_csv_first_backend", csv_rows[0]["backend"] == "transformers")
+        _expect("test_aggregate_csv_second_backend", csv_rows[1]["backend"] == "vllm")
+
+        # Empty runs
+        cjson_e, _ = write_aggregate_comparison(td_path, [])
+        _expect("test_aggregate_empty_json", _json.loads(cjson_e.read_text(encoding="utf-8"))["runs"] == [])
+
+    print("[selftest] CLI", flush=True)
+    # argparse defaults
+    a0 = _build_argparser().parse_args([])
+    _expect("test_arg_models_default_none", a0.models is None)
+    _expect("test_arg_backends_default", a0.backends == list(DEFAULT_BACKENDS))
+    _expect("test_arg_batch_sizes_default", a0.batch_sizes == list(DEFAULT_BATCH_SIZES))
+    _expect("test_arg_samples_dir_default", a0.samples_dir == Path("datasets/tool-calling-d2/dev"))
+    _expect("test_arg_output_dir_default", a0.output_dir == Path("artifacts/p5-04-backend-comparison"))
+    _expect("test_arg_limit_default", a0.limit == 0)
+    _expect("test_arg_max_new_tokens_default", a0.max_new_tokens == 256)
+    _expect("test_arg_dtype_default", a0.dtype == "bf16")
+    _expect("test_arg_device_default", a0.device == "auto")
+
+    a1 = _build_argparser().parse_args([
+        "--models", "Qwen/Qwen2.5-0.5B-Instruct",
+        "--backends", "vllm",
+        "--batch-sizes", "1", "4",
+        "--limit", "10",
+        "--dtype", "fp16",
+    ])
+    _expect("test_arg_models_override", a1.models == ["Qwen/Qwen2.5-0.5B-Instruct"])
+    _expect("test_arg_backends_override", a1.backends == ["vllm"])
+    _expect("test_arg_batch_sizes_override", a1.batch_sizes == [1, 4])
+    _expect("test_arg_limit_override", a1.limit == 10)
+    _expect("test_arg_dtype_override", a1.dtype == "fp16")
+
+    _expect_raises("test_arg_help_exits_cleanly",
+                   lambda: _build_argparser().parse_args(["--help"]),
+                   SystemExit)
+
+    print("[selftest] Same-model Δ% computation", flush=True)
+    # basic signs: vLLM faster than transformers → latency Δ% < 0, throughput Δ% > 0
+    runs_basic = [
+        {"summary": {"model": "M", "backend": "transformers", "batch_size": 1,
+                     "per_sample_latency_ms": 1000.0, "throughput_samples_per_s": 1.0,
+                     "reward_binary": 0.0, "reward_layered": 0.4, "parse_success_rate": 0.5}},
+        {"summary": {"model": "M", "backend": "vllm", "batch_size": 1,
+                     "per_sample_latency_ms": 500.0, "throughput_samples_per_s": 2.0,
+                     "reward_binary": 0.0, "reward_layered": 0.4, "parse_success_rate": 0.5}},
+    ]
+    deltas = compute_delta_percentages(runs_basic)
+    _expect("test_delta_basic_key_present", "M__b1" in deltas)
+    _expect("test_delta_latency_negative_when_vllm_faster",
+            deltas["M__b1"]["per_sample_latency_ms"] is not None
+            and abs(deltas["M__b1"]["per_sample_latency_ms"] - (-50.0)) < 1e-6)
+    _expect("test_delta_throughput_positive_when_vllm_faster",
+            deltas["M__b1"]["throughput_samples_per_s"] is not None
+            and abs(deltas["M__b1"]["throughput_samples_per_s"] - 100.0) < 1e-6)
+    _expect("test_delta_reward_identical_returns_none",
+            deltas["M__b1"]["reward_binary"] is None)
+
+    # groups by batch
+    runs_grouped = [
+        {"summary": {"model": "M", "backend": "transformers", "batch_size": 1,
+                     "per_sample_latency_ms": 1000.0, "throughput_samples_per_s": 1.0,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+        {"summary": {"model": "M", "backend": "transformers", "batch_size": 4,
+                     "per_sample_latency_ms": 400.0, "throughput_samples_per_s": 10.0,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+        {"summary": {"model": "M", "backend": "vllm", "batch_size": 1,
+                     "per_sample_latency_ms": 900.0, "throughput_samples_per_s": 1.1,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+        {"summary": {"model": "M", "backend": "vllm", "batch_size": 4,
+                     "per_sample_latency_ms": 200.0, "throughput_samples_per_s": 20.0,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+    ]
+    dg = compute_delta_percentages(runs_grouped)
+    _expect("test_delta_groups_by_batch_keys",
+            "M__b1" in dg and "M__b4" in dg)
+    _expect("test_delta_b1_latency",
+            dg["M__b1"]["per_sample_latency_ms"] is not None
+            and abs(dg["M__b1"]["per_sample_latency_ms"] - (-10.0)) < 1e-6)
+    _expect("test_delta_b4_throughput",
+            dg["M__b4"]["throughput_samples_per_s"] is not None
+            and abs(dg["M__b4"]["throughput_samples_per_s"] - 100.0) < 1e-6)
+
+    # missing backend returns None
+    runs_missing = [
+        {"summary": {"model": "M", "backend": "transformers", "batch_size": 1,
+                     "per_sample_latency_ms": 100.0, "throughput_samples_per_s": 10.0,
+                     "reward_binary": 0.0, "reward_layered": 0.4, "parse_success_rate": 0.5}},
+    ]
+    dm = compute_delta_percentages(runs_missing)
+    _expect("test_delta_missing_backend_returns_none",
+            "M__b1" in dm and all(v is None for v in dm["M__b1"].values()))
+
+    # zero baseline returns None
+    runs_zero = [
+        {"summary": {"model": "M", "backend": "transformers", "batch_size": 1,
+                     "per_sample_latency_ms": 0.0, "throughput_samples_per_s": 0.0,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+        {"summary": {"model": "M", "backend": "vllm", "batch_size": 1,
+                     "per_sample_latency_ms": 100.0, "throughput_samples_per_s": 10.0,
+                     "reward_binary": 0.0, "reward_layered": 0.0, "parse_success_rate": 0.0}},
+    ]
+    dz = compute_delta_percentages(runs_zero)
+    _expect("test_delta_zero_baseline_returns_none",
+            "M__b1" in dz and all(v is None for v in dz["M__b1"].values()))
+
+    # write_delta_csv
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        deltas_csv_input = {
+            "M__b1": {"per_sample_latency_ms": -50.0, "throughput_samples_per_s": 100.0,
+                      "reward_binary": 0.0, "reward_layered": 5.0, "parse_success_rate": -2.5},
+            "M__b4": {"per_sample_latency_ms": None, "throughput_samples_per_s": None,
+                      "reward_binary": None, "reward_layered": None, "parse_success_rate": None},
+        }
+        delta_csv_path = write_delta_csv(td_path, deltas_csv_input)
+        _expect("test_delta_csv_exists", delta_csv_path.exists())
+        with delta_csv_path.open(newline="", encoding="utf-8") as fh:
+            csv_delta_rows = list(_csv.DictReader(fh))
+        _expect("test_delta_csv_count", len(csv_delta_rows) == 2)
+        _expect("test_delta_csv_first_row_key", csv_delta_rows[0]["model_batch"] == "M__b1")
+        _expect("test_delta_csv_first_row_value",
+                csv_delta_rows[0]["delta_per_sample_latency_ms_pct"] == "-50.00")
+        _expect("test_delta_csv_missing_value_empty",
+                csv_delta_rows[1]["delta_per_sample_latency_ms_pct"] == "")
+
+    print("", flush=True)
+    if failures:
+        print(f"[selftest] {len(failures)} FAILURE(S):", flush=True)
+        for f in failures:
+            print(f"  - {f}", flush=True)
+        return 1
+    # Count tests passed (rough count of [PASS] lines printed above).
+    print("[selftest] all tests PASSED", flush=True)
+    return 0
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main() if "--selftest" not in sys.argv else _run_selftests())

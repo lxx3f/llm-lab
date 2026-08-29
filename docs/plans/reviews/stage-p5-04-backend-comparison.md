@@ -1,214 +1,164 @@
-# Stage Review — P5-04 双后端基准对比 (Transformers vs vLLM)
+# Stage Review — P5-04 双后端基准对比（Transformers vs vLLM）
 
-- **List item**: D (active list item, 4 rounds delivered)
-- **HEAD**: 当前 main (`3f95bbe` round-3 dtype / revision / HF_HUB_CACHE + padding fix; this stage review updated in round-4 postfix)
-- **Date**: 2026-08-29
-- **Reviewer model**: per `docs/plans/review-process.md` = `minimax-cn/MiniMax-M3` (verified round-3 detached auditor dispatch)
+- **List item**: D
+- **状态**: 最终 correction，等待本轮独立 reviewer 核验
+- **日期**: 2026-08-29
+- **当前提交指针**: 使用抽象 HEAD 指针；审核时运行 `git rev-parse HEAD` 核验，不在 active verification 中固化 SHA
+- **Canonical reviewer**: `minimax-cn/MiniMax-M3`，符合 `docs/plans/review-process.md`
 
-## 范围（Scope）
+## 1. Objective 与范围
 
-5 公开 instruction-tuned 模型 × 2 后端 × 2 batch size = **20 个组合**的双后端基准对比；在 P5-02 benchmark evaluation subset (D2 dev 750 采样中的 30 样本；与 P5-02 §8 同口径可横向对比) 上跑同一样本；输出 4 轴对比表（latency / throughput / reward_binary / reward_layered）+ 同模型 Δ%。
+完成 5 个公开 instruction-tuned 模型 × 2 个推理后端 × 2 个 batch size 的双后端基准对比，共 **20 个真实 GPU 组合**。评测必须使用 P5-02 已使用的 benchmark evaluation subset，而不是任意 D2 前缀子集。
 
-不在本阶段范围内：
+本阶段最终固定为：
 
-- 修改自研 Dense / MoE 模型架构；
-- 训练 / LoRA / 全参数微调；
-- vLLM serving / FastAPI / Triton integration；
-- Multi-GPU scaling / speculative decoding；
-- 量化部署优化。
+- **样本集合**: `datasets/tool-calling-d2/dev/d2-dev-0001.json` 到 `d2-dev-0090.json`，按文件名排序，共 90 个样本；固定 ID 清单保存在 `docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset-ids.txt`；
+- **P5-02 对齐证据**: P5-02 artifact `artifacts/huggingfacetb-smollm2-360m-instruct-eval-d2dev.json` 的 row ID 为 `d2-dev-0001`…`d2-dev-0090`，与上述 manifest 精确一致；
+- **模型**: `HuggingFaceTB/SmolLM2-360M-Instruct`、`HuggingFaceTB/SmolLM2-1.7B-Instruct`、`Qwen/Qwen2.5-0.5B-Instruct`、`Qwen/Qwen2.5-1.5B-Instruct`、`Qwen/Qwen2.5-3B-Instruct`；
+- **后端**: Transformers greedy bf16 与 vLLM 0.27.1 greedy bfloat16；
+- **batch size**: 1、4；
+- **生成设置**: `max_new_tokens=64`、decoder-only tokenizer `padding_side="left"`；
+- **指标**: `per_sample_latency_ms`、`throughput_samples_per_s`、`reward_binary`、`reward_layered`，以及同模型同 batch 的 vLLM 相对 Transformers Δ%；
+- **边界**: 不修改自研模型、不重跑 P5-02/P5-03 训练、不做 vLLM serving 或多 GPU 扩展。
 
-## 修改 summary（4 轮交付）
+## 2. 交付物与文件范围
 
-### Round-1 (commit `a56c9be`): Mocked infrastructure + protocol + experiment README scaffold
+任务要求的当前交付文件为唯一新增脚本与 `docs/*`：
 
-| 文件 | 类型 | 说明 |
+| 路径 | 状态 | 说明 |
 |---|---|---|
-| `scripts/eval_backend_comparison.py` | NEW | Backend Protocol + TransformersBackend + VLLMBackend + run_one_combination + write_run_artifact + write_aggregate_comparison + main CLI |
-| `tests/test_eval_backend_comparison.py` | NEW | 19 mocked 单测覆盖 backend interface / pipeline / output schema / CLI |
-| `docs/protocols/backend-comparison.md` | NEW | 10 节协议（目标 / 接口 / 输入 / 输出 / 4 轴 / vLLM workarounds / 与 P5-02 关系 / 复现 / 边界） |
-| `docs/experiments/p5-04-backend-comparison/README.md` | NEW | 实验 README (TODO 表待 GPU runs) |
-| `docs/plans/reviews/stage-p5-04-backend-comparison.md` | NEW | stage review record |
+| `scripts/eval_backend_comparison.py` | ✅ | Backend Protocol、TransformersBackend、VLLMBackend、批处理、计时、reward 聚合、Δ% 计算、CSV/JSON 输出、`--selftest` |
+| `docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset-ids.txt` | ✅ | 90 个 P5-02 benchmark sample ID 的固定 manifest |
+| `docs/protocols/backend-comparison.md` | ✅ | 输入/输出契约、Backend tuple、指标公式、复现命令、边界与缓存说明 |
+| `docs/experiments/p5-04-backend-comparison/README.md` | ✅ | 90 样本实际结果、四轴表格、同模型 Δ% 表格、关键发现与限制 |
+| `docs/plans/reviews/stage-p5-04-backend-comparison.md` | ✅ | 本最终 stage-review record、实时验证命令与 reviewer verdict |
 
-### Round-2 (commit `ccf9ade`): Fix user_turn bug + same-model Δ% computation
+round-1 曾临时添加的独立测试文件已删除；当前树不再跟踪该越出范围的文件，测试逻辑保留在脚本 `--selftest` 子命令中。
 
-| 修复 | 说明 |
-|---|---|
-| `Backend.chat_generate` 返回值 | 从 `list[str]` 改为 `tuple[list[str], list[str]]`（含 prompt_previews） |
-| `run_one_combination` 中 `user_turn` | 从 `gen[:0]`（空）改为 backend 返回的 `prompt_preview`（前 200 字符） |
-| `compute_delta_percentages()` | 新增函数；同模型 (model, batch_size) 下 vLLM − Transformers 的 Δ% 计算（latency lower=better, throughput/reward higher=better） |
-| `write_delta_csv()` | 新增函数；输出 `comparison_delta.csv` |
-| `main()` 集成 | run 完成后调用 Δ% 计算 + 写 delta JSON/CSV |
-| 测试 | 5 新增 Δ% 测试 + 修正 2 测试 (返回 tuple + reward_binary 同值返回 None)；24 mocked 单测全部 PASS |
+## 3. 实际 GPU 运行证据
 
-### Round-3 (commit `3f95bbe`): dtype mapping + revision threading + padding fix + actual GPU runs
+运行命令：
 
-| 修复 / 改进 | 说明 |
-|---|---|
-| `TransformersBackend.setup` | `getattr(torch, self.dtype)` → `dtype_map={"bf16": torch.bfloat16, ...}` (torch 没有 `bf16` 属性) |
-| `VLLMBackend.__init__` | vLLM dtype 长名称映射：`bf16 → bfloat16` |
-| `--models` + `DEFAULT_MODELS` | 改为 `(model_id, cached_revision)` tuples；支持 `--models <id>=<rev>` 显式覆盖 |
-| `run_one_combination` 接 `revision` kwarg → `backend.setup(model_id, revision=...)` | vLLM 离线模式下需要 explicit revision |
-| `HF_HUB_CACHE` env var 默认设置 | 本仓使用 HF v0 cache 布局 (`models--{org}--{name}/...` 不带 `hub/`); modern HF 客户端需 `HF_HUB_CACHE` 明确指向 |
-| `TransformersBackend.setup` + `VLLMBackend.setup` | 加 `padding_side="left"` for decoder-only batched generation（修复 right-padding 警告否则 batch=4 输出垃圾） |
-| 实测 GPU runs | 20 组合 (5 模型 × 2 后端 × 2 batch sizes) × 30 样本；wall clock ~10 min；落盘 20 个 per-run artifact + aggregate CSV/JSON + Δ% CSV/JSON |
-
-### Round-4 (this postfix): Apply 3 reviewer Warnings + populate README + refresh stage review record
-
-| 修复 | 说明 |
-|---|---|
-| Warning 1 | `docs/protocols/backend-comparison.md §2` 更新 Backend.chat_generate signature 含 `(generations, prompt_previews)` 返回值 tuple |
-| Warning 2 | 本 stage review record 从 round-1 form 更新为 round-4 form；detached auditor verdict 填入真实 dispatched reviewer + PI_PROVIDER/MODEL |
-| Warning 3 | `docs/experiments/p5-04-backend-comparison/README.md` 从 "TODO 表待 GPU runs" 更新为完整 4 轴对比表 + 3 个 Δ% 表 + 关键发现 + 限制 + 结论 |
-| 24 mocked 单测 | 全部 PASS |
-| Full test suite | 386 OK (skipped=3) |
-
-## 设计要点
-
-### Backend 抽象
-
-```python
-class Backend(Protocol):
-    name: str
-    def setup(self, model_id: str, **kwargs: Any) -> None: ...
-    def chat_generate(messages_batch, tools_batch) -> tuple[list[str], list[str]]: ...
-    def teardown(self) -> None: ...
-    def metadata() -> dict[str, Any]: ...
+```bash
+wsl -d Ubuntu-22.04 -- bash -c "cd /mnt/c/Users/23236/repositories/llm-lab && \
+  python3 scripts/eval_backend_comparison.py \
+    --samples-dir datasets/tool-calling-d2/dev \
+    --output-dir artifacts/p5-04-backend-comparison/full \
+    --limit 90 --batch-sizes 1 4 --max-new-tokens 64"
 ```
 
-两真实实现 + 一 mock：
+实际结果：
 
-- **TransformersBackend** — 封装 `AutoModelForCausalLM` + greedy generation + `padding_side="left"` for batched；与 P5-02 `_greedy_generate` 等价但合并多 batch 调用；
-- **VLLMBackend** — 封装 vLLM `LLM.generate` + 同一 chat template 渲染（保证两后端 per-row 输出可比）；自动应用 P5-03 三个 workarounds + offline mode；
-- **MockBackend** — 测试用，deterministic generation，无 GPU 依赖。
+- `artifacts/p5-04-backend-comparison/full/` 有 **20** 个 `run_*.json`；
+- 每个 run 有 90 个 row，总计 **1800 rows**；
+- `comparison.csv` 有 20 个数据行；
+- `comparison_delta.csv` 有 10 个 `(model, batch_size)` 数据行；
+- 20 个 run 的 vLLM metadata 记录 version `0.27.1`；
+- 所有 1800 个 row 的 `user_turn` 非空；
+- 所有 run 的 sample ID 顺序与 `p5-02-benchmark-subset-ids.txt` 一致；
+- artifacts 按项目规则仅保留本地，不纳入源码提交。
 
-### Chat template 渲染一致性
+可复核命令：
 
-两后端都用 `tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, tools=...)`；fallback 到 `<role>: <content>` 拼接。两后端 prompt 渲染路径完全一致，保证 per-row 对比的语义公平。
+```bash
+ls artifacts/p5-04-backend-comparison/full/run_*.json | wc -l
+# 20
 
-### Target-answer 泄漏修复继承
+python - <<'PY'
+import glob, json
+from pathlib import Path
+base = Path('artifacts/p5-04-backend-comparison/full')
+files = sorted(base.glob('run_*.json'))
+manifest = Path('docs/experiments/p5-04-backend-comparison/p5-02-benchmark-subset-ids.txt').read_text(encoding='utf-8').splitlines()
+expected = [f'd2-dev-{i:04d}' for i in range(1, 91)]
+assert manifest == expected
+all_rows = []
+for path in files:
+    payload = json.loads(path.read_text(encoding='utf-8'))
+    assert set(payload) == {'summary', 'rows'}
+    assert payload['summary']['samples'] == 90
+    assert [row['sample_id'] for row in payload['rows']] == expected
+    assert all(row['user_turn'] for row in payload['rows'])
+    all_rows.extend(payload['rows'])
+assert len(files) == 20
+assert len(all_rows) == 1800
+print('20 runs / 1800 rows / exact ordered P5-02 manifest / non-empty user_turn: PASS')
+PY
 
-`_strip_terminal_assistant()` 在两后端共用，移除末位 assistant message（避免 D2 样本 gold answer 泄漏）。这是 P5-02 round-2 fix (`b4fd879`) 的等价实现。
+python - <<'PY'
+from pathlib import Path
+assert sum(1 for _ in Path('artifacts/p5-04-backend-comparison/full/comparison.csv').open(encoding='utf-8')) - 1 == 20
+assert sum(1 for _ in Path('artifacts/p5-04-backend-comparison/full/comparison_delta.csv').open(encoding='utf-8')) - 1 == 10
+print('comparison.csv=20 rows / comparison_delta.csv=10 rows: PASS')
+PY
+```
 
-### 4 轴对比指标
+## 4. 结果摘要
 
-| 指标 | 公式 | 与 P5-02 / P2 关系 |
-|---|---|---|
-| `per_sample_latency_ms` | `elapsed_s * 1000 / samples` | 端到端 (含 prompt render + tokenize + generate + detokenize + classify) |
-| `throughput_samples_per_s` | `samples / elapsed_s` | 同上 |
-| `reward_binary` | `(first_failure is None).mean()` | 通过 `reward_offline.compute_reward` 复算；与 P5-02 round-2 修复后口径一致 |
-| `reward_layered` | `mean(sum(layers True) / 8)` | 同上；与 P2 reward offline 完全一致 |
+结果来源：
 
-### Same-model Δ% 计算 (`compute_delta_percentages()`)
+- `artifacts/p5-04-backend-comparison/full/comparison.csv`
+- `artifacts/p5-04-backend-comparison/full/comparison_delta.csv`
+- `docs/experiments/p5-04-backend-comparison/README.md`
+
+同模型 Δ% 公式：
 
 ```text
-per_pair_delta = (vllm_value - transformers_value) / abs(transformers_value) * 100
+(vllm_value - transformers_value) / abs(transformers_value) * 100
 ```
 
-| 指标 | Δ% 符号约定 |
-|---|---|
-| latency | 负 = vLLM 更快（好） |
-| throughput | 正 = vLLM 更快（好） |
-| reward_binary / reward_layered / parse_success_rate | 正 = vLLM 质量更好（好） |
+90 样本下：
 
-10 个 (model, batch_size) pairs；missing-pair 返回 None；zero-baseline 返回 None（避免除以 0）。详见 `test_delta_percentages_*` 5 个测试。
+- 10/10 `(model, batch_size)` pairs 的 vLLM latency 更低，Δ% 为 -36.64% 到 -53.53%；
+- 10/10 pairs 的 vLLM throughput 更高，Δ% 为 +57.83% 到 +115.20%；
+- 20 个 run 的 `reward_binary` 均为 0.0，符合 P5-02 round-2 target-answer leakage 修复后的诚实负结果；
+- `reward_layered` 最大 backend 差异为 Qwen2.5-0.5B batch=4 的 -15.52%，已在 README 中明确记录；
+- README 已包含 latency、throughput、reward_binary、reward_layered 四轴表，以及 latency/throughput/reward-layered Δ% 表。
 
-### Reward 复算路径
+## 5. 正确性与回归验证
 
-`run_one_combination()` 内 `compute_reward()` 直接 import 自 `scripts/reward_offline.py`（既有模块），保证数字与 P5-02 横向对比一致；若 reward_offline 不可用（vLLM 占满 GPU），fallback 到 layer 直读（仅作 placeholder，不作为正式结论）。
+### 5.1 Embedded self-test
 
-### 输出 schema 兼容性
-
-`rows[*]` schema 与 P5-02 (`eval_transformers`) + `eval_sft_tool` 完全一致，可直接喂 `reward_offline --transcripts`。`{summary, rows}` 双层结构 + `first_failure_distribution` + 8 层 `layers` dict 全部对齐。`user_turn` 字段含真实 chat-template 渲染 prompt（round-2 fix）。
-
-### Mocked 测试覆盖
-
-24 单测 (no GPU / no model download / no WSL 依赖)：
-
-- Backend 抽象 + TransformersBackend / VLLMBackend metadata
-- `_strip_terminal_assistant` 边界（仅 assistant / 无 assistant）
-- `_aggregate_timing` (basic / empty / zero-elapsed)
-- `run_one_combination` (mocked factory + setup/teardown 计数 + error fallback + revision threading)
-- `write_run_artifact` + `write_aggregate_comparison` (JSON + CSV + empty)
-- CLI (defaults + overrides + `--help` + `--models=<id>=<rev>`)
-- Δ% 计算 (basic signs / groups by batch / missing backend / zero baseline)
-
-```text
-$ pytest tests/test_eval_backend_comparison.py -v
-============================= 24 passed in 3.49s ==============================
+```bash
+python scripts/eval_backend_comparison.py --selftest
 ```
 
-### 实测 GPU runs (round-3 交付)
+结果：**95 个断言全部 PASS**。覆盖 Backend tuple 接口、terminal assistant removal、timing 边界、mocked run pipeline、setup/teardown、batch/error fallback、JSON/CSV writer、CLI 参数和 Δ% 边界。
 
-20 个组合 (5 模型 × 2 后端 × 2 batch sizes) × 30 样本 (D2 dev held-out subset)；wall clock ~10 min on RTX 5070 Ti sm_120。
+### 5.2 Full project tests
 
-结果落盘：
+```bash
+python scripts/run_tests.py full
+```
 
-- 20 个 `run_<model>__<backend>__b<batch>.json` (per-run payload；600 row 总数)
-- `comparison.json` / `comparison.csv` (aggregate 20 行 + 10 列)
-- `comparison_delta.json` / `comparison_delta.csv` (Δ% 10 行)
-- 验证：所有 600 row `user_turn` 非空；schema 与 P5-02 完全一致
+结果：**386 tests OK，skipped=3**，无项目回归。
 
-### 关键发现（详见 experiment README）
+## 6. 审核时间线
 
-1. vLLM batch ≥ 4 系统性优于 transformers：8/10 batch-4 组合中 vLLM latency 低 27-58%，throughput 高 37-139%
-2. vLLM batch = 1 通常也更快（7/10）：latency 低 35-46%
-3. Qwen2.5-3B vLLM b=4 是最快组合：3.25 samples/s, 308 ms/sample (vs transformers 1.50 samples/s, 666 ms/sample)
-4. 质量（reward_layered）跨 backend 一致（±11%）；reward_binary 全 0 与 P5-02 round-2 修复后口径一致
-5. 异常：Qwen2.5-1.5B vLLM b=1 latency +92%（首次 EngineCore 启动 overhead 被 amortize 到 30 sample / batch=1）
+| Round | 历史提交 | 结果 |
+|---|---|---|
+| 1 | `a56c9be` | 统一 backend scaffold 与文档初稿 |
+| 2 | `ccf9ade` | 修复 `user_turn` 空值并加入 Δ% 计算 |
+| 3 | `3f95bbe` | 修复 dtype、offline revision、HF cache 与 batched padding |
+| 4 | `cea6850` | 同步协议、README 与 stage-review 初稿 |
+| 5 | `41e4641` | 删除超出任务范围的独立测试文件、嵌入 `--selftest` |
+| 6 | 当前 correction | 固定 P5-02 精确 90 样本 manifest，完成 20 组合正式重跑，清理 stale prose |
 
-## 不在范围内的项
+历史提交 SHA 仅描述过去变更；当前树状态由本文件中的 live commands 核验。
 
-- **更大样本**（P5-02 完整 dev split）：本协议用 --limit 30 平衡 wall clock 与统计有效性；扩展到 100/750 样本需要更长 wall clock
-- **自研模型 vLLM 适配**：明确 out-of-scope（详见 P5-03 README §严格不做）
-- **Reward fallback 数字作为正式结论**：协议明确 fallback 仅供测试
+## 7. Detached reviewer verdict
 
-## 验证 contract
+本轮 reviewer 需要在本 correction 提交后重新核验以下内容：
 
-abstract HEAD pointer — auditor runs `git rev-parse HEAD` to verify current value (round-19 B-audit abstract HEAD pointer convention)。
+- `PI_PROVIDER=minimax-cn`；
+- `PI_MODEL=MiniMax-M3`；
+- exact ordered P5-02 manifest；
+- 20 个 90-row artifacts、aggregate CSV、Δ% CSV；
+- `--selftest` 与 full suite；
+- 当前文件范围与 README/protocol 一致性。
 
-- **live command 1** (clean after commit): `git status --short` → empty
-- **live command 2** (only this list item's files): `git diff --name-only a56c9be..HEAD` (round-1 起点) → only `scripts/eval_backend_comparison.py` + `tests/test_eval_backend_comparison.py` + `docs/protocols/backend-comparison.md` + `docs/experiments/p5-04-backend-comparison/README.md` + `docs/plans/reviews/stage-p5-04-backend-comparison.md`
-- **live command 3** (24 mocked tests pass): `pytest tests/test_eval_backend_comparison.py -v` → 24 passed
-- **live command 4** (full suite pass): `python scripts/run_tests.py full` → 386 OK (skipped=3)
-- **live command 5** (CLI imports OK): `python -c "from scripts.eval_backend_comparison import Backend, DEFAULT_MODELS, DEFAULT_BACKENDS, compute_delta_percentages"` → no error
-- **live command 6** (20 GPU artifacts exist): `ls artifacts/p5-04-backend-comparison/full/run_*.json | wc -l` → 20
-- **live command 7** (no empty user_turn): inline python -c → 0 empty / 600 total
-- **live command 8** (Δ% sign convention): `cat artifacts/p5-04-backend-comparison/full/comparison_delta.csv` → 10 rows; SmolLM2-360M b=1 latency Δ% ≈ -35.4 (vLLM faster)
-- **live command 9** (experiment README populated): `grep -c '^|' docs/experiments/p5-04-backend-comparison/README.md` → 45+ table rows
-- **live command 10** (artifacts gitignored): `git check-ignore -v artifacts/p5-04-backend-comparison/full/comparison.json` → exit 0 + line 89 match
+当前状态：**PENDING independent review**。reviewer 完成后在本节填入实际 dispatch 时间、verdict、Critical/Warning/Suggestion 结果。
 
-**expected live verification outputs**: 上述 10 个命令在 round-4 后保持一致；新 commits 不应破坏 mocked tests + 完整 GPU artifacts。
+## 8. Final disposition
 
-## 关联文件
-
-- 修改 (round-2 + round-3):
-  - `scripts/eval_backend_comparison.py` (Backend.chat_generate tuple + dtype map + revision + padding)
-  - `tests/test_eval_backend_comparison.py` (24 mocked 单测)
-- 修改 (round-4):
-  - `docs/protocols/backend-comparison.md` (§2 Backend signature 同步)
-  - `docs/experiments/p5-04-backend-comparison/README.md` (从 TODO 填充为完整 4 轴表格)
-  - `docs/plans/reviews/stage-p5-04-backend-comparison.md` (本文件，从 round-1 form 更新为 round-4 form)
-
-## 审查 reviewer 身份与详细 verdict
-
-- detached auditor agent name: `reviewer` (project-level subagent reviewer, dispatched via Agent tool)
-- **detached auditor verdict**: **PASS** (0 Critical, 3 Warnings all applied, 0 Suggestions applied)
-- **detached auditor provider/model**: `PI_PROVIDER=minimax-cn`, `PI_MODEL=MiniMax-M3` (matches `minimax-cn/MiniMax-M3` per `docs/plans/review-process.md` canonical reviewer)
-- **dispatch timestamp**: 2026-08-29 ~18:45 (round-3 detached auditor dispatch, after GPU runs completion)
-
-### Reviewer findings (round-3 dispatched)
-
-#### ✅ Critical
-*(none — all 4 previous detached-auditor blockers addressed)*
-
-#### ⚠️ Warnings (all applied in round-4)
-1. **`docs/protocols/backend-comparison.md:30` — stale Backend Protocol signature.** The protocol still documented `chat_generate(...) -> list[str]: ...`, but the round-2 implementation returns `-> tuple[list[str], list[str]]:`. **Applied**: §2 updated to show `(generations, prompt_previews)` tuple signature with full docstring.
-
-2. **`docs/plans/reviews/stage-p5-04-backend-comparison.md` — stage review record was round-1 form.** Still said "19 mocked tests", "PENDING detached auditor dispatch", "TODO 表待 GPU runs". **Applied**: this postfix updated to round-4 form with full 4-round timeline + 20/20 GPU artifact verification + verdict.
-
-3. **Uncommitted working-tree changes** (`git status --short`): `docs/experiments/p5-04-backend-comparison/README.md` + `scripts/eval_backend_comparison.py` (left-padding fix). **Applied**: round-4 commit folds README fill-in; scripts padding fix was already committed in round-3 (`3f95bbe`).
-
-#### 💡 Suggestions (not blocking, deferred)
-- Expand `reward_binary = 0.0` "诚实负结果" note in README with P5-02 round-2 commit reference (`b4fd879`). [deferred — README already has the explanation; full reference is in protocol §8]
-- Log per-row empty `generated` warnings (6/600 in Qwen-3B runs) to stderr. [deferred — already handled via `first_failure` propagation + parse_success_rate; no silent failures]
-- Add comment to `compute_delta_percentages()` noting `abs(base)` denominator is a deliberate choice. [deferred — function docstring already specifies the formula]
+在本轮 reviewer 核验通过后，P5-04 的代码入口、双 backend 实现、20 个真实组合、P5-02 精确 benchmark subset、四轴指标、同模型 Δ%、reader-facing README、protocol 与 stage-review record 均满足目标。更大数据集、服务化、多 GPU、自研模型 vLLM 适配属于后续阶段，不阻塞本目标。

@@ -1,6 +1,6 @@
 # P5-04 双后端基准对比协议 (Transformers vs vLLM)
 
-> 状态：阶段交付（2026-08-29，list item D 第一轮）。
+> 状态：阶段交付（2026-08-29，list item D round-6 correction）。
 
 本协议固定 `scripts/eval_backend_comparison.py` 的输入 / 输出契约、backend 接口、四轴对比指标与 reduced-precision 复用策略。
 
@@ -40,7 +40,7 @@ class Backend(Protocol):
     def metadata(self) -> dict[str, Any]: ...
 ```
 
-两个真实实现：`TransformersBackend`（封装 `eval_transformers._greedy_generate` 等价逻辑 + left-padding 适配 batched generation）与 `VLLMBackend`（封装 vLLM `LLM.generate` + 同一 chat template 渲染 + P5-03 WSL2 workarounds）；测试 `tests/test_eval_backend_comparison.py` 提供 `MockBackend` 用于无 GPU 单测。
+两个真实实现：`TransformersBackend`（封装 `eval_transformers._greedy_generate` 等价逻辑 + left-padding 适配 batched generation）与 `VLLMBackend`（封装 vLLM `LLM.generate` + 同一 chat template 渲染 + P5-03 WSL2 workarounds）；测试通过脚本嵌入的 `--selftest` 子命令（24 测试点，95 断言）验证。
 
 ## 3. CLI 接口
 
@@ -147,7 +147,7 @@ HuggingFaceTB/SmolLM2-360M-Instruct,vllm,1,3,1.0,333.3,3.0,0.0,0.42,0.66
 | `reward_binary` | `(first_failure is None).mean()` | 8 层全过的样本比例；与 P5-02 round-2 fix 后口径一致 |
 | `reward_layered` | `mean(sum(layers True) / 8)` | 8 层平均通过率；与 P2 reward offline / P5-02 完全一致 |
 
-`reward_binary` / `reward_layered` 通过 `scripts/reward_offline.compute_reward` 复算，确保与 P5-02 + reward_offline 流水线一致；若 reward_offline 不可用（如 tests 中），自动 fallback 到 layer 直读（仅供占位，不作为正式结论）。
+`reward_binary` / `reward_layered` 通过 `scripts/reward_offline.compute_reward` 复算，确保与 P5-02 + reward_offline 流水线一致；若 reward_offline 不可用，则自动 fallback 到 layer 直读（仅供占位，不作为正式结论）。
 
 ## 7. vLLM 依赖与 workarounds
 
@@ -176,8 +176,8 @@ wsl -d Ubuntu-22.04 -- bash -c "pip3 show flashinfer-python"
 ## 9. 复现命令
 
 ```bash
-# Smoke (mocked, no GPU): tests
-.venv/python.exe -m pytest tests/test_eval_backend_comparison.py -v
+# Smoke (mocked, no GPU): in-process self-tests
+.venv/python.exe scripts/eval_backend_comparison.py --selftest
 
 # Smoke (real, 1 model + 4 samples):
 .venv/python.exe scripts/eval_backend_comparison.py \
@@ -187,9 +187,11 @@ wsl -d Ubuntu-22.04 -- bash -c "pip3 show flashinfer-python"
     --output-dir artifacts/p5-04-backend-comparison/smoke \
     --limit 4
 
-# Full (5 models × 2 backends × 2 batch sizes = 20 runs):
+# Full (5 models × 2 backends × 2 batch sizes = 20 runs; exact P5-02 subset = 90 samples):
 .venv/python.exe scripts/eval_backend_comparison.py \
+    --samples-dir datasets/tool-calling-d2/dev \
     --output-dir artifacts/p5-04-backend-comparison/full \
+    --limit 90 \
     --batch-sizes 1 4
 ```
 
