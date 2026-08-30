@@ -110,15 +110,18 @@ def test_reviewer_evidence_check_count_declared() -> None:
 
 
 def test_head_at_review_equals_head_parent() -> None:
-    """reviewer-evidence.md's `head_at_review` must be an ancestor of HEAD.
+    """reviewer-evidence.md's `head_at_review` must be `HEAD` or an ancestor.
 
-    Why "ancestor" rather than `HEAD^`? The reviewer-evidence.md file is a
-    reviewer-runs-trail artifact: each subsequent round may modify the file
-    to record the latest reviewer run's head_at_review + timestamp. The
-    invariant is therefore that the recorded head_at_review corresponds to
-    SOME valid tree state in the project's history — specifically, an
-    ancestor of HEAD. This is checked with `git merge-base --is-ancestor`,
-    which returns 0 iff the claimed SHA is reachable from HEAD.
+    The reviewer-evidence.md file is a reviewer-runs-trail artifact that may
+    be rewritten by the reviewer run it documents (self-referential). The
+    invariant is therefore relaxed to: `head_at_review == HEAD` OR
+    `head_at_review` is an ancestor of HEAD. The ancestor case is checked
+    with `git merge-base --is-ancestor`; the equality case is checked by
+    direct SHA comparison.
+
+    When the artifact-under-test is reviewer-evidence.md itself, the
+    reviewer subagent rewrites the file with `head_at_review = git rev-parse HEAD`,
+    so the equality case naturally holds post-reviewer-run.
     """
     if not REVIEWER_EVIDENCE.exists():
         pytest.skip("reviewer-evidence.md missing")
@@ -126,13 +129,17 @@ def test_head_at_review_equals_head_parent() -> None:
     m = re.search(r"`head_at_review`:\s*([0-9a-f]{40})", re_text)
     assert m, "reviewer-evidence.md missing head_at_review 40-hex SHA"
     claimed = m.group(1)
+    head = _git("rev-parse", "HEAD")
+    if claimed == head:
+        # Equality case: artifact-under-test self-references current HEAD.
+        return
     proc = subprocess.run(
         ["git", "merge-base", "--is-ancestor", claimed, "HEAD"],
         cwd=ROOT,
         capture_output=True,
     )
     assert proc.returncode == 0, (
-        f"head_at_review {claimed} is NOT an ancestor of HEAD "
+        f"head_at_review {claimed} is neither HEAD ({head}) nor an ancestor of HEAD "
         f"(merge-base --is-ancestor returned {proc.returncode}); "
         f"stderr: {proc.stderr.decode(errors='replace')!r}"
     )
