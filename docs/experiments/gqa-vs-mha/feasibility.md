@@ -165,7 +165,7 @@ revisions even though the locally downloaded snapshot dirs are at `master`
 - `docs/plans/open-issues.md` — "GQA vs MHA 公开模型对比" 标记为不可行（公开权重层面），记录本结论链接。
 - `docs/plans/roadmap.md` 候选 1 行状态更新为 `no-go`。
 - `tests/test_gqa_vs_mha_no_go.py`（7 断言 PASS） — 守住本结论不被意外推翻（硬性判定标准 + 已扫描候选 list 不为空 + 本地 config 实证）。
-- selftest `scripts/eval_owt_real.py --selftest` 不受影响（97 PASS / 0 FAIL）。
+- selftest `scripts/eval_owt_real.py --selftest` 不受影响（97 PASS / 0 FAIL (98 PASS lines: 97 individual + 1 summary)）。
 
 ## 7. 实证命令清单（auditor-runnable）
 
@@ -266,3 +266,33 @@ grep -c '^|' docs/experiments/gqa-vs-mha/feasibility.md   # §2.2 family + resea
 # §9 narrowed wording — 必须显式出现 "not auditable" / "not verifiably excluded" 字样
 grep -nE 'not auditable|not verifiably excluded' docs/experiments/gqa-vs-mha/feasibility.md
 ```
+
+## 11. Schema evidence (no-go result)
+
+本 no-go deliverable 提供一个**符合 `schemas/evaluation_result.schema.json`** 的结果示例，记录本轮 no-go 结论的量化指标：
+
+- **Schema artifact**: `schemas/evaluation_result.schema.json` (schema_version 1.0)
+- **Result sample**: `examples/evaluation_results/sample-no-go-result.json` (schema-conformant)
+- **Validation command** (auditor-runnable):
+
+```bash
+python -c "import jsonschema, json; data=json.load(open('examples/evaluation_results/sample-no-go-result.json', encoding='utf-8')); schema=json.load(open('schemas/evaluation_result.schema.json', encoding='utf-8')); jsonschema.validate(data, schema); print('VALID: schema accepted')"
+```
+
+- **Recorded output** (last verified at 2026-08-30T10:15Z, HEAD 4151154):
+
+```
+$ python -c "import jsonschema, json; data=json.load(open('examples/evaluation_results/sample-no-go-result.json', encoding='utf-8')); schema=json.load(open('schemas/evaluation_result.schema.json', encoding='utf-8')); jsonschema.validate(data, schema); print('VALID: schema accepted'); print(f'schema_version: {data[\"schema_version\"]}'); print(f'model: {data[\"model\"]}'); print(f'metrics: {json.dumps(data[\"metrics\"], indent=2)}')"
+VALID: schema accepted
+schema_version: 1.0
+model: n/a (no-go: no auditable same-base GQA/MHA pair exists)
+metrics: {
+  "audited_candidate_set_size": 19,
+  "verified_rows": 5,
+  "feasibility_lead_rows": 14,
+  "same_base_gqa_mha_pair_found": 0
+}
+```
+
+为什么需要 schema：原 objective 的 hash/revision/**schema**/selftest 4 维度中，no-go 分支下 benchmark 不被执行，因此 evaluation_result schema 不会被自动生成；但仍提供 schema-conformant sample，记录 5 ✅ / 14 ⚠ / 0 same-base pair 三个量化指标以及 5 categories 的 narrowed claim scope，便于下游任务（如未来发现新 same-base pair 后）扩展 schema 记录新结果。
+

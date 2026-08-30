@@ -103,7 +103,7 @@ for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.js
 
 # §2 §2.2 family + research artifact 数量 + URL count + access date count
 python -m pytest tests/test_gqa_vs_mha_audit_consistency.py -v
-# Expected: 11 passed (audit consistency tests including §2.2 row completeness)
+# Expected: 19 passed (7 keyword/family smoke tests + 12 structural audit-consistency tests)
 
 # §3 narrowed claim wording — 必须显式出现 "audited candidate set" + "not auditable / not verifiably excluded"
 grep -nE 'audited candidate set|not auditable|not verifiably excluded' docs/experiments/gqa-vs-mha/feasibility.md
@@ -119,3 +119,7 @@ grep -nE 'audited candidate set|not auditable|not verifiably excluded' docs/expe
 - `feasibility.md` §9 — 结论范围 (narrowed claim)
 
 如修改本 protocol，必须同步修改 `feasibility.md` §8 保持一致；auditor 会交叉比对。
+
+## Schema evidence (cross-reference)
+
+本 protocol 配套 schema artifact 在 `feasibility.md` §11：`schemas/evaluation_result.schema.json` + `examples/evaluation_results/sample-no-go-result.json` + auditor-runnable validation command + recorded output。

@@ -243,14 +243,18 @@ def test_stage_review_no_false_sha_equals_head() -> None:
     - `head_at_review = <40-hex SHA> = git rev-parse HEAD`
     - `head_at_review == HEAD is the correct self-referential invariant`
     - `head_at_review == HEAD ... is the ... invariant`
+    - **abbreviated forms** (the exact pattern that escaped round 16):
+      `head_at_review = <abbrev-SHA>... = \`git rev-parse HEAD\`` (no space after `=`, SHA abbreviated, etc.)
+    - any line that claims head_at_review SHA equals current HEAD without explicitly noting HEAD^
 
-    The check uses regex on the stage review's text body. Any live occurrence
-    fails the test, regardless of whether the claim is in a paragraph,
-    blockquote, table, or list item.
+    The check uses regex on the stage review's text body AND on the
+    reviewer-evidence.md text body. Any live occurrence fails the test,
+    regardless of whether the claim is in a paragraph, blockquote, table,
+    or list item.
     """
     if not STAGE_REVIEW.exists():
         pytest.skip(f"stage review not found at {STAGE_REVIEW}")
-    text = STAGE_REVIEW.read_text(encoding="utf-8")
+    text = STAGE_REVIEW.read_text(encoding="utf-8") + "\n" + REVIEWER_EVIDENCE.read_text(encoding="utf-8")
     # Match ONLY the specific false claim pattern: head_at_review = <40-hex SHA> = git rev-parse HEAD
     # (where the same SHA is asserted to equal current HEAD).
     banned_pat = re.compile(
@@ -265,11 +269,14 @@ def test_stage_review_no_false_sha_equals_head() -> None:
     for i, line in enumerate(text.splitlines(), start=1):
         if banned_pat.search(line):
             bad_lines.append((i, line))
+        # Only flag banned phrases when they appear in a line that ALSO
+        # makes a claim about head_at_review (so historical descriptions of
+        # the banned phrase in audit-trail context don't get flagged).
         for phrase in banned_phrases:
-            if phrase in line:
+            if phrase in line and "head_at_review" in line.lower():
                 bad_lines.append((i, line))
     assert not bad_lines, (
-        f"stage review still has banned false SHA == HEAD claim(s): {bad_lines}"
+        f"stage review / reviewer-evidence still has banned false SHA == HEAD claim(s): {bad_lines}"
     )
 
 

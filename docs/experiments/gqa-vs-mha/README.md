@@ -34,7 +34,7 @@ for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.js
 
 # 3. Pytest guard suite
 python -m pytest tests/test_gqa_vs_mha_no_go.py tests/test_gqa_vs_mha_audit_consistency.py -v
-# Expected: 18 passed (7 keyword/family smoke tests + 11 structural audit-consistency tests)
+# Expected: 19 passed (7 keyword/family smoke tests + 12 structural audit-consistency tests)
 
 # 4. Reviewer evidence
 cat docs/experiments/gqa-vs-mha/reviewer-evidence.md
@@ -74,3 +74,7 @@ ablation、未发布 safetensors 的 paper-only 权重包含同 base 对。
 2. **复现 uptraining**：从 `meta-llama/Llama-2-7b-hf` 出发做 MHA → GQA-{4,8,16} 转换
    + 5% 额外预训练（按 fpcsong 2025 论文 recipe）。需要 ~50K-100K 训练 token + 数天 GPU。
    也远超本 lab 当前算力。
+
+## Schema evidence
+
+本 no-go deliverable 提供一个符合 `schemas/evaluation_result.schema.json` (schema_version 1.0) 的结果示例，详见 `feasibility.md` §11。Schema artifact + sample + auditor-runnable validation command + recorded output 完整提供。

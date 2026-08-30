@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "model": "n/a (no-go: no auditable same-base GQA/MHA pair exists)",
+  "task": "gqa-vs-mha-feasibility",
+  "dataset_version": null,
+  "backend": null,
+  "metrics": {
+    "audited_candidate_set_size": 19,
+    "verified_rows": 5,
+    "feasibility_lead_rows": 14,
+    "same_base_gqa_mha_pair_found": 0
+  },
+  "failures": [],
+  "experiment_id": "gqa-vs-mha-no-go-2026-08-30",
+  "timestamp": "2026-08-30T10:15:57Z",
+  "config": {
+    "scope": "15 LLM families + 3 research artifacts",
+    "head_at_review": "4151154445faa6eb5a608d4ece0fa9e46e334470",
+    "review_timestamp_utc": "2026-08-30T10:15:57Z",
+    "narrowed_claim_categories": [
+      "closed-source / gated-only",
+      "unpublicized checkpoints",
+      "private org-internal trainings",
+      "non-English / non-mainstream platforms",
+      "paper-only ablations without released safetensors"
+    ],
+    "feasibility_doc": "docs/experiments/gqa-vs-mha/feasibility.md",
+    "reviewer_evidence": "docs/experiments/gqa-vs-mha/reviewer-evidence.md",
+    "stage_review": "docs/plans/reviews/stage-gqa-vs-mha-no-go.md"
+  },
+  "summary": "GQA vs MHA 公开模型对比 — no-go. 在 audited candidate set (15 LLM family + 3 research artifact) 内没有可审计的同 base GQA/MHA 双版本公开模型对。本结论仅对 audited candidate set 有效，不主张全球 HF 一定不存在；5 not-auditable 类别（closed-source / unpublicized / private org-internal / non-English / paper-only）不在覆盖范围内。"
+}
