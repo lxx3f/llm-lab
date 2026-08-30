@@ -45,7 +45,7 @@ dtype:             int32 little-endian（Qwen2.5 vocab 151,643 > uint16 范围�
 
 模型从 ModelScope（`https://modelscope.cn`）下载，缓存到 `artifacts/owt-real-eval/models/<owner>/<name>/`。先尝试 P5-04 exact revision；如果 ModelScope 不识别该 commit（ModelScope 与 HF 的 commit namespace 不同），回退到 `master` 并在每个结果 JSON 中显式记录 `revision_verified=False`。
 
-任何 `revision_verified=False` 的结果在对比表中加 ⚠ 标记，README 的 Limitations 节明确说明：跨模型 perplexity 不可直接对比，且不同 revision 可能引入额外不可比项。
+任何 `revision_verified=False` 的结果在对比表中加 ⚠ 标记（详见 §5 模型对比表的列说明）；README 的 Limitations 节明确说明：跨模型 perplexity 不可直接对比，且不同 revision 可能引入额外不可比项。⚠ 标记是显式的视觉警示，提示读者该数字来自 ModelScope `master` snapshot 而非 P5-04 精确 commit。
 
 ## 计算口径
 
@@ -81,13 +81,15 @@ dtype:             int32 little-endian（Qwen2.5 vocab 151,643 > uint16 范围�
 
 > 该表由 `scripts/eval_owt_real.py --aggregate` 生成的 `comparison.csv` 直接生成；任何数值变更都必须先重跑对应模型再重生表，selftest 会自动守护。全部 5 模型 × 完整 289,998,753 字节 source × 68/65M tokens，全部 finite。
 
-| 模型 | encoded_tokens | evaluated_tokens | mean_loss_nats | perplexity | loss_nats_per_source_byte | revision_verified | elapsed_sec |
-|---|---:|---:|---:|---:|---:|:---:|---:|
-| SmolLM2-360M | 68,003,129 | 67,936,719 | 2.7219 | 15.21 | 6.3764e-01 | false | 2121.6 |
-| SmolLM2-1.7B | 68,003,129 | 67,936,719 | 2.4020 | 11.05 | 5.6271e-01 | false | 6092.8 |
-| Qwen2.5-0.5B | 64,707,865 | 64,644,673 | 2.9854 | 19.79 | 6.6548e-01 | false | 2778.4 |
-| Qwen2.5-1.5B | 64,707,865 | 64,644,673 | 2.6952 | 14.81 | 6.0079e-01 | false | 5930.7 |
-| Qwen2.5-3B | 64,707,865 | 64,644,673 | 2.5679 | 13.04 | 5.7243e-01 | false | 10346.6 |
+| 模型 ⚠ | encoded_tokens | evaluated_tokens | mean_loss_nats | perplexity ⚠ | loss_nats_per_source_byte | revision_verified | elapsed_sec |
+|:---|---:|---:|---:|---:|---:|:---:|---:|
+| SmolLM2-360M ⚠ | 68,003,129 | 67,936,719 | 2.7219 | 15.21 ⚠ | 6.3764e-01 | false ⚠ | 2121.6 |
+| SmolLM2-1.7B ⚠ | 68,003,129 | 67,936,719 | 2.4020 | 11.05 ⚠ | 5.6271e-01 | false ⚠ | 6092.8 |
+| Qwen2.5-0.5B ⚠ | 64,707,865 | 64,644,673 | 2.9854 | 19.79 ⚠ | 6.6548e-01 | false ⚠ | 2778.4 |
+| Qwen2.5-1.5B ⚠ | 64,707,865 | 64,644,673 | 2.6952 | 14.81 ⚠ | 6.0079e-01 | false ⚠ | 5930.7 |
+| Qwen2.5-3B ⚠ | 64,707,865 | 64,644,673 | 2.5679 | 13.04 ⚠ | 5.7243e-01 | false ⚠ | 10346.6 |
+
+> ⚠ 表头与每行的 ⚠ 标记表示该模型 `revision_verified=false`（ModelScope 不识别 P5-04 exact revision，已回退到 `master` snapshot）。这些 perplexity / loss 数字仍是 5 模型的实测值，但模型权重可能与 P5-04 精确 commit 存在字节级差异，跨模型直接比较时必须考虑该 caveat（README §Limitations 详述）。
 
 **实测解读**：
 
