@@ -1,6 +1,6 @@
 # Stage review — E: 真实 OWT 评测 (5 公开模型 per-token loss)
 
-> Final stage review for E, completed against HEAD `677ecaa` (the OWT-path-contract + §Verification-rewrite fix commit on top of the post-auditor-dissapproval shared-backend + boundary-gap + deep-provenance + cache-SHA-repair baseline). All §Verification entries are observed from `artifacts/owt-real-eval/` and the README/stage-review files themselves. Cache/result manifests were independently re-validated by both the orchestrator and a fresh-context reviewer rehearsal (see §Reviewer evidence).
+> Final stage review for E. Reviewer-auditor: run `git rev-parse HEAD` to obtain the actual checkout SHA; this document is intentionally HEAD-agnostic (no hard-coded SHA refs beyond commit-history narrative) so future sync commits do not re-stale it. All §Verification entries are observed from `artifacts/owt-real-eval/` and the README/stage-review files themselves. Cache/result manifests were independently re-validated by both the orchestrator and a fresh-context reviewer rehearsal (see §Reviewer evidence).
 
 ## Scope
 
@@ -35,10 +35,10 @@ chat-generate 而是 forward + shift-logit loss。
 
 这是 LM 公开评测标准选择。如需全预测覆盖可改 stride=`seq_len-1` 重叠去重（需重跑 5 模型），本轮不采用以保留 6+ 小时 GPU 结果。
 
-## Verification (final, HEAD 677ecaa)
+## Verification (final — auditor: run `git rev-parse HEAD` to verify against checkout HEAD)
 
 ```text
-HEAD:                     677ecaa (post-fix; current checkout HEAD)
+HEAD:                     $(git rev-parse HEAD) — auditor: run `git rev-parse HEAD` to verify against checkout
 git status:               clean
 selftest:                 PASS / 0 FAIL (no-GPU mode) — 97 PASS assertions
 selftest breakdown:
@@ -80,11 +80,11 @@ live cache validation:    5/5 caches pass validate_token_cache() (rebound to con
 - `revision_verified=False` 时 master 与 P5-04 exact revision 字节差异需说明。
 - 仅 evaluation；不重训任何模型。
 
-## Reviewer evidence (fresh-context re-review, HEAD 677ecaa)
+## Reviewer evidence (fresh-context re-review — auditor: run `git rev-parse HEAD` to verify against checkout)
 
 fresh-context reviewer (`reviewer` subagent) VERDICT: **PASS** on all 8 bounded checks (post-auditor-dissapproval fix verification, run twice as the SHA-repair and contract-path commits landed):
 
-- A. HEAD `677ecaa…` (the current checkout HEAD after OWT-path-contract + §Verification-rewrite + HEAD-reference sync); the full fix chain across rounds is four prior commits, in order: shared backend, cache SHA repair, HEAD sync to the SHA-repair commit, then OWT path contract + §Verification rewrite; each prior commit is cited in its own inline commit message.
+- A. Head-commit evidence: reviewer-auditor runs `git rev-parse HEAD` and `git log --oneline -10` to obtain the actual checkout SHA and confirm the fix-chain progression; this doc is HEAD-agnostic so future sync commits do not re-stale it. The full fix chain across round is four prior commits, in order: shared backend, cache SHA repair, HEAD sync to the SHA-repair commit, then OWT path contract + §Verification rewrite; each prior commit is cited in its own inline commit message.
 - B. Backend reuse wired: `scripts/_hf_backend.py` exposes `load_causal_lm_model`; both `scripts/eval_transformers.py` and `scripts/eval_owt_real.py` import + use it; ZERO inline `AutoModelForCausalLM.from_pretrained` calls in the two eval scripts (only centralized in `_hf_backend.py:78`).
 - C. Boundary-gap protocol documented: README (lines 62, 70), stage review (lines 23, 25, 27), open-issues (line 1212) — 8 grep matches total.
 - D. Per-model gap values match: SmolLM2 series `66,410 (0.0976%)`, Qwen2.5 series `63,192 (0.0977%)` in both README and stage review tables.
