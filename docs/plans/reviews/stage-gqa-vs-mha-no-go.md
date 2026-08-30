@@ -1,7 +1,10 @@
-# Stage review — list item F: GQA vs MHA 公开模型对比 (no-go 结论)
+# Stage review — list item F: GQA vs MHA 公开模型对比 (narrowed verified-scope no-go + incomplete feasibility review)
 
-> 任务来源：list item F（active goal `20260830065849-6tiyo5`，2026-08-30 启动）。
-> 结论：**no-go** — 无可审计的同 base GQA/MHA 公开模型对。
+> 任务来源：list item F（active goal，2026-08-30 启动）。
+> 结论（双层 scope）：**narrowed verified-scope no-go** — 在 5 个 fully independently verified rows
+> (Mixtral mirror / SmolLM P5-04 SHAs / Ainslie 2023 / fpcsong/mha2gqa / shreyansh26) 内无可审计的同
+> base GQA/MHA 公开模型对（durable）。**14 feasibility-lead rows 是 needs-more-work leads，不是
+> verified exclusions**；full audit closure incomplete，本 deliverable 不是 complete 19-candidate no-go review。
 > 本 stage review 在 HEAD 见 `git rev-parse HEAD` (auditor-runnable)。
 > 完整搜索过程与候选清单见 `docs/experiments/gqa-vs-mha/feasibility.md`。
 
@@ -13,7 +16,7 @@
 
 ## 交付清单
 
-- `docs/experiments/gqa-vs-mha/feasibility.md` — 30,160 bytes (~30 KB；含 §1 判定标准、§2 候选扫描 19 rows 5 ✅+14 ⚠、§3 否决理由、§4 影响、§5 结论、§6 P5-04 5 model 实证、§7/§10 实证命令、§8 reproducible search、§9 narrowed claim、§11 schema evidence、§Per-row classification appendix)。
+- `docs/experiments/gqa-vs-mha/feasibility.md` — size is auditor-runnable via `wc -c docs/experiments/gqa-vs-mha/feasibility.md`（~30 KB 级；含 §1 判定标准、§2 候选扫描 19 rows 5 ✅+14 ⚠、§3 否决理由、§4 影响、§5 结论双层 scope、§6 P5-04 5 model 实证、§7/§10 实证命令、§8 reproducible search、§9 narrowed claim 双层 scope、§11 schema evidence、§Per-row classification appendix）。
 - `tests/test_gqa_vs_mha_no_go.py` — 7 个 pytest 断言；guard 守住 no-go 结论与硬性判定标准。
 - `docs/plans/roadmap.md` 候选 1 行追加状态更新段（line 101）：no-go + 指向 feasibility + stage review。
 - `docs/plans/open-issues.md` 暂不处理段记录本 no-go 结论链接（见下文 §Risks）。
@@ -53,13 +56,14 @@ python scripts/eval_owt_real.py --selftest   # 仍 97 PASS / 0 FAIL (98 PASS lin
 
 ## Open-issues 暂不处理段更新
 
-`docs/plans/open-issues.md` 暂不处理段追加：
+`docs/plans/open-issues.md` 暂不处理段追加（双层 scope）：
 
 ```
-- **GQA vs MHA 公开模型对比**（list item F，2026-08-30）：可行性搜索结论 no-go。
-  公开权重层面无可审计的同 base MHA/GQA 双版本；后续若继续需自训练或 uptraining，
-  均超出当前 lab 算力预算。详见 `docs/experiments/gqa-vs-mha/feasibility.md`
-  与 `docs/plans/reviews/stage-gqa-vs-mha-no-go.md`。
+- **GQA vs MHA 公开模型对比**（list item F，2026-08-30）：可行性搜索结论 narrowed verified-scope no-go。
+  在 5 个 fully independently verified rows 内公开权重层面无可审计的同 base MHA/GQA 双版本（durable）；
+  14 feasibility-lead rows 是 needs-more-work leads（unpinned master / absence claims），不是 verified exclusions，
+  full audit closure incomplete。后续若继续需自训练或 uptraining，均超出当前 lab 算力预算。
+  详见 `docs/experiments/gqa-vs-mha/feasibility.md` 与 `docs/plans/reviews/stage-gqa-vs-mha-no-go.md`。
 ```
 
 ## Reviewer evidence (external artifact, HEAD-agnostic)

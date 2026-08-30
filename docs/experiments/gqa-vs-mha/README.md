@@ -1,7 +1,14 @@
-# GQA vs MHA 公开模型对比 — README (no-go path)
+# GQA vs MHA 公开模型对比 — README (narrowed verified-scope no-go + incomplete feasibility review)
 
-> **No-go conclusion**: 无可审计的同 base GQA/MHA 公开模型对。本目录只承载
-> feasibility/no-go 审查的 deliverable，不包含 4 轴对比实验的 README（因为
+> **Narrowed conclusion (two-level scope)**:
+> - **Verified sub-scope (5/19 rows)** — fully independently verified rows: no auditable
+>   same-base GQA/MHA 公开模型对 exists. This sub-scope no-go is durable.
+> - **Feasibility-lead sub-scope (14/19 rows)** — NOT verified exclusions; these rows are
+>   "needs more work" leads (unpinned master / absence claims). Full audit closure is
+>   **incomplete**; the 14 rows are not counted as no-go exclusions.
+>
+> Headline: do NOT interpret this deliverable as a complete 19-candidate no-go review.
+> 本目录只承载 feasibility/no-go 审查的 deliverable，不包含 4 轴对比实验的 README（因为
 > no-go 分支下 4 轴对比不被执行，参见 list item F objective）。
 
 ## 目录内容
@@ -34,7 +41,7 @@ for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.js
 
 # 3. Pytest guard suite
 python -m pytest tests/test_gqa_vs_mha_no_go.py tests/test_gqa_vs_mha_audit_consistency.py -v
-# Expected: 20 passed (7 keyword/family smoke tests + 13 structural audit-consistency tests including cross-document candidate-set consistency)
+# Expected: 25 passed (7 keyword/family smoke tests + 18 structural audit-consistency tests including cross-document candidate-set consistency + pinned-revision verification + no-unconditional-whole-set-claims)
 
 # 4. Reviewer evidence
 cat docs/experiments/gqa-vs-mha/reviewer-evidence.md
@@ -43,10 +50,14 @@ cat docs/experiments/gqa-vs-mha/reviewer-evidence.md
 #         Audit checks (10 bounded) + Verbatim reviewer output sections
 ```
 
-## 结论范围（与 feasibility.md §9 一致）
+## 结论范围（与 feasibility.md §9 一致，双层 scope）
 
 本 README 仅声明：在 `feasibility.md` §2.2 列出的 15 LLM family + 4 research artifacts
-这一 **audited candidate set** 内，没有可审计的同 base GQA/MHA 双版本公开模型对。
+这一 **audited candidate set (19 rows)** 内：
+- **Verified sub-scope (5 verified rows)**：没有可审计的同 base GQA/MHA 双版本公开模型对（durable）。
+- **Feasibility-lead sub-scope (14 feasibility-lead rows)**：不是 verified exclusions；
+  这些 rows 是 needs-more-work leads，full audit closure 当前 incomplete。
+本 README 不把 14 feasibility-lead rows 当作 verified no-go exclusions。
 
 本文不主张：(a) 闭源 / gated-only 仓库中存在未公开的同 base 对；(b) HF 历史上发布
 后又删除的 checkpoint 包含同 base 对；(c) 私人 org-internal 训练中存在同 base 对

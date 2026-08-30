@@ -290,20 +290,22 @@ grep -nE 'not auditable|not verifiably excluded' docs/experiments/gqa-vs-mha/fea
 python -c "import jsonschema, json; data=json.load(open('examples/evaluation_results/sample-no-go-result.json', encoding='utf-8')); schema=json.load(open('schemas/evaluation_result.schema.json', encoding='utf-8')); jsonschema.validate(data, schema); print('VALID: schema accepted')"
 ```
 
-- **Recorded output** (last verified at 2026-08-30T10:15Z, HEAD 4151154):
+- **Recorded output** (last verified at HEAD: auditor-runnable; re-run `python -c "import jsonschema, json; data=json.load(open('examples/evaluation_results/sample-no-go-result.json', encoding='utf-8')); schema=json.load(open('schemas/evaluation_result.schema.json', encoding='utf-8')); jsonschema.validate(data, schema); print('VALID: schema accepted')"` to reproduce):
 
 ```
 $ python -c "import jsonschema, json; data=json.load(open('examples/evaluation_results/sample-no-go-result.json', encoding='utf-8')); schema=json.load(open('schemas/evaluation_result.schema.json', encoding='utf-8')); jsonschema.validate(data, schema); print('VALID: schema accepted'); print(f'schema_version: {data[\"schema_version\"]}'); print(f'model: {data[\"model\"]}'); print(f'metrics: {json.dumps(data[\"metrics\"], indent=2)}')"
 VALID: schema accepted
 schema_version: 1.0
-model: n/a (no-go: no auditable same-base GQA/MHA pair exists)
+model: n/a (verified scope no-go: 5/19 candidates confirmed no same-base GQA/MHA pair; 14/19 candidates are feasibility leads requiring pinned-revision verification for full closure)
 metrics: {
   "audited_candidate_set_size": 19,
   "verified_rows": 5,
+  "verified_no_go_rows": 5,
   "feasibility_lead_rows": 14,
-  "same_base_gqa_mha_pair_found": 0
+  "feasibility_leads_full_closure_required": 14,
+  "same_base_gqa_mha_pair_found_in_verified_scope": 0
 }
 ```
 
-为什么需要 schema：原 objective 的 hash/revision/**schema**/selftest 4 维度中，no-go 分支下 benchmark 不被执行，因此 evaluation_result schema 不会被自动生成；但仍提供 schema-conformant sample，记录 5 ✅ / 14 ⚠ / 0 same-base pair 三个量化指标以及 5 categories 的 narrowed claim scope，便于下游任务（如未来发现新 same-base pair 后）扩展 schema 记录新结果。
+为什么需要 schema：原 objective 的 hash/revision/**schema**/selftest 4 维度中，no-go 分支下 benchmark 不被执行，因此 evaluation_result schema 不会被自动生成；但仍提供 schema-conformant sample，记录 5 verified rows（narrowed no-go）/ 14 feasibility-lead rows（not verified exclusions）/ 0 same-base pair in verified scope 的量化指标以及 5 categories 的 narrowed claim scope，便于下游任务（如未来发现新 same-base pair 后）扩展 schema 记录新结果。
 

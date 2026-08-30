@@ -13,10 +13,10 @@
     "same_base_gqa_mha_pair_found_in_verified_scope": 0
   },
   "failures": [],
-  "experiment_id": "gqa-vs-mha-no-go-2026-08-30-round-18",
+  "experiment_id": "gqa-vs-mha-incomplete-feasibility-review-2026-08-30",
   "timestamp": "2026-08-30T10:39:18Z",
   "config": {
-    "scope": "15 LLM families + 4 research artifacts",
+    "scope": "15 LLM families + 4 research artifacts (= 19 candidates): 5 verified rows (narrowed no-go) + 14 feasibility-lead rows (not verified exclusions, incomplete full audit)",
     "head_at_review": "6cb551cbc72eb1ebaabc230cc12eff0a32442e84",
     "review_timestamp_utc": "2026-08-30T10:39:18Z",
     "narrowed_claim_categories": [
@@ -55,5 +55,5 @@
     "full_closure_status": "incomplete",
     "narrowed_claim_status": "incomplete_audit_no_universal_claim"
   },
-  "summary": "GQA vs MHA public model comparison - narrowed verified scope no-go + incomplete full audit. Verified sub-conclusion: in the 5 fully independently verified rows (Mixtral mirror config at pinned commit, SmolLM P5-04 hf_expected_revision SHAs, Ainslie 2023 / fpcsong/mha2gqa / shreyansh26 - arxiv id + GitHub commit history), no auditable same-base GQA/MHA dual-version public pair exists. Search status: the 14 feasibility-lead rows (LLaMA / Mistral / Qwen / Phi / Gemma / DeepSeek / OPT / BLOOM / GPT-NeoX / Falcon / Yi / Baichuan / BEE-spoke / SmolLM3 blog) suggest no same-base pair based on absence / unpinned evidence, but pinning to specific immutable revisions is required for full closure. Headline: do NOT claim all 19 candidates are excluded; the 14 feasibility-lead rows are not verified exclusions. Narrowed claim (per feasibility.md section 9): the no-go conclusion applies to the 5 verified rows; 14 feasibility-lead rows require pinning for full closure. 5 not-auditable categories (closed-source / unpublicized / private org-internal / non-English / paper-only) are out of scope. Future work: pin 14 feasibility-lead rows at specific immutable HF revisions (or download each repo at its pinned commit) to convert feasibility leads into verified exclusions or surface a missed same-base pair."
+  "summary": "GQA vs MHA public model comparison - narrowed verified-scope no-go + incomplete feasibility review. Verified sub-conclusion: in the 5 fully independently verified rows (Mixtral mirror config at pinned commit, SmolLM P5-04 snapshot SHAs, Ainslie 2023 / fpcsong/mha2gqa / shreyansh26), no auditable same-base GQA/MHA dual-version public pair exists (durable). Search status: the 14 feasibility-lead rows are needs-more-work leads (unpinned master / absence claims), NOT verified exclusions; full audit closure is incomplete. Headline: do NOT interpret this deliverable as a complete 19-candidate no-go review. Future work: pin 14 feasibility-lead rows at specific immutable HF revisions to convert leads into verified exclusions or surface a missed same-base pair."
 }

@@ -86,6 +86,9 @@ commit 记录在 `artifacts/owt-real-eval/results/<model>/metadata.json` 的
 | SmolLM2 vs Qwen2.5 | 960-2048 vs 896-2048 | 24-36 vs 24-36 | 49152 vs 151936 | ❌ vocab 不同 + training data 不同 |
 
 无 pair 满足所有 §3 维度均一致的硬性判定标准 #1-#5。
+**结论是双层 scope**：5 verified rows (Mixtral mirror / SmolLM P5-04 SHAs / Ainslie 2023 /
+fpcsong/mha2gqa / shreyansh26) 的 no-go 是 durable；14 feasibility-lead rows 是 needs-more-work
+leads（unpinned master / absence claims），**不是 verified exclusions**，full audit closure incomplete。
 
 ## 实证命令（auditor-runnable）
 
@@ -103,7 +106,7 @@ for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.js
 
 # §2 §2.2 family + research artifact 数量 + URL count + access date count
 python -m pytest tests/test_gqa_vs_mha_audit_consistency.py -v
-# Expected: 20 passed (7 keyword/family smoke tests + 13 structural audit-consistency tests including cross-document candidate-set consistency)
+# Expected: 25 passed (7 keyword/family smoke tests + 18 structural audit-consistency tests including cross-document candidate-set consistency + pinned-revision verification + no-unconditional-whole-set-claims)
 
 # §3 narrowed claim wording — 必须显式出现 "audited candidate set" + "not auditable / not verifiably excluded"
 grep -nE 'audited candidate set|not auditable|not verifiably excluded' docs/experiments/gqa-vs-mha/feasibility.md
