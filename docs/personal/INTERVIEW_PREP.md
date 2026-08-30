@@ -1,6 +1,6 @@
-# 面试准备稿：LLM Lab
+# 个人项目面试准备稿：LLM Lab
 
-> 这份文档面向项目作者本人，不是项目 README。目标是帮助你理解项目做了什么、为什么这样做、哪些结论可信、哪些地方不能过度宣传，以及如何回答常见追问。
+> 这是一份可独立携带的个人准备资料，不依赖仓库中的其他文档。目标是帮助你理解项目做了什么、为什么这样做、哪些结论可信、哪些地方不能过度宣传，以及如何回答常见追问。
 >
 > 先记住：这个项目不是训练一个大规模生产模型，而是一个**小规模、可复现的 LLM 实验闭环**。它的价值在于把模型架构、数据、训练、推理、评测、失败分析和实验记录串起来。
 
@@ -318,7 +318,7 @@ parse
 - generation failure
 - vLLM 相对 Transformers 的 delta
 
-结果中 vLLM batch=4 的 throughput 进入 Top-5，最快组合是 Qwen2.5-0.5B vLLM batch=4，约 8.18 samples/s、122.3 ms/sample。具体数字应以 `docs/experiments/p5-04-backend-comparison/README.md` 的表为准。
+结果中 vLLM batch=4 的 throughput 进入 Top-5，最快组合是 Qwen2.5-0.5B vLLM batch=4，约 8.18 samples/s、122.3 ms/sample。这里应同时关注实验的样本范围、硬件、batch 设置和指标定义，不能脱离上下文引用单个数字。
 
 ---
 
@@ -434,20 +434,14 @@ Schema 解决的是结构稳定性：字段是否存在、类型是否正确、�
 
 ---
 
-## 14. 面试前需要实际打开的文件
+## 14. 独立复习顺序
 
-不要只看这份准备稿，面试前按下面顺序打开仓库：
+这份准备稿本身包含项目介绍、关键数字、技术问答、难点、限制和复习清单，不要求打开仓库中的其他文档。复习时建议按以下顺序：
 
-1. `README.md`：项目概览和运行命令。
-2. `docs/personal/PROCESS.md`：完整过程和坑点。
-3. `docs/experiments/n13-gqa-vs-mla-vs-mha/README.md`：GQA/MLA 三方结果。
-4. `docs/experiments/n13-gqa-vs-mla-vs-mha/result.md`：结果表和 cache 公式。
-5. `architecture_lab/models/gqa_transformer.py`：GQA 核心实现。
-6. `architecture_lab/models/mla_transformer.py`：MLA 核心实现。
-7. `architecture_lab/models/moe_transformer.py`：MoE router/capacity。
-8. `scripts/eval_backend_comparison.py`：后端 benchmark 流程。
-9. `scripts/classify_tool_failure.py`：八级失败分类。
-10. `docs/experiments/owt-real-eval/README.md`：真实 OWT 评测和 tokenizer caveat。
+1. 先背熟一句话介绍和 30 秒版本。
+2. 再理解 Dense、MoE、GQA、简化 MLA 的数据流和 trade-off。
+3. 然后掌握 OWT、tokenizer、token cache、SFT/GRPO、评测器和后端对比的关系。
+4. 最后准备一个真实工程问题、一个负结果和一个主动承认的局限性。
 
 ---
 

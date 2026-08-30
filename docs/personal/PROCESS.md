@@ -1,12 +1,8 @@
 # LLM Lab 项目过程与实现详档
 
-> **文档用途**：这是给后续分析 Agent 读取的事实资料。目标是完整描述本项目做过什么、为什么做、如何实现、遇到什么问题、如何解决，以及哪些结论可以使用、哪些不能过度延伸。
+> **文档用途**：这是一个可独立携带的项目事实资料，供后续简历分析 Agent 读取。它完整描述本项目做过什么、为什么做、如何实现、遇到什么问题、如何解决，以及哪些结论可以使用、哪些不能过度延伸。
 >
 > **写作原则**：本文优先记录真实代码、实验产物和已验证结果，不将规划内容当作已完成内容，不将负面结果包装成正面结果，不把不同 base 模型之间的差异归因于架构收益。
->
-> **项目入口**：[`../../README.md`](../../README.md)  
-> **文档导航**：[`../INDEX.md`](../INDEX.md)  
-> **面试理解稿**：[`INTERVIEW_PREP.md`](INTERVIEW_PREP.md)
 
 ---
 
@@ -50,14 +46,9 @@ artifacts/              本地训练结果、图、模型和缓存；大部分�
 
 tests/                  项目级 pytest
 
-docs/
-  experiments/          每个实验的 README / protocol / result
-  protocols/            跨实验协议
-  plans/                roadmap / open issues / stage reviews
-  data/                 数据来源与数据契约
-  reports/               总结报告和外部审计记录
-  internal/             原始中文规划细节
-  archive/              已关闭或不作为当前主线的交付物
+实验记录和协议      各阶段的实现说明、实验设计、结果与审计记录
+
+这些内容属于项目的配套记录，不是本独立资料的前置依赖。
 ```
 
 当前主线代码主要位于：
@@ -731,37 +722,21 @@ python scripts/run_tests.py full
 
 ## 11. 文档和审计过程
 
-每个重要阶段都配套：
-
-- README
-- protocol
-- result / artifact
-- stage review
-- tests
-- metadata
-
-F 项目（公开模型 GQA vs MHA 可行性搜索）期间暴露了多个文档一致性问题，因此后续形成了更严格的文档审计约束：
+重要阶段通常需要同时记录实现内容、实验协议、结果、测试和 metadata。F 项目期间还暴露了文档一致性问题，因此后续形成了更严格的实验记录约束：
 
 - 不能把 19 个候选全部写成 verified no-go
 - 5 个 verified rows 和 14 个 feasibility leads 必须分开
 - `head_at_review` 不能伪装成当前 HEAD
-- reviewer evidence 必须是外部 artifact
+- reviewer evidence 必须是独立记录
 - source/doc commit 和 reviewer-evidence follow-up commit 分离
 - 不能写死容易变化的文件大小
 - 跳过的 test 不能作为通过证据
-- 跨文档 candidate count 必须一致
-- schema evidence 必须包含真实 schema、auditor-runnable command 和 recorded output
+- 跨记录的 candidate count 必须一致
+- schema evidence 必须包含真实 schema、可执行校验命令和记录结果
 
 这些审计经验虽然不是主要功能，但改变了项目后续的实验记录方式。
 
-F 的 4 个文档已移至：
-
-```text
-docs/archive/gqa-vs-mha-no-go/
-docs/plans/reviews/archive/stage-gqa-vs-mha-no-go.md
-```
-
-原因是 F 是一个 incomplete feasibility review，不是当前架构实验主线。
+F 的公开模型 GQA vs MHA 可行性审查后来被标记为 incomplete feasibility review，不属于当前架构实验主线。相关事实已在本资料的“重要结论和不可过度延伸的地方”中保留。
 
 ---
 
@@ -793,56 +768,50 @@ docs/plans/reviews/archive/stage-gqa-vs-mha-no-go.md
 
 ## 13. 关键文件索引
 
-### 模型和训练
+### 模型和训练模块
 
-- `architecture_lab/models/dense_transformer.py`
-- `architecture_lab/models/moe_transformer.py`
-- `architecture_lab/models/gqa_transformer.py`
-- `architecture_lab/models/mla_transformer.py`
-- `architecture_lab/training/dense_training.py`
-- `architecture_lab/training/moe_training.py`
-- `architecture_lab/training/results.py`
-- `architecture_lab/training/moe_results.py`
+- Dense Transformer：`architecture_lab/models/dense_transformer.py`
+- MoE Transformer：`architecture_lab/models/moe_transformer.py`
+- GQA Transformer：`architecture_lab/models/gqa_transformer.py`
+- 简化 MLA Transformer：`architecture_lab/models/mla_transformer.py`
+- Dense/GQA/MLA 训练入口：`architecture_lab/training/dense_training.py`
+- MoE 训练入口：`architecture_lab/training/moe_training.py`
+- 训练结果：`architecture_lab/training/results.py`
+- MoE 训练结果：`architecture_lab/training/moe_results.py`
 
-### 数据和 tokenization
+### 数据和 tokenization 模块
 
-- `architecture_lab/data/token_cache.py`
-- `architecture_lab/data/batching.py`
-- `architecture_lab/tokenization/bpe.py`
-- `architecture_lab/tokenization/artifact.py`
-- `scripts/encode_token_cache.py`
-- `scripts/generate_d1_dataset.py`
-- `scripts/generate_d2_dataset.py`
-- `docs/data/owt-sample.md`
+- Token cache：`architecture_lab/data/token_cache.py`
+- Batching：`architecture_lab/data/batching.py`
+- BPE：`architecture_lab/tokenization/bpe.py`
+- Tokenizer artifact：`architecture_lab/tokenization/artifact.py`
+- Token cache CLI：`scripts/encode_token_cache.py`
+- D1 generator：`scripts/generate_d1_dataset.py`
+- D2 generator：`scripts/generate_d2_dataset.py`
+- OWT 数据契约：记录数据来源、大小、编码和 SHA-256。
 
-### 推理和评测
+### 推理和评测模块
 
-- `scripts/_hf_backend.py`
-- `scripts/eval_transformers.py`
-- `scripts/eval_backend_comparison.py`
-- `scripts/eval_owt_real.py`
-- `scripts/reward_offline.py`
-- `scripts/classify_tool_failure.py`
-- `scripts/grpo_train.py`
+- HF backend：`scripts/_hf_backend.py`
+- Transformers evaluator：`scripts/eval_transformers.py`
+- Backend comparison：`scripts/eval_backend_comparison.py`
+- OWT evaluator：`scripts/eval_owt_real.py`
+- Offline reward：`scripts/reward_offline.py`
+- Failure classifier：`scripts/classify_tool_failure.py`
+- GRPO training：`scripts/grpo_train.py`
 
-### N13
+### N13 实验相关模块
 
-- `configs/gqa-owt-formal-curve-medium.example.yaml`
-- `configs/mla-owt-formal-curve-medium.example.yaml`
-- `scripts/plot_n13_comparison.py`
-- `tests/test_gqa_mla_models.py`
-- `docs/experiments/n13-gqa-vs-mla-vs-mha/`
-- `docs/plans/reviews/stage-n13-gqa-vs-mla-vs-mha.md`
+- GQA 配置：`configs/gqa-owt-formal-curve-medium.example.yaml`
+- MLA 配置：`configs/mla-owt-formal-curve-medium.example.yaml`
+- 对比绘图：`scripts/plot_n13_comparison.py`
+- 模型测试：`tests/test_gqa_mla_models.py`
 
 ### 结果与契约
 
-- `schemas/`
-- `examples/evaluation_results/`
-- `artifacts/owt-real-eval/`
-- `artifacts/p5-04-backend-comparison/`
-- `artifacts/dense-owt-formal-curve-medium-result.json`
-- `artifacts/gqa-owt-formal-curve-medium-result.json`
-- `artifacts/mla-owt-formal-curve-medium-result.json`
+- JSON Schema 契约：`schemas/`
+- 示例结果：`examples/evaluation_results/`
+- 训练、评测和绘图结果：保存在本地 artifacts 中，通常不提交到 Git。
 
 ---
 
@@ -862,7 +831,7 @@ OWT tokenizer + token cache
         ↓
 工具调用 evaluator + reward + failure taxonomy
         ↓
-JSON Schema + hash metadata + tests + docs
+JSON Schema + hash metadata + tests + 实验记录
 ```
 
 后续仍可以继续做的技术方向包括：
