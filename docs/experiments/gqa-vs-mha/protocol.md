@@ -91,7 +91,7 @@ commit 记录在 `artifacts/owt-real-eval/results/<model>/metadata.json` 的
 
 ```bash
 # §1 P5-04 5 model config 实证
-python3 -c "
+python -c "
 from pathlib import Path
 import json
 for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.json')):
@@ -102,7 +102,7 @@ for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.js
 "
 
 # §2 §2.2 family + research artifact 数量 + URL count + access date count
-python3 -m pytest tests/test_gqa_vs_mha_audit_consistency.py -v
+python -m pytest tests/test_gqa_vs_mha_audit_consistency.py -v
 # Expected: 11 passed (audit consistency tests including §2.2 row completeness)
 
 # §3 narrowed claim wording — 必须显式出现 "audited candidate set" + "not auditable / not verifiably excluded"

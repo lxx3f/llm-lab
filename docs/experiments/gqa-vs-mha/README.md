@@ -26,7 +26,7 @@ grep -cE '✅ verified|⚠ not verifiably excluded' docs/experiments/gqa-vs-mha/
 # Expected: 5 ✅ verified + 14 ⚠ not verifiably excluded
 
 # 2. P5-04 本地 5 config 实证
-python3 -c "from pathlib import Path; import json
+python -c "from pathlib import Path; import json
 for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.json')):
     c = json.loads(cfg.read_text(encoding='utf-8'))
     h = c.get('num_attention_heads'); kv = c.get('num_key_value_heads', h)

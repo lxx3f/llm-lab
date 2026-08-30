@@ -172,7 +172,7 @@ revisions even though the locally downloaded snapshot dirs are at `master`
 ```bash
 # §2.1 P5-04 本地 5 model config 实证（portably rglob 兼容 hash snapshot 与 master）
 cd C:/Users/23236/repositories/llm-lab
-python3 -c "
+python -c "
 from pathlib import Path
 import json
 for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.json')):
@@ -183,10 +183,10 @@ for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.js
 "
 
 # §7 selftest guard (7 断言全 PASS)
-python3 -m pytest tests/test_gqa_vs_mha_no_go.py -v
+python -m pytest tests/test_gqa_vs_mha_no_go.py -v
 
 # §7 P5-04 E 评测无 regression
-python3 scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
+python scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
 ```
 
 ## 8. 搜索协议（reproducible）
@@ -249,7 +249,7 @@ python3 scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
 
 ```bash
 # §1.2 硬性判定标准 #2 — 验证 `num_attention_heads == num_key_value_heads` ⇒ MHA
-python3 -c "
+python -c "
 from pathlib import Path
 import json
 for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.json')):

@@ -223,13 +223,55 @@ def test_section_2_2_every_row_has_access_date() -> None:
 # ----------------------------------------------------------------------------
 
 
+def test_stage_review_no_false_sha_equals_head() -> None:
+    """Stage review must NOT contain any live claim that a superseded
+    head_at_review SHA equals current `git rev-parse HEAD`.
+
+    Auditors round 14 + 15 + 16 repeatedly caught this false claim. The
+    durable invariant is `head_at_review == parent of file's containing
+    commit`, which is checked separately by `test_head_at_review_equals_head_parent`.
+
+    The banned patterns are:
+    - `head_at_review = <40-hex SHA> = git rev-parse HEAD`
+    - `head_at_review == HEAD is the correct self-referential invariant`
+    - `head_at_review == HEAD ... is the ... invariant`
+
+    The check uses regex on the stage review's text body. Any live occurrence
+    fails the test, regardless of whether the claim is in a paragraph,
+    blockquote, table, or list item.
+    """
+    if not STAGE_REVIEW.exists():
+        pytest.skip(f"stage review not found at {STAGE_REVIEW}")
+    text = STAGE_REVIEW.read_text(encoding="utf-8")
+    # Match ONLY the specific false claim pattern: head_at_review = <40-hex SHA> = git rev-parse HEAD
+    # (where the same SHA is asserted to equal current HEAD).
+    banned_pat = re.compile(
+        r"head_at_review\s*=\s*`?[0-9a-f]{40}`?\s*=\s*`?git rev-parse\s*HEAD",
+        re.IGNORECASE,
+    )
+    banned_phrases = [
+        "head_at_review == HEAD is the correct self-referential invariant",
+        "self-referential invariant",
+    ]
+    bad_lines = []
+    for i, line in enumerate(text.splitlines(), start=1):
+        if banned_pat.search(line):
+            bad_lines.append((i, line))
+        for phrase in banned_phrases:
+            if phrase in line:
+                bad_lines.append((i, line))
+    assert not bad_lines, (
+        f"stage review still has banned false SHA == HEAD claim(s): {bad_lines}"
+    )
+
+
 def test_section_7_has_auditor_runnable_python() -> None:
     """feasibility.md §7 must contain at least one python3 invocation block."""
     text = FEASIBILITY_DOC.read_text(encoding="utf-8")
     m = re.search(r"## 7\..*?(?=## 8\.)", text, flags=re.DOTALL)
     assert m, "feasibility.md §7 section not found"
     s7 = m.group(0)
-    assert "python3" in s7, "§7 must use python3 shebang"
+    assert "python" in s7, "§7 must use python invocation (portable across python / python3)"
 
 
 def test_section_10_has_audit_commands() -> None:
