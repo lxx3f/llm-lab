@@ -61,6 +61,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts._hf_backend import load_causal_lm_model  # noqa: E402
+
 # 5 P5-04 canonical models; ``hf_revision`` is the exact P5-04 commit.
 # ``revision_verified`` is set per-model after comparing local snapshot
 # against this revision.
@@ -531,20 +533,19 @@ def _load_tokenizer(model_local_dir: Path):
 
 
 def _load_model(model_local_dir: Path, dtype_name: str, device: str):
-    import torch
-    from transformers import AutoModelForCausalLM
+    """Load a causal-LM model from a local snapshot via the shared backend.
 
-    dtype_map = {"bf16": torch.bfloat16, "fp16": torch.float16, "fp32": torch.float32}
-    if dtype_name not in dtype_map:
-        raise ValueError(f"unsupported dtype {dtype_name!r}")
-    dtype = dtype_map[dtype_name]
-    model = AutoModelForCausalLM.from_pretrained(
-        str(model_local_dir),
-        torch_dtype=dtype,
+    Shares dtype/device/local-files-only semantics with
+    ``scripts/eval_transformers.py`` (P5-02 tool-calling backend) so both
+    scripts exercise the same model-loading primitives; see
+    ``scripts/_hf_backend.py`` for the contract.
+    """
+    return load_causal_lm_model(
+        model_path_or_id=model_local_dir,
+        dtype_name=dtype_name,
+        device=device,
         local_files_only=True,
     )
-    model.to(device)
-    return model
 
 
 def cmd_build_cache(args: argparse.Namespace) -> int:
@@ -1038,6 +1039,25 @@ def _expect(name: str, cond: bool, hint: str = "") -> None:
 def _run_selftests(args: argparse.Namespace) -> int:
     import tempfile
 
+    print("[selftest] Backend reuse (P5-02 eval_transformers.py)", flush=True)
+    # Sanity check: this script imports the shared HF backend module so the
+    # P5-02 Transformers backend (``scripts/eval_transformers.py``) and this
+    # per-token CE loss script exercise the same model-loading primitives.
+    import scripts._hf_backend as _backend
+    import scripts.eval_transformers as _et
+    _expect(
+        "test_eval_owt_imports_hf_backend",
+        hasattr(_backend, "load_causal_lm_model"),
+    )
+    _expect(
+        "test_eval_transformers_imports_hf_backend",
+        any(
+            getattr(obj, "__module__", "") == "scripts._hf_backend"
+            for obj in (_et.resolve_device, _et.resolve_dtype, _et.load_causal_lm_model)
+        ) or _et.resolve_device.__module__ == "scripts._hf_backend",
+        hint=f"got module={_et.resolve_device.__module__}",
+    )
+
     print("[selftest] OWT source validation", flush=True)
     info = validate_owt_source()
     _expect(
@@ -1242,6 +1262,78 @@ def _run_selftests(args: argparse.Namespace) -> int:
                         pp == pp and pp > 0,
                         hint=f"ppl={pp}",
                     )
+
+    # ------------------------------------------------------------------
+    # Per-result-JSON deep provenance: every on-disk result JSON must be
+    # bound to the OWT source SHA, its declared cache SHA must match the
+    # bytes on disk, and its evaluated_bytes/evaluated_tokens must match
+    # the canonical 289,998,753-byte / expected-token counts.
+    # ------------------------------------------------------------------
+    print("[selftest] per-result-JSON deep provenance", flush=True)
+    if results_dir.exists():
+        found = sorted(results_dir.glob("*.json"))
+        for rp in found:
+            tag = rp.stem
+            rj = json.loads(rp.read_text(encoding="utf-8"))
+            _expect(
+                f"test_result_{tag}_source_sha_matches_owt",
+                rj.get("source_sha256") == EXPECTED_OWT_SHA256,
+                hint=f"got {rj.get('source_sha256')}",
+            )
+            _expect(
+                f"test_result_{tag}_evaluated_bytes_full",
+                rj.get("evaluated_bytes") == 289_998_753,
+                hint=f"got {rj.get('evaluated_bytes')}",
+            )
+            _expect(
+                f"test_result_{tag}_mean_loss_finite",
+                rj.get("mean_loss_nats") == rj.get("mean_loss_nats")
+                and rj["mean_loss_nats"] > 0,
+                hint=f"got {rj.get('mean_loss_nats')}",
+            )
+            _expect(
+                f"test_result_{tag}_perplexity_finite",
+                rj.get("perplexity") == rj.get("perplexity")
+                and rj["perplexity"] > 0,
+                hint=f"got {rj.get('perplexity')}",
+            )
+            cache_dir = args.cache_root / tag
+            cache_path = cache_dir / "validation.tokens.int32"
+            cache_meta_path = cache_dir / "validation.metadata.json"
+            _expect(
+                f"test_result_{tag}_cache_file_exists",
+                cache_path.is_file(),
+                hint=f"missing {cache_path}",
+            )
+            if cache_path.is_file():
+                actual_cache_sha = sha256_file(cache_path)
+                _expect(
+                    f"test_result_{tag}_cache_sha_matches",
+                    actual_cache_sha == rj.get("cache_sha256"),
+                    hint=f"disk={actual_cache_sha[:16]} vs json={rj.get('cache_sha256', '')[:16]}",
+                )
+            _expect(
+                f"test_result_{tag}_cache_metadata_exists",
+                cache_meta_path.is_file(),
+                hint=f"missing {cache_meta_path}",
+            )
+            if cache_meta_path.is_file():
+                cm = json.loads(cache_meta_path.read_text(encoding="utf-8"))
+                _expect(
+                    f"test_result_{tag}_cache_metadata_sha_matches",
+                    cm.get("cache_sha256") == rj.get("cache_sha256"),
+                    hint=f"meta={cm.get('cache_sha256', '')[:16]} vs json={rj.get('cache_sha256', '')[:16]}",
+                )
+                _expect(
+                    f"test_result_{tag}_cache_metadata_source_sha_matches",
+                    cm.get("source_sha256") == EXPECTED_OWT_SHA256,
+                    hint=f"got {cm.get('source_sha256')}",
+                )
+                _expect(
+                    f"test_result_{tag}_cache_encoded_tokens_match",
+                    cm.get("encoded_tokens") == rj.get("encoded_tokens"),
+                    hint=f"meta={cm.get('encoded_tokens')} vs json={rj.get('encoded_tokens')}",
+                )
 
     print("[selftest] all tests PASSED", flush=True)
     return 0

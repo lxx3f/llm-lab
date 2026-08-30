@@ -18,9 +18,21 @@ chat-generate 而是 forward + shift-logit loss。
   (size 289,998,753 bytes, wsl `sha256sum` PASS)。
 - 5 个模型从 ModelScope 下载；每个 snapshot 目录存在 `config.json` +
   tokenizer files + model.safetensors。
-- `python3 scripts/eval_owt_real.py --selftest` PASS (16 断言：OWT SHA、
-  hash helpers、cache round-trip、mock loss count/finiteness、缺 SHA
-  raises、5 models + 5 unique revisions、fingerprint helper)。
+- `python3 scripts/eval_owt_real.py --selftest` PASS (82 断言，含 5×6 = 30 个 per-result-JSON 深度 provenance 校验 + 5×2 = 10 个 aggregate CSV 数值校验 + 2 个 backend-reuse 检查；详见 §Reviewer evidence)。
+
+### Boundary gap（协议一份）
+
+5 个模型均采用 non-overlapping chunked CE（与 GPT-2 论文 / HF Trainer / lm-eval-harness 同一惯例）。每个 seq_len 输入窗口丢 1 个边界预测位置，总丢数 = `num_complete_windows + (1 if last_window_partial else 0)`：
+
+| 模型 | encoded_tokens | evaluated_tokens | boundary_gap | gap% |
+|---|---:|---:|---:|---:|
+| SmolLM2-360M | 68,003,129 | 67,936,719 | 66,410 | 0.0976% |
+| SmolLM2-1.7B | 68,003,129 | 67,936,719 | 66,410 | 0.0976% |
+| Qwen2.5-0.5B | 64,707,865 | 64,644,673 | 63,192 | 0.0977% |
+| Qwen2.5-1.5B | 64,707,865 | 64,644,673 | 63,192 | 0.0977% |
+| Qwen2.5-3B | 64,707,865 | 64,644,673 | 63,192 | 0.0977% |
+
+这是 LM 公开评测标准选择。如需全预测覆盖可改 stride=`seq_len-1` 重叠去重（需重跑 5 模型），本轮不采用以保留 6+ 小时 GPU 结果。
 
 ## Verification (filled after Stage 4)
 

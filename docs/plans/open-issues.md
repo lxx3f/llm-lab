@@ -1209,7 +1209,7 @@ vLLM 适配不在范围内（暂缓阶段）。
 - Expert Parallel；
 - 分布式训练；
 - 完整工业级 MLA；
-- 多模态数据；
+- 多模态数据；- **E 真实 OWT 评测 · overlap-1 chunked CE**：当前 5 模型结果采用 non-overlapping chunked CE，每个 seq_len 输入窗口丢 1 个边界预测（总丢数 < 0.1%）；如未来需要全预测覆盖，可改 stride = seq_len-1 重叠 1 token 并去重，需重跑 5 模型（约 6–8h）；本轮以保留 6+ 小时 GPU 结果为准，留作未来优化备选。
 - 复杂联网 Agent；
 - 大规模数据采集；
 - 复杂 LLM Judge；

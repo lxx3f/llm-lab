@@ -49,6 +49,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts._hf_backend import (  # noqa: E402
+    load_causal_lm_model,
+    resolve_device,
+    resolve_dtype,
+)
 from scripts.classify_tool_failure import classify  # noqa: E402
 from scripts.eval_sft_tool import extract_tool_calls  # noqa: E402
 
@@ -107,26 +112,6 @@ def _build_argparser() -> argparse.ArgumentParser:
         help="Pass through to AutoModel/AutoTokenizer for custom code models",
     )
     return parser
-
-
-def _resolve_device(arg: str) -> str:
-    if arg == "auto":
-        return "cuda" if torch.cuda.is_available() else "cpu"
-    return arg
-
-
-def _resolve_dtype(name: str, device: str):
-    resolved = torch.bfloat16 if name == "bf16" else (
-        torch.float16 if name == "fp16" else torch.float32
-    )
-    if device == "cpu" and resolved is not torch.float32:
-        print(
-            "[transformers-eval] CPU does not reliably support low-precision "
-            "generation; overriding dtype to torch.float32",
-            flush=True,
-        )
-        return torch.float32
-    return resolved
 
 
 def _strip_terminal_assistant(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -254,10 +239,10 @@ def _update_layer_counts(
 
 def main() -> int:
     args = _build_argparser().parse_args()
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoTokenizer
 
-    device = _resolve_device(args.device)
-    dtype = _resolve_dtype(args.dtype, device)
+    device = resolve_device(args.device)
+    dtype = resolve_dtype(args.dtype, device)
     cache_dir = os.environ.get("HF_HOME") or str(ROOT / "artifacts" / "huggingface")
 
     print(f"[transformers-eval] loading {args.model}", flush=True)
@@ -267,15 +252,14 @@ def main() -> int:
         trust_remote_code=args.trust_remote_code,
         cache_dir=cache_dir,
     )
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model,
-        revision=args.revision,
-        dtype=dtype,
-        trust_remote_code=args.trust_remote_code,
+    model = load_causal_lm_model(
+        model_path_or_id=args.model,
+        dtype_name=args.dtype,
+        device=device,
         cache_dir=cache_dir,
+        trust_remote_code=args.trust_remote_code,
+        local_files_only=False,
     )
-    model.to(device)
-    model.eval()
     print(f"[transformers-eval] device={device} dtype={dtype}", flush=True)
 
     sample_paths = sorted(args.samples_dir.glob("*.json"))

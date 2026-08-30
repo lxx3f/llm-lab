@@ -52,10 +52,30 @@ dtype:             int32 little-endian（Qwen2.5 vocab 151,643 > uint16 范围�
 对每个模型：
 
 1. 用其官方 tokenizer 把完整 OWT validation 文本 tokenize → int32 cache（走 `scripts/encode_token_cache.py --hf-model-dir`）。
-2. 用 `model(input_ids, use_cache=False).logits` 跑前向；按 `seq_len=1024` 的非重叠窗口划分。
+2. 用 `model(input_ids, use_cache=False).logits` 跑前向；按 `seq_len=1024` 的**非重叠**窗口划分；5 模型顺序跑在同一张 RTX 5070 Ti（单卡 sequential）。
 3. 对每个窗口：logits[:, :-1] 预测 labels[:, 1:]，逐 token 算 cross-entropy (reduction='sum')；窗口级检查 logits/loss 是否 finite，非 finite 立即失败并报告窗口号（不写 NaN 结果）。
 4. 累加 `sum_loss_nats` 与 `evaluated_tokens`，得到 `mean_loss_nats = sum_loss_nats / evaluated_tokens` 与 `perplexity = exp(mean_loss_nats)`。
 5. 同时记录 `loss_nats_per_evaluated_byte = sum_loss_nats / evaluated_bytes` 作为 tokenizer-normalized 辅助指标。
+
+### 边界 gap 明确说明（协议一份）
+
+采用 non-overlapping chunked CE（GPT-2 论文 / HF Trainer / lm-eval-harness 同一惯例）：窗口输入为 `seq_len` 个 token，窗口内预测 `seq_len - 1` 个位置（logits 末尾一个位置本身被跳起）。这意味着：
+
+- 每个完整 seq_len 输入窗口丢 1 个预测位置；
+- 不足 seq_len 的末尾窗口丢 `min(L, 1)` 个位置；
+- 总丢数 = `num_complete_windows + (1 if last_window_partial else 0)`，占总量的 < 0.1%。
+
+本轮 5 模型实测总丢数：
+
+| 模型 | encoded_tokens | evaluated_tokens | boundary_gap | gap% |
+|---|---:|---:|---:|---:|
+| SmolLM2-360M | 68,003,129 | 67,936,719 | 66,410 | 0.0976% |
+| SmolLM2-1.7B | 68,003,129 | 67,936,719 | 66,410 | 0.0976% |
+| Qwen2.5-0.5B | 64,707,865 | 64,644,673 | 63,192 | 0.0977% |
+| Qwen2.5-1.5B | 64,707,865 | 64,644,673 | 63,192 | 0.0977% |
+| Qwen2.5-3B | 64,707,865 | 64,644,673 | 63,192 | 0.0977% |
+
+这是公开 LM 评测中广泛接受的默认选择。如需全预测覆盖，可改 stride = `seq_len - 1` （重叠 1 token）并去重，但实验设计不同、需重新跑 5 模型（约 6–8h），与本交付不冲突，作为未来优化记录于 `docs/plans/open-issues.md`。
 
 ## 5 模型对比表（实测，全量 validation，commit HEAD）
 
