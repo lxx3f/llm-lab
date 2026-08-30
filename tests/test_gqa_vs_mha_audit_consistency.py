@@ -71,15 +71,23 @@ def test_check_count_consistency() -> None:
     # outside of `|` table rows. Heuristic: count PASS claims in narrative
     # paragraphs only (lines without leading `|`).
     sr_pass_lines = [
-        line for line in sr_text.splitlines() if "/10 PASS" in line or "/8 PASS" in line or "/9 PASS" in line
+        line for line in sr_text.splitlines() if "/10 PASS" in line or "/8 PASS" in line or "/9 PASS" in line or "10/10 checks" in line
     ]
     re_pass_lines = [
-        line for line in re_text.splitlines() if "/10 PASS" in line or "/8 PASS" in line or "/9 PASS" in line
+        line for line in re_text.splitlines() if "/10 PASS" in line or "/8 PASS" in line or "/9 PASS" in line or "10/10 checks" in line
     ]
 
-    # At minimum, both docs must contain a "10/10 PASS" claim.
-    sr_has_10 = any("10/10 PASS" in line for line in sr_pass_lines)
-    re_has_10 = any("10/10 PASS" in line for line in re_pass_lines)
+    # At minimum, both docs must contain a "10/10" claim in proximity to PASS or
+    # "checks satisfied" (different reviewer subagents use slightly different
+    # formatting — accept any of these as evidence of 10-check structure).
+    sr_has_10 = any(
+        ("10/10" in line and ("PASS" in line or "checks satisfied" in line or "checks pass" in line))
+        for line in sr_pass_lines
+    )
+    re_has_10 = any(
+        ("10/10" in line and ("PASS" in line or "checks satisfied" in line or "checks pass" in line))
+        for line in re_pass_lines
+    )
     assert sr_has_10, f"stage review lacks 10/10 PASS claim: {sr_pass_lines}"
     assert re_has_10, f"reviewer evidence lacks 10/10 PASS claim: {re_pass_lines}"
 
