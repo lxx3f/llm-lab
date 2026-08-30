@@ -98,6 +98,8 @@ P5 阶段（P5-01/P5-02/P5-03/P5-04）已完成当前 roadmap 规定的公开模
 
 **风险**：开源 GQA-only 模型 与 MHA-only 模型同 base 的 pair 难以找到（多数模型架构已固定）；可能退化为“不同 base 模型对比”，降低结论强度。
 
+**状态更新（list item F，2026-08-30）**：可行性搜索已完成，结论 **no-go**。本轮全部主要 LLM 家族（LLaMA 1/2/3、Qwen、Qwen2/2.5、Mistral、Mixtral、Phi-1..4、Gemma/Gemma2/3、DeepSeek-V2/V3、OPT、BLOOM、GPT-NeoX、Falcon、Yi/Baichuan、SmolLM/2/3、BEE-spoke smol_llama）与 research artifacts（Ainslie 2023 GQA 论文 uptraining、fpcsong 2025 mha2gqa、SmolLM3 blog nanotron ablation）均**未发布同 base MHA/GQA 双版本的可审计 HF checkpoint**。详见 `docs/experiments/gqa-vs-mha/feasibility.md` 与 `docs/plans/reviews/stage-gqa-vs-mha-no-go.md`。后续若要做严格 GQA vs MHA 对比，只能从"自训练一对 from-scratch same-base 模型"或"复现 uptraining"两条路径入手——两者均超出当前 lab 算力预算（需 8×H100 + 数天 GPU），不在本 roadmap 范围。
+
 ### 候选 2: 简化 MLA（Multi-Latent Attention）实验
 
 **动机**：自研模型架构上限为 12M；MLA（DeepSeek-V2 风格）是 P0-04 阶段规划但**未交付**的扩展方向。本轮 roadmap 中 MLA 仍属"暂缓"列表（见下）；如启动简化版（latent dim 缩减 + 单层 share），可在自研模型规模内验证 MLA 收益。

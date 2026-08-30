@@ -1210,6 +1210,7 @@ vLLM 适配不在范围内（暂缓阶段）。
 - 分布式训练；
 - 完整工业级 MLA；
 - 多模态数据；- **E 真实 OWT 评测 · overlap-1 chunked CE**：当前 5 模型结果采用 non-overlapping chunked CE，每个 seq_len 输入窗口丢 1 个边界预测（总丢数 < 0.1%）；如未来需要全预测覆盖，可改 stride = seq_len-1 重叠 1 token 并去重，需重跑 5 模型（约 6–8h）；本轮以保留 6+ 小时 GPU 结果为准，留作未来优化备选。
+- **GQA vs MHA 公开模型对比**（list item F，2026-08-30）：可行性搜索结论 no-go。公开权重层面无可审计的同 base MHA/GQA 双版本（扫描 LLaMA 1/2/3、Qwen 1/2/2.5、Mistral、Mixtral、Phi-1..4、Gemma 1/2/3、DeepSeek-V2/V3、OPT、BLOOM、GPT-NeoX、Falcon、Yi、Baichuan、SmolLM 1/2/3、BEE-spoke smol_llama + Ainslie 2023 uptraining、fpcsong 2025 mha2gqa、SmolLM3 blog nanotron ablation 均未发布同 base 双版本）；后续若继续需自训练或 uptraining，均超出当前 lab 算力预算（需 8×H100 + 数天 GPU）。详见 `docs/experiments/gqa-vs-mha/feasibility.md` 与 `docs/plans/reviews/stage-gqa-vs-mha-no-go.md`。
 - 复杂联网 Agent；
 - 大规模数据采集；
 - 复杂 LLM Judge；
