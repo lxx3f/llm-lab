@@ -21,7 +21,7 @@
 ## Pre-conditions verified
 
 - P5-04 5 个公开 model config.json 实际读取，attention 类型确认（4 个 GQA + 1 个 MHA，但 size/layers/hidden 完全不同 → 不能作为同 base 对）。
-- Web 调研覆盖 ~15 个主流 LLM 家族 + 3 类 research artifacts（论文 uptraining、HF 转换 checkpoint、nanotron ablation）。
+- Web 调研覆盖 ~15 个主流 LLM 家族 + 4 类 research artifacts（Ainslie 2023 论文 uptraining、fpcsong 2025 mha2gqa HF 转换 checkpoint、SmolLM3 blog nanotron ablation、shreyansh26/multihead-latent-attention reference implementation）。
 - Hard-rule #5（"不把不同 base 模型差异宣称为 GQA 收益"）严格遵守：本结论仅声明"无可审计同 base 对"，不对 GQA vs MHA 性能下任何结论。
 
 ## Verification (auditor-runnable commands)

@@ -295,6 +295,100 @@ def test_section_10_has_audit_commands() -> None:
 
 
 # ----------------------------------------------------------------------------
+# §3b. Cross-document candidate-set consistency (auditor round 18)
+# ----------------------------------------------------------------------------
+
+
+def test_cross_document_candidate_set_count() -> None:
+    """All GQA deliverables must agree on candidate set size = 19.
+
+    Auditors round 18 caught a discrepancy: feasibility.md §2.2 actually
+    contains 19 candidate rows (15 families + 4 research artifacts), but
+    docs repeatedly said "15 + 3" (the 4th research artifact, shreyansh26,
+    was missing from the prose). This test enforces exact cross-document
+    consistency.
+
+    Enforced invariant: every doc that references the candidate set must
+    say "15" + "4 research" (or equivalent) AND the actual §2.2 row count
+    must equal 19. The schema-conformant sample JSON's
+    `audited_candidate_set_size` must also equal 19.
+    """
+    import json
+
+    # 1. feasibility.md §2.2 actual row count must be 19.
+    text = FEASIBILITY_DOC.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    in_table = False
+    row_count = 0
+    for line in lines:
+        if line.startswith("| Family |"):
+            in_table = True
+            continue
+        if in_table:
+            if not line.startswith("|"):
+                break
+            if not re.match(r"^\|[\s\-:|]+\|\s*$", line):
+                row_count += 1
+    assert row_count == 19, (
+        f"feasibility.md §2.2 must have exactly 19 data rows; got {row_count}"
+    )
+
+    # 2. Every doc that references the candidate set must say "15" + "4 research".
+    docs_must_say = [
+        ("docs/experiments/gqa-vs-mha/feasibility.md", FEASIBILITY_DOC),
+        ("docs/experiments/gqa-vs-mha/protocol.md", Path(ROOT / "docs" / "experiments" / "gqa-vs-mha" / "protocol.md")),
+        ("docs/experiments/gqa-vs-mha/README.md", Path(ROOT / "docs" / "experiments" / "gqa-vs-mha" / "README.md")),
+        ("docs/plans/reviews/stage-gqa-vs-mha-no-go.md", STAGE_REVIEW),
+        ("docs/plans/roadmap.md", Path(ROOT / "docs" / "plans" / "roadmap.md")),
+        ("docs/plans/open-issues.md", Path(ROOT / "docs" / "plans" / "open-issues.md")),
+        ("examples/evaluation_results/sample-no-go-result.json", Path(ROOT / "examples" / "evaluation_results" / "sample-no-go-result.json")),
+    ]
+
+    problems = []
+    for fpath, p in docs_must_say:
+        if not p.exists():
+            continue
+        text = p.read_text(encoding="utf-8")
+        # Skip JSON file's content (separate check below)
+        if fpath.endswith(".json"):
+            try:
+                data = json.loads(text)
+                assert data["metrics"]["audited_candidate_set_size"] == 19, (
+                    f"{fpath}: audited_candidate_set_size must be 19; got {data['metrics']['audited_candidate_set_size']}"
+                )
+                # Also check scope field
+                scope = data.get("config", {}).get("scope", "")
+                assert "15" in scope and ("4 research" in scope or "4 类 research" in scope), (
+                    f"{fpath}: config.scope must mention 15 + 4 research artifacts; got: {scope!r}"
+                )
+            except (json.JSONDecodeError, AssertionError) as e:
+                problems.append((fpath, str(e)))
+            continue
+        # Markdown: must reference 15 families + 4 research artifacts (allowing Chinese phrasing).
+        has_15 = "15" in text
+        has_4_research = (
+            "4 research artifact" in text
+            or "4 类 research artifact" in text
+            or "4 \u4e2a research artifact" in text
+            or "4 类 research artifacts" in text
+            or "4 research artifacts" in text
+            or "shreyansh26" in text  # explicitly named in list
+        )
+        # Check for stale "3 research artifact" phrasing
+        has_stale_3_research = bool(
+            re.search(r"3\s*(?:\u4e2a|\s*\u4e2a)?\s*research\s*artifact", text, re.IGNORECASE)
+        ) and "shreyansh26" not in text  # only stale if the 4th research isn't mentioned
+        if not (has_15 and has_4_research):
+            problems.append((fpath, f"missing 15+4 wording (has_15={has_15}, has_4_research={has_4_research})"))
+        if has_stale_3_research:
+            problems.append((fpath, "stale '3 research artifact' phrasing without shreyansh26 mention"))
+
+    assert not problems, (
+        f"cross-document candidate-set consistency problems: {problems}"
+    )
+
+
+# ----------------------------------------------------------------------------
 # §5. No fabricated GQA benefits
 # ----------------------------------------------------------------------------
 

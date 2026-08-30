@@ -214,7 +214,7 @@ python scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
 
 4. **本地 config 实证**：读取 P5-04 已下载 5 model config.json，列出 attention 类型 / hidden / layers / vocab，确认无同 base 对（5 个 tuple 全不同）。
 
-5. **结论**：搜索覆盖 15+ family + 3 research artifacts，每条候选均带 URL + access date + evidence。no-go 结论证据链完整、可被独立 auditor 复现。
+5. **结论**：搜索覆盖 15 families + 4 research artifacts (= 19 candidates)s，每条候选均带 URL + access date + evidence。no-go 结论证据链完整、可被独立 auditor 复现。
 
 
 ## 9. 结论范围（narrowed claim，避免 universal overreach）
@@ -222,7 +222,7 @@ python scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
 为响应 auditor 关于"区分 not found vs not verifiably excluded"的要求，
 本节明确 no-go 结论的**实际范围**：
 
-- **Audited candidate set**（15 个 family + 3 research artifacts，见 §2.2 表格）：
+- **Audited candidate set**（15 families + 4 research artifacts (= 19 candidates)s，见 §2.2 表格）：
   每个候选都附带 URL + access date + pinned commit SHA 或 mirror config.json
   实证 + P5-04 本地 config 实证。本集合内**没有可审计的同 base GQA/MHA 双版本**。
 - **Verdict**：在本 audited candidate set 上 no-go 成立。
@@ -237,7 +237,7 @@ python scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
 
 - **Narrowed wording**：
   本文不主张"全球公开 HF 一定不存在同 base GQA/MHA 双版本"。
-  本文只主张："在 2026-08-30 由 web search + P5-04 本地 config 取证的 15 个 family + 3 research artifacts
+  本文只主张："在 2026-08-30 由 web search + P5-04 本地 config 取证的 15 families + 4 research artifacts (= 19 candidates)s
   这一 audited candidate set 内，没有可审计的同 base GQA/MHA 双版本。"
 
 - **Implication**：如未来发现满足 §1.2 硬性判定标准 1-5 的同 base 公开模型对（不论是

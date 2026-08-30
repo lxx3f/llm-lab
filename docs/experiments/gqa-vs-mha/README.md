@@ -7,7 +7,7 @@
 ## 目录内容
 
 - **`feasibility.md`** — 主要 deliverable。§1 同 base 硬性判定标准 5 项、§2 候选扫描
-  (15 LLM family + 3 research artifact，每行 URL + access date + pinned commit SHA 或
+  (15 LLM family + 4 research artifacts，每行 URL + access date + pinned commit SHA 或
   mirror config.json + Verification status 列)、§3 否决理由汇总、§9 结论范围
   (narrowed claim)、§10 实证命令清单。
 - **`reviewer-evidence.md`** — fresh-context reviewer 的 durable artifact。每个 round
@@ -19,7 +19,7 @@
 ## 关键 evidence (复核路径)
 
 ```bash
-# 1. §2.2 table — 15 family + 3 research artifact，每行 URL + access date + Verification status
+# 1. §2.2 table — 15 families + 4 research artifacts (= 19 candidates)，每行 URL + access date + Verification status
 grep -cE '^\|' docs/experiments/gqa-vs-mha/feasibility.md    # 19 data rows + header + separator
 grep -cE 'https?://' docs/experiments/gqa-vs-mha/feasibility.md    # ≥ 18 URLs
 grep -cE '✅ verified|⚠ not verifiably excluded' docs/experiments/gqa-vs-mha/feasibility.md
@@ -45,7 +45,7 @@ cat docs/experiments/gqa-vs-mha/reviewer-evidence.md
 
 ## 结论范围（与 feasibility.md §9 一致）
 
-本 README 仅声明：在 `feasibility.md` §2.2 列出的 15 LLM family + 3 research artifact
+本 README 仅声明：在 `feasibility.md` §2.2 列出的 15 LLM family + 4 research artifacts
 这一 **audited candidate set** 内，没有可审计的同 base GQA/MHA 双版本公开模型对。
 
 本文不主张：(a) 闭源 / gated-only 仓库中存在未公开的同 base 对；(b) HF 历史上发布

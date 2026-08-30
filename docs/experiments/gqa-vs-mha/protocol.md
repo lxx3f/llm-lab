@@ -7,7 +7,7 @@
 ## 目标
 
 在 2026-08-30 由 web search + P5-04 本地 config 取证的 15 个 LLM family +
-3 research artifact 范围内，搜索可审计的同 base GQA/MHA 公开模型对。
+4 research artifacts 范围内，搜索可审计的同 base GQA/MHA 公开模型对。
 
 ## 硬性判定标准（feasibility.md §1.2）
 
