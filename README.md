@@ -8,6 +8,18 @@
 
 项目不追求一次性实现完整的大模型训练平台，而是先构建一个规模可控、结果可复现、能够持续扩展的实验体系。
 
+## 数字一览
+
+- **4 种 attention 架构**：Dense MHA + MoE Top-1 + GQA + 简化 MLA 全部从零实现（PyTorch 2.13 / sm_120）
+- **多规模训练**：0.66M / 2.10M / 12M Dense 与 MoE 在 OWT 正式 cache 上完整曲线（最多 50k 步）
+- **跨模型 LM 评测**：5 个公开 instruction-tuned 模型（SmolLM2 360M/1.7B、Qwen2.5 0.5B/1.5B/3B）277MB held-out OWT per-token loss + PPL
+- **推理后端对比**：Transformers vs vLLM × 5 模型 × 2 batch × 90 样本 = 20 组合 4 轴对比表
+- **数据管线**：D1 (126) / D1.1 (1500) / D2 (5000) 三套工具调用数据集 + 8 级失败分类器
+- **训练闭环**：SFT (Dense + MoE) + GRPO MVP + 跨模型公平 benchmark
+- **Schema 体系**：11 个 JSON Schema + git commit / config sha256 / token cache sha256 全绑定
+
+**详细见 [`docs/SHOWCASE.md`](docs/SHOWCASE.md)**：含 4 条可贴简历的 bullet + 5 张关键 plot + 同 base 硬性判定标准。
+
 ## 项目目标
 
 1. 在现有 CS336 Transformer 实现基础上，加入 MoE、GQA 和简化版 MLA，分析不同架构对模型效果、参数激活量、推理吞吐和 KV Cache 的影响。
