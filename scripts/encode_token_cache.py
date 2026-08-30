@@ -46,6 +46,7 @@ def _encode_hf_token_cache(
     force: bool,
     model_id: str,
     tokenizer_revision: str,
+    hf_expected_revision: str | None,
     expected_source_sha256: str | None,
 ) -> dict[str, Any]:
     """Stream a local HF tokenizer into an int32 hash-bound cache."""
@@ -111,6 +112,8 @@ def _encode_hf_token_cache(
             "model_id": model_id,
             "model_short": output_root.name,
             "tokenizer_revision": tokenizer_revision,
+            "local_snapshot_revision": tokenizer_revision,
+            "hf_expected_revision": hf_expected_revision,
             "source_path": str(input_path),
             "source_sha256": source_sha256,
             "source_size_bytes": input_path.stat().st_size,
@@ -147,7 +150,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Local HF/ModelScope snapshot containing tokenizer files; writes int32 cache",
     )
     parser.add_argument("--model-id", default="local/model", help="Model ID recorded in HF cache metadata")
-    parser.add_argument("--tokenizer-revision", default="unknown", help="Tokenizer revision recorded in HF cache metadata")
+    parser.add_argument("--tokenizer-revision", default="unknown", help="Actual local tokenizer snapshot revision recorded in HF cache metadata")
+    parser.add_argument("--hf-expected-revision", help="Expected Hugging Face commit recorded separately for provenance")
     parser.add_argument("--expected-source-sha256", help="Reject source unless it has this SHA-256")
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--split", required=True, help="Cache split name, e.g. train or validation")
@@ -184,6 +188,7 @@ def main(argv: list[str] | None = None) -> int:
                 force=args.force,
                 model_id=args.model_id,
                 tokenizer_revision=args.tokenizer_revision,
+                hf_expected_revision=args.hf_expected_revision,
                 expected_source_sha256=args.expected_source_sha256,
             )
             print(f"tokens: {info['cache_path']}")

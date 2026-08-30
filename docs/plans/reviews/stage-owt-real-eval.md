@@ -41,15 +41,15 @@ cache sha256 unique:      True (SmolLM2 series share tokenizer → 1 SHA; Qwen2.
 revision_verified count:  0/5 (all False — ModelScope 不识别 P5-04 exact revision，已回退 master)
 ```
 
-## Per-model evidence (filled after Stage 4)
+## Per-model evidence (full validation, 289,998,753 bytes)
 
-| 模型 | encoded_tokens | evaluated_tokens | mean_loss_nats | perplexity | revision_verified | cache_sha256 |
-|---|---:|---:|---:|---:|:---:|---|
-| Qwen2.5-0.5B | 64,707,865 | (final) | (final) | (final) | false (⚠) | `7d7e5e060189a512...` |
-| Qwen2.5-1.5B | 64,707,865 | (final) | (final) | (final) | false (⚠) | `7d7e5e060189a512...` |
-| Qwen2.5-3B | 64,707,865 | (final) | (final) | (final) | false (⚠) | `7d7e5e060189a512...` |
-| SmolLM2-360M | 68,003,129 | 67,936,719 | 2.7219 | 15.21 | false (⚠) | `c03a11adba5a11cc...` |
-| SmolLM2-1.7B | 68,003,129 | 67,936,719 | 2.4020 | 11.05 | false (⚠) | `c03a11adba5a11cc...` |
+| 模型 | encoded_tokens | evaluated_tokens | mean_loss_nats | perplexity | local_rev | hf_expected | cache_sha256 |
+|---|---:|---:|---:|---:|:---:|---|---|
+| Qwen2.5-0.5B | 64,707,865 | 64,644,673 | 2.9854 | 19.79 | master | `7ae55760...` | `7d7e5e060189a512...` |
+| Qwen2.5-1.5B | 64,707,865 | 64,644,673 | 2.6952 | 14.81 | master | `989aa798...` | `7d7e5e060189a512...` |
+| Qwen2.5-3B | 64,707,865 | 64,644,673 | 2.5679 | 13.04 | master | `aa8e7253...` | `7d7e5e060189a512...` |
+| SmolLM2-360M | 68,003,129 | 67,936,719 | 2.7219 | 15.21 | master | `a10cc1512...` | `c03a11adba5a11cc...` |
+| SmolLM2-1.7B | 68,003,129 | 67,936,719 | 2.4020 | 11.05 | master | `31b70e2e...` | `c03a11adba5a11cc...` |
 
 ## Risks recorded in README
 

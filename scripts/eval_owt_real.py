@@ -21,11 +21,12 @@ Scope:
 Important caveats (recorded verbatim in the README):
 - Different models have different tokenizers. Perplexity is **not** directly
   comparable across models. The README also reports
-  ``loss_nats_per_source_byte`` (mean loss / source byte) which is
+  ``loss_nats_per_source_byte`` (sum_loss_nats / source byte) which is
   tokenizer-normalized but still biased by tokenizer's BPE merges.
 - Models are loaded from a local directory; the script does not download.
-  ``source_hub`` and ``hf_revision`` (when known) are recorded for each
-  result to make provenance explicit. ``revision_verified`` is True only
+  ``source_hub``, ``hf_expected_revision`` (P5-04 commit) and
+  ``local_snapshot_revision`` (actual ModelScope ``master``) are recorded
+  for each result. ``revision_verified`` is True only
   when the local snapshot matches the P5-04 HF exact revision.
 
 Usage::
@@ -162,6 +163,8 @@ class TokenCacheInfo:
     newline_aligned: bool
     created_at: str = ""
     encoded_bytes: int = 0
+    local_snapshot_revision: str = "unknown"
+    hf_expected_revision: str = ""
 
 
 def _int32_to_bytes(arr) -> bytes:
@@ -333,6 +336,7 @@ class LossResult:
     hf_revision: str
     revision_verified: bool
     tokenizer_revision: str
+    local_snapshot_revision: str
     dtype: str
     device: str
     seq_len: int
@@ -572,7 +576,8 @@ def cmd_build_cache(args: argparse.Namespace) -> int:
                 "--input", str(args.owt_path),
                 "--hf-model-dir", str(local_dir),
                 "--model-id", model_id,
-                "--tokenizer-revision", hf_revision,
+                "--tokenizer-revision", local_dir.name,
+                "--hf-expected-revision", hf_revision,
                 "--expected-source-sha256", EXPECTED_OWT_SHA256,
                 "--output-root", str(cache_dir),
                 "--split", "validation",
@@ -734,7 +739,8 @@ def cmd_eval_loss(args: argparse.Namespace) -> int:
             source_hub=args.source_hub,
             hf_revision=hf_revision,
             revision_verified=_check_revision_match(local_dir, hf_revision),
-            tokenizer_revision=hf_revision,
+            tokenizer_revision=local_dir.name,
+            local_snapshot_revision=local_dir.name,
             dtype=args.dtype,
             device=device,
             seq_len=args.seq_len,
@@ -775,9 +781,13 @@ def cmd_eval_loss(args: argparse.Namespace) -> int:
 
 
 def _check_revision_match(local_dir: Path, expected_revision: str) -> bool:
-    """Best-effort: does the local snapshot's git/refs match ``expected_revision``?"""
-    # ModelScope / HF cache layouts both include a ``refs/main`` (or similar)
-    # file. We read those and compare to ``expected_revision``.
+    """Best-effort verification of the actual local snapshot revision."""
+    # A complete HF-layout snapshot directory named by the exact commit is
+    # direct evidence. Empty failed-download directories never reach this
+    # helper because ``_resolve_local_model_dir`` requires config.json.
+    if local_dir.name == expected_revision and (local_dir / "config.json").is_file():
+        return True
+    # ModelScope / HF cache layouts may include refs files; compare when present.
     try:
         for refs_file in ("refs/main", "refs/master"):
             p = local_dir / refs_file
@@ -819,6 +829,8 @@ def cmd_aggregate(args: argparse.Namespace) -> int:
         "model_id",
         "hf_revision",
         "revision_verified",
+        "local_snapshot_revision",
+        "tokenizer_revision",
         "encoded_tokens",
         "evaluated_tokens",
         "source_bytes",
