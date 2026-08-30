@@ -109,7 +109,7 @@ python -m pytest tests/test_gqa_vs_mha_audit_consistency.py -v
 # Expected: 25 passed (7 keyword/family smoke tests + 18 structural audit-consistency tests including cross-document candidate-set consistency + pinned-revision verification + no-unconditional-whole-set-claims)
 
 # §3 narrowed claim wording — 必须显式出现 "audited candidate set" + "not auditable / not verifiably excluded"
-grep -nE 'audited candidate set|not auditable|not verifiably excluded' docs/experiments/gqa-vs-mha/feasibility.md
+grep -nE 'audited candidate set|not auditable|not verifiably excluded' docs/archive/gqa-vs-mha-no-go/feasibility.md
 ```
 
 ## Cross-reference

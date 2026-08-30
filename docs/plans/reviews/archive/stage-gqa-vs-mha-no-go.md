@@ -6,7 +6,7 @@
 > base GQA/MHA 公开模型对（durable）。**14 feasibility-lead rows 是 needs-more-work leads，不是
 > verified exclusions**；full audit closure incomplete，本 deliverable 不是 complete 19-candidate no-go review。
 > 本 stage review 在 HEAD 见 `git rev-parse HEAD` (auditor-runnable)。
-> 完整搜索过程与候选清单见 `docs/experiments/gqa-vs-mha/feasibility.md`。
+> 完整搜索过程与候选清单见 `docs/archive/gqa-vs-mha-no-go/feasibility.md`。
 
 ## Scope
 
@@ -16,7 +16,7 @@
 
 ## 交付清单
 
-- `docs/experiments/gqa-vs-mha/feasibility.md` — size is auditor-runnable via `wc -c docs/experiments/gqa-vs-mha/feasibility.md`（~30 KB 级；含 §1 判定标准、§2 候选扫描 19 rows 5 ✅+14 ⚠、§3 否决理由、§4 影响、§5 结论双层 scope、§6 P5-04 5 model 实证、§7/§10 实证命令、§8 reproducible search、§9 narrowed claim 双层 scope、§11 schema evidence、§Per-row classification appendix）。
+- `docs/archive/gqa-vs-mha-no-go/feasibility.md` — size is auditor-runnable via `wc -c docs/archive/gqa-vs-mha-no-go/feasibility.md`（~30 KB 级；含 §1 判定标准、§2 候选扫描 19 rows 5 ✅+14 ⚠、§3 否决理由、§4 影响、§5 结论双层 scope、§6 P5-04 5 model 实证、§7/§10 实证命令、§8 reproducible search、§9 narrowed claim 双层 scope、§11 schema evidence、§Per-row classification appendix）。
 - `tests/test_gqa_vs_mha_no_go.py` — 7 个 pytest 断言；guard 守住 no-go 结论与硬性判定标准。
 - `docs/plans/roadmap.md` 候选 1 行追加状态更新段（line 101）：no-go + 指向 feasibility + stage review。
 - `docs/plans/open-issues.md` 暂不处理段记录本 no-go 结论链接（见下文 §Risks）。
@@ -31,8 +31,8 @@
 
 ```text
 git rev-parse HEAD                            # 当前 commit
-ls docs/experiments/gqa-vs-mha/feasibility.md  # 必须存在
-ls docs/plans/reviews/stage-gqa-vs-mha-no-go.md # 必须存在
+ls docs/archive/gqa-vs-mha-no-go/feasibility.md  # 必须存在
+ls docs/plans/reviews/archive/stage-gqa-vs-mha-no-go.md # 必须存在
 ls tests/test_gqa_vs_mha_no_go.py             # 必须存在
 python -m pytest tests/test_gqa_vs_mha_no_go.py -v  # 7 断言 PASS
 python scripts/eval_owt_real.py --selftest   # 仍 97 PASS / 0 FAIL (98 PASS lines: 97 individual + 1 summary)（不影响 P5-04/E 评测）
@@ -63,21 +63,21 @@ python scripts/eval_owt_real.py --selftest   # 仍 97 PASS / 0 FAIL (98 PASS lin
   在 5 个 fully independently verified rows 内公开权重层面无可审计的同 base MHA/GQA 双版本（durable）；
   14 feasibility-lead rows 是 needs-more-work leads（unpinned master / absence claims），不是 verified exclusions，
   full audit closure incomplete。后续若继续需自训练或 uptraining，均超出当前 lab 算力预算。
-  详见 `docs/experiments/gqa-vs-mha/feasibility.md` 与 `docs/plans/reviews/stage-gqa-vs-mha-no-go.md`。
+  详见 `docs/archive/gqa-vs-mha-no-go/feasibility.md` 与 `docs/plans/reviews/archive/stage-gqa-vs-mha-no-go.md`。
 ```
 
 ## Reviewer evidence (external artifact, HEAD-agnostic)
 
 The latest fresh-context reviewer report is stored in a **separate artifact file**:
 
-> **`docs/experiments/gqa-vs-mha/reviewer-evidence.md`**
+> **`docs/archive/gqa-vs-mha-no-go/reviewer-evidence.md`**
 
 Auditor runs the following commands to inspect the live report:
 
 ```bash
 # HEAD-agnostic: resolves to whatever commit is currently checked out
 git rev-parse HEAD                                # current commit SHA
-cat docs/experiments/gqa-vs-mha/reviewer-evidence.md    # full reviewer report
+cat docs/archive/gqa-vs-mha-no-go/reviewer-evidence.md    # full reviewer report
 ```
 
 The artifact contains its own provenance metadata (so the report's "current revision" claim is independently verifiable):
@@ -111,7 +111,7 @@ state reviewer saw); the next commit's HEAD advances by one. Auditor runs
 
 ### Reviewer 10 bounded checks (A-J, mirrors reviewer-evidence.md)
 
-> Source of truth: `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Audit checks (10 bounded)" + §"Verbatim reviewer output (timestamp 2026-08-30T10:15:57Z)". The 10-check list below is a local summary; the verbatim reviewer subagent output is in the artifact file. `head_at_review = 4151154445faa6eb5a608d4ece0fa9e46e334470` (the commit the reviewer subagent ran on at timestamp 2026-08-30T10:15:57Z; this SHA equals `git rev-parse HEAD^` — i.e. the parent of the commit that contains reviewer-evidence.md — NOT current `git rev-parse HEAD`).
+> Source of truth: `docs/archive/gqa-vs-mha-no-go/reviewer-evidence.md` §"Audit checks (10 bounded)" + §"Verbatim reviewer output (timestamp 2026-08-30T10:15:57Z)". The 10-check list below is a local summary; the verbatim reviewer subagent output is in the artifact file. `head_at_review = 4151154445faa6eb5a608d4ece0fa9e46e334470` (the commit the reviewer subagent ran on at timestamp 2026-08-30T10:15:57Z; this SHA equals `git rev-parse HEAD^` — i.e. the parent of the commit that contains reviewer-evidence.md — NOT current `git rev-parse HEAD`).
 
 - A. **HEAD + clean tree** — `git rev-parse HEAD` returns a valid SHA; `git status --short --untracked-files=all` is empty.
 - B. **Mixtral factual correction** — feasibility.md §2.2 row describes Mixtral 8x7B as **GQA (32/8) + MoE (8 experts, top-2 routing)**, with mirror config.json `soprasteria/Mixtral-8x7B-Instruct-v0.1-FP8` at commit `c9f3de3` (URL in §2.2).
@@ -121,10 +121,10 @@ state reviewer saw); the next commit's HEAD advances by one. Auditor runs
 - F. **§2.2 family URLs + access dates (no regression)** — feasibility.md §2.2 contains ≥ 18 URLs and ≥ 5 access-date markers; every row has URL + access date + evidence.
 - G. **Selftest no regression** — `python -m pytest tests/test_gqa_vs_mha_no_go.py -v` → 7 passed / 0 skipped / 0 failed.
 - H. **P5-04 E selftest no regression** — `python scripts/eval_owt_real.py --selftest` (note: portability — auditors may need to substitute `python` if their environment exposes `python` rather than `python`) → `[selftest] all tests PASSED`, PASS count ≥ 95 (97 expected), FAIL = 0.
-- I. **Reviewer-evidence.md metadata preserved (not regenerated mid-cycle)** — `head_at_review` field equals the parent of the commit that most recently modified `docs/experiments/gqa-vs-mha/reviewer-evidence.md` (the durable invariant enforced by `tests/test_gqa_vs_mha_audit_consistency.py::test_head_at_review_equals_head_parent`); the field is updated each round when a fresh reviewer runs and the executor commits the rewritten reviewer-evidence.md file as a follow-up commit; previous reviewer run audit-trail references preserved for transparency.
+- I. **Reviewer-evidence.md metadata preserved (not regenerated mid-cycle)** — `head_at_review` field equals the parent of the commit that most recently modified `docs/archive/gqa-vs-mha-no-go/reviewer-evidence.md` (the durable invariant enforced by `tests/test_gqa_vs_mha_audit_consistency.py::test_head_at_review_equals_head_parent`); the field is updated each round when a fresh reviewer runs and the executor commits the rewritten reviewer-evidence.md file as a follow-up commit; previous reviewer run audit-trail references preserved for transparency.
 - J. **Consistency §2.2 row-54 ↔ §3 row-107** — feasibility.md LLaMA-2 dense + no MoE + no expert parallelism + size confounding is consistent between §2.2 row-54 (LLaMA-2 row) and §3 row-107 (failure-analysis table).
 
-fresh-context reviewer (`reviewer` subagent) VERDICT: **10/10 PASS** — 见 `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Verbatim reviewer output (timestamp 2026-08-30T10:15:57Z)" §"VERDICT"。auditor runs `cat docs/experiments/gqa-vs-mha/reviewer-evidence.md` (HEAD-agnostic) 拿最新 reviewer evidence；file.metadata `head_at_review = 4151154445faa6eb5a608d4ece0fa9e46e334470` = the commit the reviewer subagent ran on (at timestamp 2026-08-30T10:15:57Z) = `git rev-parse HEAD^` (parent of the commit that contains reviewer-evidence.md). `git rev-parse HEAD` continues to advance past `head_at_review` whenever the repo receives new commits; the durable invariant is `head_at_review == (parent of the commit that last modified reviewer-evidence.md)`, which the audit-consistency test enforces via `git rev-parse $(git log -1 --format=%H -- docs/experiments/gqa-vs-mha/reviewer-evidence.md)^`. 10 bounded checks A-J 完整 verbatim 列在 reviewer-evidence.md.
+fresh-context reviewer (`reviewer` subagent) VERDICT: **10/10 PASS** — 见 `docs/archive/gqa-vs-mha-no-go/reviewer-evidence.md` §"Verbatim reviewer output (timestamp 2026-08-30T10:15:57Z)" §"VERDICT"。auditor runs `cat docs/archive/gqa-vs-mha-no-go/reviewer-evidence.md` (HEAD-agnostic) 拿最新 reviewer evidence；file.metadata `head_at_review = 4151154445faa6eb5a608d4ece0fa9e46e334470` = the commit the reviewer subagent ran on (at timestamp 2026-08-30T10:15:57Z) = `git rev-parse HEAD^` (parent of the commit that contains reviewer-evidence.md). `git rev-parse HEAD` continues to advance past `head_at_review` whenever the repo receives new commits; the durable invariant is `head_at_review == (parent of the commit that last modified reviewer-evidence.md)`, which the audit-consistency test enforces via `git rev-parse $(git log -1 --format=%H -- docs/archive/gqa-vs-mha-no-go/reviewer-evidence.md)^`. 10 bounded checks A-J 完整 verbatim 列在 reviewer-evidence.md.
 
 #
 
@@ -132,7 +132,7 @@ fresh-context reviewer (`reviewer` subagent) VERDICT: **10/10 PASS** — 见 `do
 
 ```text
 git rev-parse HEAD                            # 当前 commit
-ls -la docs/experiments/gqa-vs-mha/feasibility.md docs/plans/reviews/stage-gqa-vs-mha-no-go.md tests/test_gqa_vs_mha_no_go.py
+ls -la docs/archive/gqa-vs-mha-no-go/feasibility.md docs/plans/reviews/archive/stage-gqa-vs-mha-no-go.md tests/test_gqa_vs_mha_no_go.py
 python -m pytest tests/test_gqa_vs_mha_no_go.py -v  # 7 断言全 PASS
 python scripts/eval_owt_real.py --selftest   # 97 PASS / 0 FAIL（无 regression）
 grep -n "状态更新（list item F" docs/plans/roadmap.md   # 1 行 no-go 状态
@@ -142,4 +142,4 @@ grep -n "状态更新（list item F" docs/plans/roadmap.md   # 1 行 no-go 状�
 
 ## Schema evidence
 
-参见 `docs/experiments/gqa-vs-mha/feasibility.md` §11 — schema artifact `schemas/evaluation_result.schema.json` + sample `examples/evaluation_results/sample-no-go-result.json` + auditor-runnable validation command + recorded output (2026-08-30T10:15Z, HEAD 4151154).
+参见 `docs/archive/gqa-vs-mha-no-go/feasibility.md` §11 — schema artifact `schemas/evaluation_result.schema.json` + sample `examples/evaluation_results/sample-no-go-result.json` + auditor-runnable validation command + recorded output (2026-08-30T10:15Z, HEAD 4151154).

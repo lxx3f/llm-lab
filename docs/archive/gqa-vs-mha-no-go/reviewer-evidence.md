@@ -13,7 +13,7 @@
 
 Auditor round 20 identified 5 specific weaknesses that needed durable propagation to all user-facing artifacts:
 
-1. **weakness #1**: README.md unconditional wording fixed by rewriting `docs/experiments/gqa-vs-mha/README.md:1-5` to use the narrowed two-level scope wording (narrowed verified-scope no-go + incomplete feasibility review).
+1. **weakness #1**: README.md unconditional wording fixed by rewriting `docs/archive/gqa-vs-mha-no-go/README.md:1-5` to use the narrowed two-level scope wording (narrowed verified-scope no-go + incomplete feasibility review).
 2. **weakness #2**: stage review:4 unconditional no-go wording fixed by rewriting to narrowed verified-scope no-go.
 3. **weakness #3**: roadmap.md:101 unconditional status update wording fixed by adding narrowed verified-scope no-go + incomplete feasibility review qualifier.
 4. **weakness #4**: open-issues.md:1213 unconditional wording fixed by adding the same narrowed two-level scope qualifier.

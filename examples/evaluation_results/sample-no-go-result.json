@@ -26,9 +26,9 @@
       "non-English / non-mainstream platforms",
       "paper-only ablations without released safetensors"
     ],
-    "feasibility_doc": "docs/experiments/gqa-vs-mha/feasibility.md",
-    "reviewer_evidence": "docs/experiments/gqa-vs-mha/reviewer-evidence.md",
-    "stage_review": "docs/plans/reviews/stage-gqa-vs-mha-no-go.md",
+    "feasibility_doc": "docs/archive/gqa-vs-mha-no-go/feasibility.md",
+    "reviewer_evidence": "docs/archive/gqa-vs-mha-no-go/reviewer-evidence.md",
+    "stage_review": "docs/plans/reviews/archive/stage-gqa-vs-mha-no-go.md",
     "review_history": [
       {
         "round": 16,

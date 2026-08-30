@@ -27,9 +27,9 @@
 
 ```bash
 # 1. §2.2 table — 15 families + 4 research artifacts (= 19 candidates)，每行 URL + access date + Verification status
-grep -cE '^\|' docs/experiments/gqa-vs-mha/feasibility.md    # 19 data rows + header + separator
-grep -cE 'https?://' docs/experiments/gqa-vs-mha/feasibility.md    # ≥ 18 URLs
-grep -cE '✅ verified|⚠ not verifiably excluded' docs/experiments/gqa-vs-mha/feasibility.md
+grep -cE '^\|' docs/archive/gqa-vs-mha-no-go/feasibility.md    # 19 data rows + header + separator
+grep -cE 'https?://' docs/archive/gqa-vs-mha-no-go/feasibility.md    # ≥ 18 URLs
+grep -cE '✅ verified|⚠ not verifiably excluded' docs/archive/gqa-vs-mha-no-go/feasibility.md
 # Expected: 5 ✅ verified + 14 ⚠ not verifiably excluded
 
 # 2. P5-04 本地 5 config 实证
@@ -44,7 +44,7 @@ python -m pytest tests/test_gqa_vs_mha_no_go.py tests/test_gqa_vs_mha_audit_cons
 # Expected: 25 passed (7 keyword/family smoke tests + 18 structural audit-consistency tests including cross-document candidate-set consistency + pinned-revision verification + no-unconditional-whole-set-claims)
 
 # 4. Reviewer evidence
-cat docs/experiments/gqa-vs-mha/reviewer-evidence.md
+cat docs/archive/gqa-vs-mha-no-go/reviewer-evidence.md
 # Look at: head_at_review (must be ancestor of HEAD via git merge-base --is-ancestor)
 #         review_timestamp_utc (most recent reviewer run)
 #         Audit checks (10 bounded) + Verbatim reviewer output sections
@@ -74,7 +74,7 @@ ablation、未发布 safetensors 的 paper-only 权重包含同 base 对。
 
 - `docs/plans/roadmap.md` 候选 1 行追加 "状态更新（list item F，2026-08-30）no-go"。
 - `docs/plans/open-issues.md` 暂不处理段新增 GQA vs MHA no-go 结论条目。
-- `docs/experiments/gqa-vs-mha/protocol.md` 提供 reproducible search protocol (在 §8
+- `docs/archive/gqa-vs-mha-no-go/protocol.md` 提供 reproducible search protocol (在 §8
   内已 inline，避免文件重复)。
 
 ## 后续若要继续 GQA vs MHA 对比（不在本目标 scope 内）

@@ -161,7 +161,7 @@ revisions even though the locally downloaded snapshot dirs are at `master`
 
 ## 6. 后续交付
 
-- `docs/plans/reviews/stage-gqa-vs-mha-no-go.md` — 阶段审查 + reviewer evidence。
+- `docs/plans/reviews/archive/stage-gqa-vs-mha-no-go.md` — 阶段审查 + reviewer evidence。
 - `docs/plans/open-issues.md` — "GQA vs MHA 公开模型对比" 标记为不可行（公开权重层面），记录本结论链接。
 - `docs/plans/roadmap.md` 候选 1 行状态更新为 `no-go`。
 - `tests/test_gqa_vs_mha_no_go.py`（7 断言 PASS） — 守住本结论不被意外推翻（硬性判定标准 + 已扫描候选 list 不为空 + 本地 config 实证）。
@@ -271,11 +271,11 @@ for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.js
 "
 
 # §9 audited candidate set 范围确认
-wc -l docs/experiments/gqa-vs-mha/feasibility.md
-grep -c '^|' docs/experiments/gqa-vs-mha/feasibility.md   # §2.2 family + research artifact rows
+wc -l docs/archive/gqa-vs-mha-no-go/feasibility.md
+grep -c '^|' docs/archive/gqa-vs-mha-no-go/feasibility.md   # §2.2 family + research artifact rows
 
 # §9 narrowed wording — 必须显式出现 "not auditable" / "not verifiably excluded" 字样
-grep -nE 'not auditable|not verifiably excluded' docs/experiments/gqa-vs-mha/feasibility.md
+grep -nE 'not auditable|not verifiably excluded' docs/archive/gqa-vs-mha-no-go/feasibility.md
 ```
 
 ## 11. Schema evidence (no-go result)

@@ -31,9 +31,9 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-FEASIBILITY_DOC = ROOT / "docs" / "experiments" / "gqa-vs-mha" / "feasibility.md"
-STAGE_REVIEW = ROOT / "docs" / "plans" / "reviews" / "stage-gqa-vs-mha-no-go.md"
-REVIEWER_EVIDENCE = ROOT / "docs" / "experiments" / "gqa-vs-mha" / "reviewer-evidence.md"
+FEASIBILITY_DOC = ROOT / "docs" / "archive" / "gqa-vs-mha-no-go" / "feasibility.md"
+STAGE_REVIEW = ROOT / "docs" / "plans" / "reviews" / "archive" / "stage-gqa-vs-mha-no-go.md"
+REVIEWER_EVIDENCE = ROOT / "docs" / "archive" / "gqa-vs-mha-no-go" / "reviewer-evidence.md"
 
 
 def _git(*args: str) -> str:
@@ -118,45 +118,30 @@ def test_reviewer_evidence_check_count_declared() -> None:
 # ----------------------------------------------------------------------------
 
 
-def test_head_at_review_equals_head_parent() -> None:
-    """reviewer-evidence.md's `head_at_review` must equal the parent of the
-    commit that most recently modified reviewer-evidence.md.
+def test_head_at_review_is_valid_historical_commit() -> None:
+    """Archived reviewer evidence must retain a valid reviewed commit.
 
-    This is the **durable invariant** for a reviewer-runs-trail artifact.
-    The reviewer subagent runs against commit X, writes reviewer-evidence.md,
-    and the executor commits the rewritten file as a follow-up commit Y.
-    In commit Y, the file content still says `head_at_review = X` (the SHA
-    the reviewer ran on), but the file is in commit Y. The invariant
-    `file.head_at_review == Y^` (parent of file's containing commit) holds.
-
-    Why not "ancestor of HEAD"? Because "ancestor of HEAD" only proves
-    reachability, not that the reviewer actually reviewed the commit right
-    before the file's containing commit. The parent-of-containing-commit
-    invariant is what auditor round 15 demanded.
-
-    Why not "== HEAD"? Because the file lives in commit Y (the follow-up
-    commit that adds the reviewer transcript), and Y necessarily advances
-    HEAD past the reviewer's reviewed commit X. The only honest claim is
-    `head_at_review == X == Y^` — the SHA the reviewer ran on.
+    The live parent-of-containing-commit invariant applied while the evidence
+    file was the active artifact. After archival, moving the file creates a
+    new containing commit, so the archived provenance is checked as a valid
+    historical commit instead of being compared with the archive move commit.
     """
     if not REVIEWER_EVIDENCE.exists():
-        pytest.skip("reviewer-evidence.md missing")
+        pytest.skip("archived reviewer-evidence.md missing")
     re_text = REVIEWER_EVIDENCE.read_text(encoding="utf-8")
     m = re.search(r"`head_at_review`:\s*([0-9a-f]{40})", re_text)
-    assert m, "reviewer-evidence.md missing head_at_review 40-hex SHA"
+    assert m, "archived reviewer-evidence.md missing head_at_review 40-hex SHA"
     claimed = m.group(1)
-    file_commit = _git(
-        "log", "-1", "--format=%H", "--",
-        str(REVIEWER_EVIDENCE.relative_to(ROOT)),
+    proc = subprocess.run(
+        ["git", "cat-file", "-e", f"{claimed}^{{commit}}"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
     )
-    assert file_commit, "could not find latest commit modifying reviewer-evidence.md"
-    expected = _git("rev-parse", f"{file_commit}^")
-    assert claimed == expected, (
-        f"head_at_review {claimed} must equal the parent of the commit "
-        f"most recently modifying reviewer-evidence.md ({file_commit}); "
-        f"expected parent = {expected}; got {claimed}"
+    assert proc.returncode == 0, (
+        f"head_at_review {claimed} must identify an existing historical commit; "
+        f"git cat-file failed: {proc.stderr.strip()}"
     )
-
 
 def test_review_timestamp_recent() -> None:
     """reviewer-evidence.md's review_timestamp_utc must be after 2026-08-29."""
@@ -336,10 +321,10 @@ def test_cross_document_candidate_set_count() -> None:
 
     # 2. Every doc that references the candidate set must say "15" + "4 research".
     docs_must_say = [
-        ("docs/experiments/gqa-vs-mha/feasibility.md", FEASIBILITY_DOC),
-        ("docs/experiments/gqa-vs-mha/protocol.md", Path(ROOT / "docs" / "experiments" / "gqa-vs-mha" / "protocol.md")),
-        ("docs/experiments/gqa-vs-mha/README.md", Path(ROOT / "docs" / "experiments" / "gqa-vs-mha" / "README.md")),
-        ("docs/plans/reviews/stage-gqa-vs-mha-no-go.md", STAGE_REVIEW),
+        ("docs/archive/gqa-vs-mha-no-go/feasibility.md", FEASIBILITY_DOC),
+        ("docs/archive/gqa-vs-mha-no-go/protocol.md", ROOT / "docs" / "archive" / "gqa-vs-mha-no-go" / "protocol.md"),
+        ("docs/archive/gqa-vs-mha-no-go/README.md", ROOT / "docs" / "archive" / "gqa-vs-mha-no-go" / "README.md"),
+        ("docs/plans/reviews/archive/stage-gqa-vs-mha-no-go.md", STAGE_REVIEW),
         ("docs/plans/roadmap.md", Path(ROOT / "docs" / "plans" / "roadmap.md")),
         ("docs/plans/open-issues.md", Path(ROOT / "docs" / "plans" / "open-issues.md")),
         ("examples/evaluation_results/sample-no-go-result.json", Path(ROOT / "examples" / "evaluation_results" / "sample-no-go-result.json")),
@@ -547,9 +532,10 @@ def test_no_unconditional_whole_set_no_go_claims() -> None:
     feasibility-lead rows are explicitly 'not verified exclusions'.
     """
     docs_to_check = {
-        "README.md": ROOT / "docs" / "experiments" / "gqa-vs-mha" / "README.md",
-        "protocol.md": ROOT / "docs" / "experiments" / "gqa-vs-mha" / "protocol.md",
-        "stage review": STAGE_REVIEW,
+        "archived README.md": ROOT / "docs" / "archive" / "gqa-vs-mha-no-go" / "README.md",
+        "archived protocol.md": ROOT / "docs" / "archive" / "gqa-vs-mha-no-go" / "protocol.md",
+        "archived feasibility.md": FEASIBILITY_DOC,
+        "archived stage review": STAGE_REVIEW,
         "roadmap.md": ROOT / "docs" / "plans" / "roadmap.md",
         "open-issues.md": ROOT / "docs" / "plans" / "open-issues.md",
     }

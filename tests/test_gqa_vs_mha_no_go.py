@@ -1,6 +1,6 @@
 """Guard test: GQA vs MHA 公开模型对比的 no-go 结论。
 
-不直接写可行性结论（结论在 docs/experiments/gqa-vs-mha/feasibility.md），
+不直接写可行性结论（结论在 docs/archive/gqa-vs-mha-no-go/feasibility.md），
 本测试只校验：
 
 1. 该结论文件存在且含 no-go 关键短语；
@@ -21,8 +21,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-FEASIBILITY_DOC = ROOT / "docs" / "experiments" / "gqa-vs-mha" / "feasibility.md"
-STAGE_REVIEW = ROOT / "docs" / "plans" / "reviews" / "stage-gqa-vs-mha-no-go.md"
+FEASIBILITY_DOC = ROOT / "docs" / "archive" / "gqa-vs-mha-no-go" / "feasibility.md"
+STAGE_REVIEW = ROOT / "docs" / "plans" / "reviews" / "archive" / "stage-gqa-vs-mha-no-go.md"
 MODELS_ROOT = ROOT / "artifacts" / "owt-real-eval" / "models" / "models"
 
 

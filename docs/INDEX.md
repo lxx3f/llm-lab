@@ -1,13 +1,12 @@
 # LLM Lab — 文档导航
 
-> 本目录按"面向访客"和"内部参考"两类组织。简历用户应该从 [`SHOWCASE.md`](SHOWCASE.md) 开始。
+> 本目录按"主入口"、"项目过程"和"细节参考"三类组织。
 
-## 核心入口（简历用户先看）
+## 主入口
 
 | 文档 | 用途 |
 |---|---|
-| [`SHOWCASE.md`](SHOWCASE.md) | 简历项目摘要：4 条 bullet + 5 张关键 plot + 同 base 判定 + 6 问面试 talking points |
-| [`../README.md`](../README.md) | 项目入口：数字一览 + 项目结构 + 当前状态 + 快速命令 |
+| [`../README.md`](../README.md) | 项目入口：项目概览 + 数字一览 + 项目结构 + 当前状态 + 快速命令 |
 | [`environment.md`](environment.md) | 运行环境说明（PyTorch 2.13 / RTX 5070 Ti / sm_120） |
 
 ## 实验详情（`experiments/`）
@@ -63,20 +62,20 @@
 
 38 个 `stage-<name>.md` 文件，每个对应一个交付阶段的 self-review + reviewer evidence。
 
-### 简历相关（核心交付阶段）
+### 重点交付阶段
 
-- `stage-n13-gqa-vs-mla-vs-mha.md` — N13 三方对比 stage review
-- `stage-owt-real-eval.md` — 真实 OWT 评测 stage review
-- `stage-p5-04-backend-comparison.md` — 双后端对比 stage review
-- `stage-moe-owt-formal-curve.md` — MoE 5000 步训练 stage review
-- `stage-n2-dense-moe-fairness.md` — Dense vs MoE 公平对比 stage review
-- `stage-n4-dense-formal-curve.md` — Dense 训练曲线 stage review
-- `stage-p2-evaluator.md` — 确定性 evaluator stage review
-- `stage-p3-d2-multi-turn.md` / `stage-p3-d2-expansion.md` — D2 多轮数据 stage review
-- `stage-sft-tool-mvp.md` — SFT 工具调用 stage review
-- `stage-p4-grpo-mvp.md` / `stage-p4-grpo-smoketest.md` — GRPO stage reviews
+- `stage-n13-gqa-vs-mla-vs-mha.md` — N13 三方架构对比
+- `stage-owt-real-eval.md` — 真实 OWT 评测
+- `stage-p5-04-backend-comparison.md` — 双后端对比
+- `stage-moe-owt-formal-curve.md` — MoE 5000 步训练
+- `stage-n2-dense-moe-fairness.md` — Dense vs MoE 公平对比
+- `stage-n4-dense-formal-curve.md` — Dense 训练曲线
+- `stage-p2-evaluator.md` — 确定性 evaluator
+- `stage-p3-d2-multi-turn.md` / `stage-p3-d2-expansion.md` — D2 多轮数据
+- `stage-sft-tool-mvp.md` — SFT 工具调用
+- `stage-p4-grpo-mvp.md` / `stage-p4-grpo-smoketest.md` — GRPO
 
-### 早期内部阶段（可参考）
+### 早期阶段（可参考）
 
 - `stage-bpe-tokenizer.md` / `stage-bpe-streaming.md` / `stage-bpe-optimized.md`
 - `stage-tokenizer-cli.md` / `stage-toy-data-tokenizer.md`
@@ -87,7 +86,7 @@
 
 ### Archive（已关闭的 stage）
 
-- `archive/stage-gqa-vs-mha-no-go.md` — F 项目的 stage review（已 cancelled，**不**作为简历素材）
+- [`plans/reviews/archive/stage-gqa-vs-mha-no-go.md`](plans/reviews/archive/stage-gqa-vs-mha-no-go.md) — F 项目的 stage review，已移出当前实验主线
 
 ## 协议（`protocols/`）
 
@@ -145,12 +144,12 @@
 
 ## 内部参考（`internal/`）
 
-- `README-chinese-detail.md` — 原 README 中文规划文档（模块 A-D / MVP 范围 / 预期成果）
+- [`internal/README-chinese-detail.md`](internal/README-chinese-detail.md) — 原 README 中文规划文档（模块 A-D / MVP 范围 / 预期成果）
 
 ## Archive（`archive/`）
 
-- `gqa-vs-mha-no-go/` — F 项目的 4 个文件（feasibility / protocol / README / reviewer-evidence）
-  - **不**作为简历素材：F 是 20 轮 audit 后关闭的 incomplete feasibility review
+- [`archive/gqa-vs-mha-no-go/`](archive/gqa-vs-mha-no-go/) — F 项目的 4 个文件（feasibility / protocol / README / reviewer-evidence）
+  - 已移出当前实验主线；保留作为历史审查记录。
 
 ## Tests（`../tests/`）
 

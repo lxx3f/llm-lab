@@ -54,6 +54,23 @@ from scripts._hf_backend import (  # noqa: E402
     resolve_device,
     resolve_dtype,
 )
+
+# Backward-compatible aliases for the original module-local helpers. Existing
+# callers/tests may still import the private names while the implementation is
+# shared with eval_owt_real.py through scripts._hf_backend.
+_resolve_device = resolve_device
+
+
+def _resolve_dtype(name: str, device: str):
+    """Compatibility wrapper retaining the original CPU warning."""
+    resolved = resolve_dtype(name, device)
+    if device == "cpu" and name in {"bf16", "fp16"}:
+        print(
+            "[transformers-eval] CPU does not reliably support low-precision "
+            "generation; overriding dtype to torch.float32",
+            flush=True,
+        )
+    return resolved
 from scripts.classify_tool_failure import classify  # noqa: E402
 from scripts.eval_sft_tool import extract_tool_calls  # noqa: E402
 
