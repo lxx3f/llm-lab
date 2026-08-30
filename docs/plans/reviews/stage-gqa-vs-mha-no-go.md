@@ -13,7 +13,7 @@
 
 ## 交付清单
 
-- `docs/experiments/gqa-vs-mha/feasibility.md` — 6.8 KB；含 §1 判定标准、§2 候选扫描、§3 否决理由、§4 roadmap 影响、§5 评估、§6 后续交付。
+- `docs/experiments/gqa-vs-mha/feasibility.md` — 30,160 bytes (~30 KB；含 §1 判定标准、§2 候选扫描 19 rows 5 ✅+14 ⚠、§3 否决理由、§4 影响、§5 结论、§6 P5-04 5 model 实证、§7/§10 实证命令、§8 reproducible search、§9 narrowed claim、§11 schema evidence、§Per-row classification appendix)。
 - `tests/test_gqa_vs_mha_no_go.py` — 7 个 pytest 断言；guard 守住 no-go 结论与硬性判定标准。
 - `docs/plans/roadmap.md` 候选 1 行追加状态更新段（line 101）：no-go + 指向 feasibility + stage review。
 - `docs/plans/open-issues.md` 暂不处理段记录本 no-go 结论链接（见下文 §Risks）。

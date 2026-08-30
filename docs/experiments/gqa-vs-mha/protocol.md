@@ -103,7 +103,7 @@ for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.js
 
 # §2 §2.2 family + research artifact 数量 + URL count + access date count
 python -m pytest tests/test_gqa_vs_mha_audit_consistency.py -v
-# Expected: 19 passed (7 keyword/family smoke tests + 12 structural audit-consistency tests)
+# Expected: 20 passed (7 keyword/family smoke tests + 13 structural audit-consistency tests including cross-document candidate-set consistency)
 
 # §3 narrowed claim wording — 必须显式出现 "audited candidate set" + "not auditable / not verifiably excluded"
 grep -nE 'audited candidate set|not auditable|not verifiably excluded' docs/experiments/gqa-vs-mha/feasibility.md

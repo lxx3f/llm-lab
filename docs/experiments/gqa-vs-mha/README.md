@@ -34,7 +34,7 @@ for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.js
 
 # 3. Pytest guard suite
 python -m pytest tests/test_gqa_vs_mha_no_go.py tests/test_gqa_vs_mha_audit_consistency.py -v
-# Expected: 19 passed (7 keyword/family smoke tests + 12 structural audit-consistency tests)
+# Expected: 20 passed (7 keyword/family smoke tests + 13 structural audit-consistency tests including cross-document candidate-set consistency)
 
 # 4. Reviewer evidence
 cat docs/experiments/gqa-vs-mha/reviewer-evidence.md

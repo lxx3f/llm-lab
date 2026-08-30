@@ -23,6 +23,7 @@ weaknesses.
 from __future__ import annotations
 
 import re
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -441,6 +442,174 @@ def test_p5_04_config_enum_runs() -> None:
     assert proc.returncode == 0, f"§7 snippet failed: {proc.stderr}"
     lines = [l for l in proc.stdout.splitlines() if "heads=" in l]
     assert len(lines) >= 5, f"§7 snippet must find ≥ 5 P5-04 configs; got {len(lines)}: {lines}"
+
+
+# ----------------------------------------------------------------------------
+# §3c. Pinned-revision verification + no-go scope matches evidence (auditor round 19)
+# ----------------------------------------------------------------------------
+
+
+def test_pinned_revisions_match_p5_04_metadata() -> None:
+    """feasibility.md §2.2 SmolLM row cites specific 40-hex SHAs; this test
+    verifies those SHAs match the actual P5-04 metadata.json hf_expected_revision.
+
+    This is the durable fix for auditor round 19 weakness #4 (auditor said
+    "Add verification that checks cited pinned revisions and the actual
+    same-base rubric evidence, rather than only document structure and
+    keyword/count consistency"). The test reads metadata.json files written
+    by P5-04 eval and compares the hf_expected_revision values against the
+    SHAs cited in feasibility.md §2.2 SmolLM row.
+
+    If P5-04 metadata is missing (e.g. eval never ran), the test is
+    skipped — we cannot make claims without evidence.
+    """
+    if not FEASIBILITY_DOC.exists():
+        pytest.skip("feasibility.md not found")
+    feasibility_text = FEASIBILITY_DOC.read_text(encoding="utf-8")
+
+    # Find the SmolLM row in §2.2
+    smollm_match = re.search(
+        r"SmolLM2-360M\s+`([0-9a-f]{40})`.*?SmolLM2-1\.7B\s+`([0-9a-f]{40})`",
+        feasibility_text,
+        re.DOTALL,
+    )
+    if not smollm_match:
+        pytest.skip("SmolLM row with explicit 40-hex SHAs not found in feasibility.md")
+    claimed_360m = smollm_match.group(1)
+    claimed_17b = smollm_match.group(2)
+
+    # Read the actual P5-04 metadata.json files
+    metadata_root = ROOT / "artifacts" / "owt-real-eval" / "results"
+    if not metadata_root.exists():
+        pytest.skip(f"P5-04 metadata root not found at {metadata_root}")
+
+    actual_360m = None
+    actual_17b = None
+    for metadata_path in metadata_root.rglob("metadata.json"):
+        try:
+            data = json.loads(metadata_path.read_text(encoding="utf-8"))
+            hf_rev = (
+                data.get("hf_expected_revision")
+                or data.get("hf_revision")
+                or data.get("expected_revision")
+            )
+            model_name = (
+                data.get("model_name")
+                or data.get("model")
+                or data.get("model_id")
+                or metadata_path.parent.parent.name
+            )
+            if hf_rev and "SmolLM2-360M" in str(model_name):
+                actual_360m = hf_rev
+            elif hf_rev and "SmolLM2-1.7B" in str(model_name):
+                actual_17b = hf_rev
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    if actual_360m is None and actual_17b is None:
+        pytest.skip(
+            "P5-04 metadata.json files do not contain hf_expected_revision "
+            "fields (or are unreadable); cannot verify pinned revisions."
+        )
+
+    if actual_360m is not None:
+        assert claimed_360m == actual_360m, (
+            f"feasibility.md cites SmolLM2-360M hf_expected_revision={claimed_360m} "
+            f"but actual P5-04 metadata.json records {actual_360m}"
+        )
+    if actual_17b is not None:
+        assert claimed_17b == actual_17b, (
+            f"feasibility.md cites SmolLM2-1.7B hf_expected_revision={claimed_17b} "
+            f"but actual P5-04 metadata.json records {actual_17b}"
+        )
+
+
+def test_no_go_scope_matches_evidence_classification() -> None:
+    """feasibility.md conclusion must NOT claim all 19 candidates excluded
+    when only 5 rows are fully verified.
+
+    Auditor round 19 TODO #2: 'Make the no-go scope logically match its
+    evidence: do not claim all 19 candidates are excluded while 14 are
+    documented as needs more work.'
+
+    This test enforces the wording: feasibility.md's conclusion section
+    must explicitly distinguish verified sub-scope (5 rows) from
+    feasibility-lead sub-scope (14 rows), and must NOT claim full audit
+    no-go closure.
+    """
+    if not FEASIBILITY_DOC.exists():
+        pytest.skip("feasibility.md not found")
+    text = FEASIBILITY_DOC.read_text(encoding="utf-8")
+
+    # Required phrases
+    required = [
+        "Verified sub-scope",
+        "verified sub-scope",
+        "feasibility-lead",
+        "feasibility-lead rows",
+        "incomplete",
+    ]
+    missing = [p for p in required if p not in text]
+    assert not missing, (
+        f"feasibility.md conclusion section missing required verified/feasibility-lead "
+        f"scope-distinguishing phrases: {missing}"
+    )
+
+
+def test_sample_no_go_result_has_current_review_provenance() -> None:
+    """sample-no-go-result.json head_at_review must reflect the most recent
+    durable reviewer run, not an obsolete one.
+
+    Auditor round 19 TODO #1: 'sample-no-go-result.json retains the obsolete
+    head_at_review 4151154..., not the durable current review provenance.
+    Its historical status is not clearly identified.'
+
+    The sample JSON config.head_at_review must equal the current reviewer
+    evidence file's head_at_review; if it does not, the sample is stale and
+    the audit trail must show review_history with explicit supersession.
+    """
+    sample_path = ROOT / "examples" / "evaluation_results" / "sample-no-go-result.json"
+    if not sample_path.exists():
+        pytest.skip("sample-no-go-result.json not found")
+    sample = json.loads(sample_path.read_text(encoding="utf-8"))
+
+    if not REVIEWER_EVIDENCE.exists():
+        pytest.skip("reviewer-evidence.md not found")
+    re_text = REVIEWER_EVIDENCE.read_text(encoding="utf-8")
+    m = re.search(r"`head_at_review`:\s*([0-9a-f]{40})", re_text)
+    assert m, "reviewer-evidence.md missing head_at_review 40-hex SHA"
+    current_head_at_review = m.group(1)
+
+    sample_head = sample.get("config", {}).get("head_at_review", "")
+    review_history = sample.get("config", {}).get("review_history", [])
+    if sample_head != current_head_at_review:
+        assert review_history, (
+            f"sample-no-go-result.json head_at_review={sample_head} != current "
+            f"{current_head_at_review} but no review_history provided"
+        )
+        has_superseded = any(
+            isinstance(e, dict) and "superseded" in str(e.get("status", "")).lower()
+            for e in review_history
+        )
+        assert has_superseded, (
+            f"sample-no-go-result.json review_history lacks 'superseded' marker "
+            f"for stale entry {sample_head}"
+        )
+
+
+def test_stage_review_no_obsolete_file_size_claim() -> None:
+    """stage-gqa-vs-mha-no-go.md must NOT contain obsolete file-size claim
+    about feasibility.md (the '6.8 KB' figure from a much earlier round).
+
+    Auditor round 19: 'stage-gqa-vs-mha-no-go.md calls feasibility.md 6.8 KB,
+    but it is 30,160 bytes'.
+    """
+    if not STAGE_REVIEW.exists():
+        pytest.skip("stage review not found")
+    text = STAGE_REVIEW.read_text(encoding="utf-8")
+    assert "6.8 KB" not in text, (
+        "stage review still contains obsolete '6.8 KB' file-size claim about feasibility.md"
+    )
 
 
 if __name__ == "__main__":

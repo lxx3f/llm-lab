@@ -1,22 +1,24 @@
 {
   "schema_version": "1.0",
-  "model": "n/a (no-go: no auditable same-base GQA/MHA pair exists)",
+  "model": "n/a (verified scope no-go: 5/19 candidates confirmed no same-base GQA/MHA pair; 14/19 candidates are feasibility leads requiring pinned-revision verification for full closure)",
   "task": "gqa-vs-mha-feasibility",
   "dataset_version": null,
   "backend": null,
   "metrics": {
     "audited_candidate_set_size": 19,
     "verified_rows": 5,
+    "verified_no_go_rows": 5,
     "feasibility_lead_rows": 14,
-    "same_base_gqa_mha_pair_found": 0
+    "feasibility_leads_full_closure_required": 14,
+    "same_base_gqa_mha_pair_found_in_verified_scope": 0
   },
   "failures": [],
-  "experiment_id": "gqa-vs-mha-no-go-2026-08-30",
-  "timestamp": "2026-08-30T10:15:57Z",
+  "experiment_id": "gqa-vs-mha-no-go-2026-08-30-round-18",
+  "timestamp": "2026-08-30T10:39:18Z",
   "config": {
     "scope": "15 LLM families + 4 research artifacts",
-    "head_at_review": "4151154445faa6eb5a608d4ece0fa9e46e334470",
-    "review_timestamp_utc": "2026-08-30T10:15:57Z",
+    "head_at_review": "6cb551cbc72eb1ebaabc230cc12eff0a32442e84",
+    "review_timestamp_utc": "2026-08-30T10:39:18Z",
     "narrowed_claim_categories": [
       "closed-source / gated-only",
       "unpublicized checkpoints",
@@ -26,7 +28,32 @@
     ],
     "feasibility_doc": "docs/experiments/gqa-vs-mha/feasibility.md",
     "reviewer_evidence": "docs/experiments/gqa-vs-mha/reviewer-evidence.md",
-    "stage_review": "docs/plans/reviews/stage-gqa-vs-mha-no-go.md"
+    "stage_review": "docs/plans/reviews/stage-gqa-vs-mha-no-go.md",
+    "review_history": [
+      {
+        "round": 16,
+        "timestamp_utc": "2026-08-30T10:15:57Z",
+        "head_at_review": "4151154445faa6eb5a608d4ece0fa9e46e334470",
+        "status": "superseded - round 16 reviewer run; durable two-commit split invariant",
+        "supersedes": null
+      },
+      {
+        "round": 17,
+        "timestamp_utc": "2026-08-30T10:24:40Z",
+        "head_at_review": "f192988a304f2a25d792e74b9271cf070fd8aa32",
+        "status": "superseded - round 17 reviewer run",
+        "supersedes": 16
+      },
+      {
+        "round": 18,
+        "timestamp_utc": "2026-08-30T10:39:18Z",
+        "head_at_review": "6cb551cbc72eb1ebaabc230cc12eff0a32442e84",
+        "status": "durable - current reviewer run; this sample reflects round 18 provenance",
+        "supersedes": 17
+      }
+    ],
+    "full_closure_status": "incomplete",
+    "narrowed_claim_status": "incomplete_audit_no_universal_claim"
   },
-  "summary": "GQA vs MHA 公开模型对比 — no-go. 在 audited candidate set (15 LLM family + 4 research artifacts) 内没有可审计的同 base GQA/MHA 双版本公开模型对。本结论仅对 audited candidate set 有效，不主张全球 HF 一定不存在；5 not-auditable 类别（closed-source / unpublicized / private org-internal / non-English / paper-only）不在覆盖范围内。"
+  "summary": "GQA vs MHA public model comparison - narrowed verified scope no-go + incomplete full audit. Verified sub-conclusion: in the 5 fully independently verified rows (Mixtral mirror config at pinned commit, SmolLM P5-04 hf_expected_revision SHAs, Ainslie 2023 / fpcsong/mha2gqa / shreyansh26 - arxiv id + GitHub commit history), no auditable same-base GQA/MHA dual-version public pair exists. Search status: the 14 feasibility-lead rows (LLaMA / Mistral / Qwen / Phi / Gemma / DeepSeek / OPT / BLOOM / GPT-NeoX / Falcon / Yi / Baichuan / BEE-spoke / SmolLM3 blog) suggest no same-base pair based on absence / unpinned evidence, but pinning to specific immutable revisions is required for full closure. Headline: do NOT claim all 19 candidates are excluded; the 14 feasibility-lead rows are not verified exclusions. Narrowed claim (per feasibility.md section 9): the no-go conclusion applies to the 5 verified rows; 14 feasibility-lead rows require pinning for full closure. 5 not-auditable categories (closed-source / unpublicized / private org-internal / non-English / paper-only) are out of scope. Future work: pin 14 feasibility-lead rows at specific immutable HF revisions (or download each repo at its pinned commit) to convert feasibility leads into verified exclusions or surface a missed same-base pair."
 }

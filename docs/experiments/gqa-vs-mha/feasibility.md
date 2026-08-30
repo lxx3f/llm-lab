@@ -214,7 +214,10 @@ python scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
 
 4. **本地 config 实证**：读取 P5-04 已下载 5 model config.json，列出 attention 类型 / hidden / layers / vocab，确认无同 base 对（5 个 tuple 全不同）。
 
-5. **结论**：搜索覆盖 15 families + 4 research artifacts (= 19 candidates)s，每条候选均带 URL + access date + evidence。no-go 结论证据链完整、可被独立 auditor 复现。
+5. **结论（双层 scope）**：搜索覆盖 15 families + 4 research artifacts (= 19 candidates)。
+   - **Verified sub-scope (5 verified rows)**：完全独立可复现的 evidence（pinned config.json / arxiv id / GitHub commit history / P5-04 hf_expected_revision 40-hex SHAs）。这 5 行已 verified no same-base GQA/MHA dual-version public pair exists。**No-go 在 verified sub-scope 范围内是 durable 的。**
+   - **Feasibility-lead sub-scope (14 feasibility-lead rows)**：依赖 master + paper / model card declaration / absence claim，缺未 pin 到具体 immutable revision。**这 14 行不构成 verified exclusions**，只是 needs-more-work 的 leads。
+   - **Headline conclusion**：**不**主张全部 19 candidates 都被 excluded；主张的只是 (a) verified sub-scope 5 rows 的 no-go 是 durable，(b) 14 feasibility-lead rows 需要 pin 到具体 immutable revision 才能完成 full closure，(c) full audit 当前 incomplete，14 feasibility-lead rows 不能等同于 verified exclusions。
 
 
 ## 9. 结论范围（narrowed claim，避免 universal overreach）
@@ -235,10 +238,18 @@ python scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
   4. **non-English / non-mainstream platforms** (GitLab、ModelScope 私有仓库、国内魔搭社区非公开仓库等)；
   5. **paper-only ablations without released safetensors** (来自非公开论文 ablation 的非 release 权重 — 仅在 paper 表格中报告，未发布 safetensors)。
 
-- **Narrowed wording**：
-  本文不主张"全球公开 HF 一定不存在同 base GQA/MHA 双版本"。
-  本文只主张："在 2026-08-30 由 web search + P5-04 本地 config 取证的 15 families + 4 research artifacts (= 19 candidates)s
-  这一 audited candidate set 内，没有可审计的同 base GQA/MHA 双版本。"
+- **Narrowed wording (verified sub-scope + feasibility-lead sub-scope)**：
+  本文只主张：
+
+  (1) **Verified sub-scope (5 verified rows)**：在 5 个完全 pinned-revision / arxiv-id / GitHub-commit-history verified 的 rows（Mixtral mirror config at pinned commit c9f3de3 / SmolLM P5-04 hf_expected_revision 40-hex SHAs / Ainslie 2023 arxiv 2305.13245 / fpcsong/mha2gqa arxiv 2412.20677 + GitHub / shreyansh26 GitHub commit history）内，没有可审计的同 base GQA/MHA dual-version public pair exists。**这是一个 verified durable sub-conclusion。**
+
+  (2) **Feasibility-lead sub-scope (14 feasibility-lead rows)**：14 个 feasibility-lead rows 基于 absence claims / unpinned master / paper / model card declarations 暗示 no same-base pair 存在；这些 rows **不是 verified exclusions**，是 leads that require pinning to specific immutable revisions for full closure。
+
+  (3) **Combined narrowed claim**：the verified scope no-go (5 verified rows) is durable; the full audit no-go (19 rows) is **incomplete**, not verified complete no-go. Any reader that interprets the 14 feasibility-lead rows as verified exclusions is reading beyond what the evidence supports.
+
+- 本文不主张：(a) 闭源 / gated-only 仓库中存在未公开的同 base 对；(b) HF 历史上发布后又删除的 checkpoint 包含同 base 对；(c) 私人 org-internal 训练中存在同 base 对；(d) 非英语 / 非主流平台有同 base 对；(e) paper-only ablations without released safetensors。
+
+- **Future work to convert feasibility leads to verified exclusions**：pin 14 feasibility-lead rows at specific immutable HF revisions (or download each repo at its pinned commit) to convert leads into verified exclusions or surface a missed same-base pair。
 
 - **Implication**：如未来发现满足 §1.2 硬性判定标准 1-5 的同 base 公开模型对（不论是
   现有 family 的新 release 还是新 family 发布），本 no-go 结论需被推翻。`tests/test_gqa_vs_mha_no_go.py`
