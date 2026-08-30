@@ -84,7 +84,7 @@ live cache validation:    5/5 caches pass validate_token_cache() (rebound to con
 
 fresh-context reviewer (`reviewer` subagent) VERDICT: **PASS** on all 8 bounded checks (post-auditor-dissapproval fix verification, run twice as the SHA-repair and contract-path commits landed):
 
-- A. HEAD `677ecaa…` (the current checkout HEAD after OWT-path-contract + §Verification-rewrite + HEAD-reference sync); the full fix chain across rounds is the four prior commits: shared backend (`f25cc3c`), cache SHA repair (`252195f`), HEAD sync to `252195f` (`8b5188c`), OWT path contract + §Verification rewrite (`6017051`), then HEAD-reference sync to current (`677ecaa`).
+- A. HEAD `677ecaa…` (the current checkout HEAD after OWT-path-contract + §Verification-rewrite + HEAD-reference sync); the full fix chain across rounds is four prior commits, in order: shared backend, cache SHA repair, HEAD sync to the SHA-repair commit, then OWT path contract + §Verification rewrite; each prior commit is cited in its own inline commit message.
 - B. Backend reuse wired: `scripts/_hf_backend.py` exposes `load_causal_lm_model`; both `scripts/eval_transformers.py` and `scripts/eval_owt_real.py` import + use it; ZERO inline `AutoModelForCausalLM.from_pretrained` calls in the two eval scripts (only centralized in `_hf_backend.py:78`).
 - C. Boundary-gap protocol documented: README (lines 62, 70), stage review (lines 23, 25, 27), open-issues (line 1212) — 8 grep matches total.
 - D. Per-model gap values match: SmolLM2 series `66,410 (0.0976%)`, Qwen2.5 series `63,192 (0.0977%)` in both README and stage review tables.
