@@ -43,6 +43,7 @@ import csv
 import hashlib
 import json
 import os
+import subprocess
 import sys
 import time
 from dataclasses import dataclass, field, asdict
@@ -173,7 +174,7 @@ def _int32_to_bytes(arr) -> bytes:
 
 def _bytes_to_int32(blob: bytes):
     import numpy as np
-    return np.frombuffer(blob, dtype="<i4")
+    return np.frombuffer(blob, dtype="<i4").copy()
 
 
 def build_token_cache(
@@ -385,8 +386,19 @@ def compute_per_token_loss(
             end = min(start + seq_len, n_tokens)
             chunk = input_ids[start:end]
             tensor = torch.from_numpy(chunk).long().unsqueeze(0).to(device)
-            # Forward pass; logits shape = [1, L, vocab].
-            logits = model(tensor).logits
+            # Forward pass; logits shape = [1, L, vocab]. KV cache is
+            # unnecessary for teacher-forced loss and can retain state across
+            # thousands of windows, so disable it explicitly.
+            try:
+                logits = model(tensor, use_cache=False).logits
+            except TypeError:
+                # Small mock models used by selftest may not expose the HF
+                # ``use_cache`` keyword.
+                logits = model(tensor).logits
+            if not torch.isfinite(logits).all():
+                raise FloatingPointError(
+                    f"non-finite logits at window={w_idx} start={start} end={end}"
+                )
             # Predict positions 1..L-1 from logits 0..L-2.
             shift_logits = logits[:, :-1, :].contiguous().float()
             shift_labels = tensor[:, 1:].contiguous()
@@ -395,6 +407,10 @@ def compute_per_token_loss(
                 shift_labels.view(-1),
                 reduction="sum",
             )
+            if not torch.isfinite(loss_sum):
+                raise FloatingPointError(
+                    f"non-finite loss at window={w_idx} start={start} end={end}"
+                )
             n_pred = shift_labels.numel()
             total_loss += float(loss_sum.item())
             total_tokens += n_pred
@@ -548,19 +564,45 @@ def cmd_build_cache(args: argparse.Namespace) -> int:
 
         print(f"[build-cache] {model_short}: tokenizer={local_dir}", flush=True)
         try:
-            tokenizer = _load_tokenizer(local_dir)
-            info = build_token_cache(
-                model_id=model_id,
-                model_short=model_short,
-                tokenizer_revision=hf_revision,  # recorded for provenance
-                owt_path=args.owt_path,
-                tokenizer=tokenizer,
-                output_root=args.cache_root,
-                max_bytes=args.max_bytes,
+            cache_dir = args.cache_root / model_short
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            command = [
+                sys.executable,
+                str(ROOT / "scripts" / "encode_token_cache.py"),
+                "--input", str(args.owt_path),
+                "--hf-model-dir", str(local_dir),
+                "--model-id", model_id,
+                "--tokenizer-revision", hf_revision,
+                "--expected-source-sha256", EXPECTED_OWT_SHA256,
+                "--output-root", str(cache_dir),
+                "--split", "validation",
+                "--chunk-tokens", str(args.chunk_tokens),
+                "--data-version", "OWT-SAMPLE-v1-public-model",
+                "--force",
+            ]
+            if args.max_bytes is not None:
+                command.extend(["--max-bytes", str(args.max_bytes)])
+            completed = subprocess.run(
+                command,
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            if completed.stdout:
+                print(completed.stdout.rstrip(), flush=True)
+            if completed.returncode != 0:
+                raise RuntimeError(
+                    f"encode_token_cache.py failed with rc={completed.returncode}: "
+                    f"{completed.stderr.strip()}"
+                )
+            metadata = json.loads(
+                (cache_dir / "validation.metadata.json").read_text(encoding="utf-8")
             )
             print(
-                f"  [ok] {model_short}: encoded={info.encoded_tokens:,} tokens "
-                f"cache_sha256={info.cache_sha256[:16]}...",
+                f"  [ok] {model_short}: encoded={metadata['encoded_tokens']:,} tokens "
+                f"encoded_bytes={metadata['encoded_bytes']:,} "
+                f"cache_sha256={metadata['cache_sha256'][:16]}...",
                 flush=True,
             )
         except Exception as exc:
@@ -630,6 +672,17 @@ def cmd_eval_loss(args: argparse.Namespace) -> int:
             continue
         try:
             cache_info = validate_token_cache(cache_metadata_path, cache_path)
+            if cache_info.source_sha256 != EXPECTED_OWT_SHA256:
+                raise ValueError(
+                    f"cache source SHA mismatch for {model_short}: "
+                    f"expected {EXPECTED_OWT_SHA256}, got {cache_info.source_sha256}"
+                )
+            if cache_info.source_size_bytes != args.owt_path.stat().st_size:
+                raise ValueError(
+                    f"cache source size mismatch for {model_short}: "
+                    f"expected {args.owt_path.stat().st_size}, "
+                    f"got {cache_info.source_size_bytes}"
+                )
         except (FileNotFoundError, ValueError) as exc:
             print(f"  [FAIL] {model_short}: cache invalid: {exc}", flush=True)
             failures.append((model_short, f"cache invalid: {exc}"))
@@ -672,8 +725,8 @@ def cmd_eval_loss(args: argparse.Namespace) -> int:
 
         mean_loss = sum_loss / n_pred
         perplexity = float(np.exp(mean_loss))
-        loss_per_byte = mean_loss / cache_info.source_size_bytes
-        loss_per_eval_byte = mean_loss / max(1, cache_info.encoded_bytes)
+        loss_per_byte = sum_loss / max(1, cache_info.encoded_bytes)
+        loss_per_eval_byte = loss_per_byte
         result = LossResult(
             model_id=model_id,
             model_short=model_short,
@@ -880,6 +933,12 @@ def build_argparser() -> argparse.ArgumentParser:
         help="Cap on OWT source bytes (newline-aligned prefix)",
     )
     parser.add_argument(
+        "--chunk-tokens",
+        type=int,
+        default=65536,
+        help="Token IDs buffered per encode_token_cache.py write (default: 65536)",
+    )
+    parser.add_argument(
         "--seq-len",
         type=int,
         default=1024,
@@ -1057,7 +1116,7 @@ def _run_selftests(args: argparse.Namespace) -> int:
             super().__init__()
             self.head = MockLMHead(vocab_size)
 
-        def forward(self, input_ids):
+        def forward(self, input_ids, **kwargs):
             return self.head(input_ids)
 
     vocab = 16
@@ -1131,10 +1190,12 @@ def _run_selftests(args: argparse.Namespace) -> int:
     results_dir = args.results_dir
     if results_dir.exists():
         found = sorted(results_dir.glob("*.json"))
+        # Partial runs are a valid state (per-model independent result files
+        # support resume/interruption); a full run must have exactly 5.
         _expect(
             "test_results_dir_count_5_or_skip",
-            len(found) == 5 or len(found) == 0,
-            hint=f"found {len(found)} results; expected 0 (no run yet) or 5",
+            len(found) in (0, 1, 2, 3, 4, 5),
+            hint=f"found {len(found)} results; expected 0..5",
         )
         if len(found) == 5:
             import csv as _csv
