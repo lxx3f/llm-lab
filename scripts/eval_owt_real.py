@@ -1,7 +1,7 @@
 """Real OWT per-token CE loss evaluation for 5 public instruction-tuned models.
 
 Scope:
-- Source text: ``data/raw/owt-sample/owt_valid.txt`` (Stanford CS336 OWT-sample
+- Source text: ``datasets/owt-sample/owt_valid.txt`` (symlink to 
   validation split, 277 MB). Source SHA-256 is locked to
   ``2406f278e71829d273b315e9b403285baea7022b26a96d2728dd8b776ea40660``.
 - 5 public models from P5-04 ``DEFAULT_MODELS`` (SmolLM2-360M/1.7B-Instruct +
@@ -75,7 +75,14 @@ DEFAULT_MODELS: tuple[tuple[str, str, str], ...] = (
     ("Qwen/Qwen2.5-3B-Instruct", "Qwen2.5-3B", "aa8e72537993ba99e69dfaafa59ed015b17504d1"),
 )
 
-DEFAULT_OWT_PATH = ROOT / "data" / "raw" / "owt-sample" / "owt_valid.txt"
+# Canonical contract path is ``datasets/owt-sample/owt_valid.txt`` per the
+# objective. The repo ships a symlink ``datasets/owt-sample -> data/raw/owt-sample``
+# so both layouts resolve to the same 289,998,753-byte validation file with
+# the canonical SHA below. ``data/raw/owt-sample`` remains the canonical
+# physical location (it is the Stanford CS336 OWT-sample release layout).
+PRIMARY_OWT_PATH = ROOT / "datasets" / "owt-sample" / "owt_valid.txt"
+LEGACY_OWT_PATH = ROOT / "data" / "raw" / "owt-sample" / "owt_valid.txt"
+DEFAULT_OWT_PATH = PRIMARY_OWT_PATH
 EXPECTED_OWT_SHA256 = "2406f278e71829d273b315e9b403285baea7022b26a96d2728dd8b776ea40660"
 
 DEFAULT_OUTPUT_ROOT = ROOT / "artifacts" / "owt-real-eval"
@@ -903,7 +910,11 @@ def build_argparser() -> argparse.ArgumentParser:
         "--owt-path",
         type=Path,
         default=DEFAULT_OWT_PATH,
-        help="OWT validation UTF-8 text (default: data/raw/owt-sample/owt_valid.txt)",
+        help=(
+            "OWT validation UTF-8 text. Contract path is "
+            "``datasets/owt-sample/owt_valid.txt`` (symlink to data/raw); "
+            "if missing the script falls back to ``data/raw/owt-sample/``."
+        ),
     )
     parser.add_argument(
         "--model-dir-root",
@@ -1000,6 +1011,19 @@ def build_argparser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_argparser().parse_args(argv)
+    # Fallback: if the contract path was specified but the symlink/file is
+    # missing (e.g. clone without datasets/owt-sample symlink), use the
+    # legacy physical location. Both paths must resolve to the same SHA.
+    if not args.owt_path.exists():
+        for fallback in (LEGACY_OWT_PATH,):
+            if fallback.exists():
+                print(
+                    f"[eval-owt-real] WARNING: contract path {args.owt_path} "
+                    f"missing; falling back to {fallback}",
+                    flush=True,
+                )
+                args.owt_path = fallback
+                break
     if args.selftest:
         return _run_selftests(args)
     if not (args.build_cache or args.eval_loss or args.aggregate):

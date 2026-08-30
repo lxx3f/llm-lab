@@ -9,7 +9,7 @@ P5-02 / P5-03 / P5-04 的工具调用评测全部基于 D2 多轮数据集（合
 ## 数据契约
 
 ```text
-source path:       data/raw/owt-sample/owt_valid.txt
+source path:       datasets/owt-sample/owt_valid.txt  (symlink → data/raw/owt-sample/owt_valid.txt)
 source size:       289,998,753 bytes (277 MB) — 完整 validation split
 source sha256:     2406f278e71829d273b315e9b403285baea7022b26a96d2728dd8b776ea40660
 encoded bytes:     289,998,753 (= source size，无 max-bytes 限制)

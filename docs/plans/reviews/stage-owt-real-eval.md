@@ -5,7 +5,7 @@
 ## Scope
 
 5 公开 instruction-tuned 模型 × 完整 OWT-sample validation split
-(`data/raw/owt-sample/owt_valid.txt`, sha256=`2406f278...`,
+(`datasets/owt-sample/owt_valid.txt` — symlink to `data/raw/owt-sample/owt_valid.txt`, sha256=`2406f278...`,
 289,998,753 bytes), per-token cross-entropy loss + perplexity。
 
 不涉及 D2 / tool calling；纯 LM held-out 评估。复用 P5-02 Transformers
@@ -35,12 +35,21 @@ chat-generate 而是 forward + shift-logit loss。
 
 这是 LM 公开评测标准选择。如需全预测覆盖可改 stride=`seq_len-1` 重叠去重（需重跑 5 模型），本轮不采用以保留 6+ 小时 GPU 结果。
 
-## Verification (filled after Stage 4)
+## Verification (final, HEAD 8b5188c)
 
 ```text
-HEAD:                     252195f (post-fix; see §Reviewer evidence)
+HEAD:                     8b5188c (post-fix; current checkout HEAD)
 git status:               clean
-selftest:                 PASS / 0 FAIL (no-GPU mode)
+selftest:                 PASS / 0 FAIL (no-GPU mode) — 97 PASS assertions
+selftest breakdown:
+  - hash helpers / OWT source SHA + size:       5
+  - cache round-trip / aggregate regression:   24
+  - backend reuse (eval_owt + eval_transformers import _hf_backend): 2
+  - per-result-JSON deep provenance (5 × 7 = 35 assertions across source SHA / evaluated_bytes / cache_sha / cache_metadata_sha / cache_metadata_source_sha / encoded_tokens / mean_loss & ppl finite): 35
+  - per-cache live validate_token_cache() (5 × 3 = 15 assertions across PASS + metadata_sha round-trip + cache_sha round-trip): 15
+  - comparison CSV / 5 row mean_loss finite / 5 row perplexity finite: 16
+  Total: 97 assertions
+owt source path:          datasets/owt-sample/owt_valid.txt (symlink → data/raw/owt-sample/owt_valid.txt)
 owt source sha256:        2406f278e71829d273b315e9b403285baea7022b26a96d2728dd8b776ea40660
 owt source size:          289,998,753 bytes (full validation file)
 evaluated bytes:          289,998,753 (full source, no max-bytes)
@@ -52,6 +61,7 @@ all mean_loss finite:     True
 all perplexity finite:    True
 cache sha256 unique:      True (SmolLM2 series share tokenizer → 1 SHA; Qwen2.5 series share tokenizer → 1 SHA; total 2 distinct)
 revision_verified count:  0/5 (all False — ModelScope 不识别 P5-04 exact revision，已回退 master)
+live cache validation:    5/5 caches pass validate_token_cache() (rebound to contract path datasets/owt-sample/)
 ```
 
 ## Per-model evidence (full validation, 289,998,753 bytes)
@@ -70,15 +80,15 @@ revision_verified count:  0/5 (all False — ModelScope 不识别 P5-04 exact re
 - `revision_verified=False` 时 master 与 P5-04 exact revision 字节差异需说明。
 - 仅 evaluation；不重训任何模型。
 
-## Reviewer evidence (fresh-context re-review, HEAD 252195f)
+## Reviewer evidence (fresh-context re-review, HEAD 8b5188c)
 
-fresh-context reviewer (`reviewer` subagent) VERDICT: **PASS** on all 8 bounded checks (post-auditor-dissapproval fix verification):
+fresh-context reviewer (`reviewer` subagent) VERDICT: **PASS** on all 8 bounded checks (post-auditor-dissapproval fix verification, run twice as the SHA-repair and contract-path commits landed):
 
-- A. HEAD `f25cc3c…` (the shared-backend + boundary-gap + deep-provenance baseline; superseded by `252195f` which repairs cache metadata SHA + adds live validator calls).
+- A. HEAD `8b5188c…` (post-cache-metadata-SHA-repair + contract-path rebind + HEAD-reference sync); the intermediate commits `f25cc3c` (shared backend), `252195f` (cache SHA repair), and `8b5188c` (HEAD sync) form the full fix chain.
 - B. Backend reuse wired: `scripts/_hf_backend.py` exposes `load_causal_lm_model`; both `scripts/eval_transformers.py` and `scripts/eval_owt_real.py` import + use it; ZERO inline `AutoModelForCausalLM.from_pretrained` calls in the two eval scripts (only centralized in `_hf_backend.py:78`).
 - C. Boundary-gap protocol documented: README (lines 62, 70), stage review (lines 23, 25, 27), open-issues (line 1212) — 8 grep matches total.
 - D. Per-model gap values match: SmolLM2 series `66,410 (0.0976%)`, Qwen2.5 series `63,192 (0.0977%)` in both README and stage review tables.
-- E. Selftest `[selftest] all tests PASSED`; 82 PASS / 0 FAIL; 50 new per-result deep-provenance tests + 2 new backend-reuse tests all PASS.
+- E. Selftest `[selftest] all tests PASSED`; **97 PASS / 0 FAIL**; 5 new live `validate_token_cache()` round-trip assertions + 35 per-result-JSON deep-provenance assertions + 2 backend-reuse assertions all PASS.
 - F. 5/5 result JSONs satisfy: source_sha256 == OWT SHA, evaluated_bytes == 289,998,753, mean_loss & perplexity finite+positive.
 - G. 5/5 cache file SHAs match their corresponding JSON cache_sha256; cache metadata source_sha256 == OWT SHA; metadata cache_sha256 matches both.
 - H. No unfilled placeholders (`will fill|to be filled|TODO|FIXME|XXX|<filled`): only meta-mention in auditor evidence block quoting the regex itself.
