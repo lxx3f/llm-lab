@@ -162,7 +162,68 @@ class MLACausalSelfAttention(nn.Module):
 
 ---
 
-## 9. 关联文档
+## 9. 面试 talking points（常见问题预设答案）
+
+### Q1: “你在这个项目里主要做了什么？”
+
+> 主要负责三块：(1) 从零实现并验证 4 种 attention 架构（PyTorch 2.13）；(2) 建立跨模型公平对比方法学（同 tokenizer / 同 cache / 同超参 / 同规模 / 同 seed 五项硬性判定）；(3) 构建 schema 驱动的可复现评测体系（11 个 JSON Schema + git commit / cache sha256 / config sha256 全绑定）。另外为了闭环，补充了工具调用数据集（D1/D1.1/D2）和双后端推理对比（P5-04）。
+
+### Q2: “最技术挑战的一个模块是？”
+
+> N13 的 MLA 实现：为了简化版但仍是真正训起来的模型，需要决定哪些 DeepSeek-V2 特性必装、哪些可省。最终选择省略 decoupled RoPE、保留 KV cache 压缩到 `latent_dim`（cache 只存压缩 latent，不存 full K/V）这个核心。后果是 forward pass 要重算 K/V（额外 FLOPs）但 cache 大小压缩 4x。这个 trade-off 在 2.10M 小模型 + 5000 步 训练上 val_min 7.122 与 MHA 7.058 仅差 0.06 nats, 验证了设计可行。
+
+### Q3: “为什么 P5-04 reward_binary 全为 0？”
+
+> 公开 instruction-tuned 模型在 tool calling 任务上不能访问 gold answer（80 sample的预期调収），不是模型能力问题，是设置设计。这个“诚实负结果”反而证明 evaluator 能正弦区分能力上限与具体格式错误（reward_layered 8 层平均 = 0.36-0.42 还在合理范围）。如果未来需要 higher reward_binary，需要要么改进 prompt 透露更多 context，要么使用更小的 black-box eval set。
+
+### Q4: “这个项目最让你不满意的地方？”
+
+> F 的 GQA vs MHA 公开模型可行性搜索。最后交付是 incomplete feasibility review (5 verified rows + 14 feasibility leads + incomplete full audit) 而不是完整的实证对比。原因是算力预算不够（8×H100 + 数天 GPU）。如果重做，会选择自训练一对 from-scratch same-base 模型，而不是依靠公开权重。
+
+### Q5: “为什么选 12M 上限而不是更大？”
+
+> 三档上限 (3M / 12M / 100M+) 可以与项目定位（“面向 LLM 研究与工程实践的个人实验项目”）匹配。12M 是能在 RTX 5070 Ti 12GB 上 8h 内训完、足以验证架构选择 (MoE/GQA/MLA) 对 loss 与 cache 的影响的最小充分规模。超过 12M 后 bias 提升在 OWT 上需要更多 step 才能看出，跳出当前 GPU 预算。
+
+### Q6: “跨模型 PPL 为什么不能直接比？”
+
+> 这是项目上“学到”的方法学陷阱。SmolLM2 vocab=49,152，Qwen2.5 vocab=151,643。vocab 越细，单 token 信息量越大，perplexity 越低（exp(mean_loss_per_token)）。所以 Qwen2.5 PPL 天然偏小。为跨模型公平，需要换为 `loss_nats_per_evaluated_byte` 或在同 tokenizer / 同 vocab 下对比。
+
+---
+
+## 10. Auditor 可复现命令
+
+```bash
+# 全部 421 个 pytest
+python -m pytest
+
+# N13 单元测试（13 tests）
+python -m pytest tests/test_gqa_mla_models.py -v
+
+# 3 个 N13 训练 result 都 schema-valid
+python -c "
+import json, jsonschema
+schema = json.load(open('schemas/dense_training_result.schema.json', encoding='utf-8'))
+for p in ['artifacts/dense-owt-formal-curve-medium-result.json',
+         'artifacts/gqa-owt-formal-curve-medium-result.json',
+         'artifacts/mla-owt-formal-curve-medium-result.json']:
+    d = json.load(open(p, encoding='utf-8'))
+    jsonschema.validate(d, schema)
+    print(f'{p}: VALID arch={d[\"model\"][\"architecture\"]}')
+"
+
+# P5-04 E selftest 无 regression（97 PASS）
+python3 scripts/eval_owt_real.py --selftest
+
+# 3-way overlay PNG 已生成
+ls -la docs/experiments/n13-gqa-vs-mla-vs-mha/dense-vs-gqa-vs-mla-curves.png
+
+# Head count
+git rev-list --count HEAD  # 应 >= 290
+```
+
+---
+
+## 11. 关联文档
 
 - 项目总体：`README.md` + `AGENTS.md`
 - 项目路线图：`docs/plans/roadmap.md` + `docs/plans/open-issues.md`
