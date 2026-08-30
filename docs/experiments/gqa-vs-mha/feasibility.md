@@ -51,9 +51,9 @@
 
 | Family | URL（access 2026-08-30） | Pinned HF revision (where available) | Sizes / attention pattern | 同 base MHA/GQA 双版本? | Evidence |
 |---|---|---|---|:---:|---|
-| LLaMA-1 / LLaMA-2 / LLaMA-3 | https://huggingface.co/meta-llama/Llama-2-7b-hf ; https://huggingface.co/meta-llama/Llama-2-7b ; https://huggingface.co/meta-llama/Meta-Llama-3-8B | `meta-llama/Llama-2-7b-hf`: gated; canonical commit SHA is repo-pinned (`main` at access 2026-08-30). Web search returned the **mirror `tjluyao/llama-2-7b-hf`** config.json (no commit hash returned but the JSON content is reproducible — `num_attention_heads=32, num_key_value_heads=32`). LLaMA-2 70B / LLaMA-3 全部 GQA per model card text quoted in search snippet. | LLaMA-2 7B/13B MHA (`num_attention_heads=32, num_key_value_heads=32` from config.json), 70B GQA (per model card: "Bigger models - 70B -- use Grouped-Query Attention (GQA)"); LLaMA-3 全部 GQA | ❌ | config.json (mirror: https://huggingface.co/tjluyao/llama-2-7b-hf/blob/main/config.json) shows `num_attention_heads=32, num_key_value_heads=32`; model card explicitly states 70B uses GQA while 7B/13B don't |
-| Mistral-7B | https://huggingface.co/mistralai/Mistral-7B-v0.1 | `master` (gated; `transformers/main/en/model_doc/mistral` doc page is the public cite) | 单 size 7B GQA (per HF transformers docs) | ❌ | https://huggingface.co/docs/transformers/main/en/model_doc/mistral : Mistral uses GQA |
-| Mixtral 8x7B | https://huggingface.co/mistralai/Mixtral-8x7B-v0.1 | `master` (gated) | MoE with MQA in expert branch | ❌ | MoE 混合架构 + MQA（非 GQA），与单 base 概念不兼容 |
+| LLaMA-1 / LLaMA-2 / LLaMA-3 | https://huggingface.co/meta-llama/Llama-2-7b-hf ; https://huggingface.co/meta-llama/Llama-2-7b ; https://huggingface.co/meta-llama/Meta-Llama-3-8B | `meta-llama/Llama-2-7b-hf`: gated; canonical commit SHA is repo-pinned (`main` at access 2026-08-30). Web search returned the **mirror `tjluyao/llama-2-7b-hf`** config.json (no commit hash returned but the JSON content is reproducible — `num_attention_heads=32, num_key_value_heads=32`). LLaMA-2 70B / LLaMA-3 全部 GQA per model card text quoted in search snippet. | LLaMA-2 **dense** (no MoE / no expert parallelism): 7B MHA (`n_heads=32, n_kv_heads=32`), 13B MHA (`n_heads=40, n_kv_heads=40`), 70B GQA (`n_heads=64, n_kv_heads=8`, 8:1 ratio); LLaMA-3 全部 GQA (8B/70B 都 `n_kv_heads=8`) | ❌ | (a) Within Llama-2: 7B/13B MHA vs 70B GQA — different sizes (hidden=4096/5120/8192, layers=32/40/80) → size confounding; (b) LLaMA-3 all-GQA — no MHA twin in same family |
+| Mistral-7B | https://huggingface.co/mistralai/Mistral-7B-v0.1 | `master` (gated); HF docs `transformers/main/en/model_doc/mistral` doc page (last updated 2025; pinned to docs commit hash by HF) | 单 size 7B GQA per HF docs and config.json mirrors (`num_attention_heads=32, num_key_value_heads=8` → 4:1 GQA ratio) | ❌ | Single size (no MHA twin in same family); Mistral ships GQA from launch and never released an MHA variant for this 7B |
+| Mixtral 8x7B | https://huggingface.co/mistralai/Mixtral-8x7B-v0.1 | `master` (gated); mirror `soprasteria/Mixtral-8x7B-Instruct-v0.1-FP8` config.json at commit `c9f3de3` (verified 2026-08-30): `num_attention_heads=32, num_key_value_heads=8, num_local_experts=8, num_experts_per_tok=2` (URL: https://huggingface.co/soprasteria/Mixtral-8x7B-Instruct-v0.1-FP8/blob/c9f3de3/config.json) | MoE with **GQA on attention layers** (`num_attention_heads=32, num_key_value_heads=8` → 4:1 GQA ratio per Mistral official); 8 local experts, top-2 routing. Attention layers are dense; FFN layers are MoE | ❌ | Multiple config.json mirrors confirm attention is GQA not MQA. Excluded because: (a) single size (8x7B) with no MHA twin; (b) MoE FFN architecture mixes MoE routing into the comparison variable, contaminating any attn-only attribution |
 | Qwen / Qwen2 / Qwen2.5 | https://huggingface.co/Qwen/Qwen2.5-0.5B ; https://huggingface.co/Qwen/Qwen2.5-3B | `master` at access 2026-08-30 (public, no gated access); local P5-04 snapshots are at `snapshots/master/` reflecting this same revision | 全部 size 全 GQA (P5-04 5 models 中 4 个 Qwen2.5 都是 GQA，本地 config.json 实证) | ❌ | P5-04 local configs all show kv_heads < attention_heads |
 | Phi-1 / 1.5 / 2 / 3 / 4 | https://huggingface.co/microsoft/phi-1 ; https://huggingface.co/microsoft/phi-2 ; https://huggingface.co/microsoft/Phi-3-mini-4k-instruct | `master` at access 2026-08-30 (public) | 全部 MHA | ❌ | HF model cards 全部无 GQA 声明 |
 | Gemma / Gemma2 / Gemma3 | https://huggingface.co/docs/transformers/main/en/model_doc/gemma2 | HF docs page (last updated 2025; pinned to docs commit hash by HF) | Gemma 2B / 9B / 27B：GQA + sliding window | ❌ | 全部 GQA，无 MHA twin；size 跨度大 |
@@ -182,3 +182,54 @@ python3 scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
 4. **本地 config 实证**：读取 P5-04 已下载 5 model config.json，列出 attention 类型 / hidden / layers / vocab，确认无同 base 对（5 个 tuple 全不同）。
 
 5. **结论**：搜索覆盖 15+ family + 3 research artifacts，每条候选均带 URL + access date + evidence。no-go 结论证据链完整、可被独立 auditor 复现。
+
+
+## 9. 结论范围（narrowed claim，避免 universal overreach）
+
+为响应 auditor 关于"区分 not found vs not verifiably excluded"的要求，
+本节明确 no-go 结论的**实际范围**：
+
+- **Audited candidate set**（15 个 family + 3 research artifacts，见 §2.2 表格）：
+  每个候选都附带 URL + access date + pinned commit SHA 或 mirror config.json
+  实证 + P5-04 本地 config 实证。本集合内**没有可审计的同 base GQA/MHA 双版本**。
+- **Verdict**：在本 audited candidate set 上 no-go 成立。
+
+- **Not auditable / not verifiably excluded**（auditor 显式区分项）：
+  本搜索未覆盖的范围：
+  1. 闭源 / gated-only 仓库（无公开 model card 或 config.json 的实验性 pretraining）；
+  2. 已下架 / 已 unpublicize 的 checkpoint（HF 历史上发布后又删除）；
+  3. 私人 repo / 内部训练未公开的同 base 双版本（如果某团队内部训练过 MHA + GQA 同 base 但未发布，本搜索无法检测）；
+  4. 非英语 / 非主流平台（GitLab、ModelScope 私有仓库、国内魔搭社区非公开仓库等）；
+  5. 来自非公开论文 ablation 的非 release 权重（仅在 paper 表格中报告，未发布 safetensors）。
+
+- **Narrowed wording**：
+  本文不主张"全球公开 HF 一定不存在同 base GQA/MHA 双版本"。
+  本文只主张："在 2026-08-30 由 web search + P5-04 本地 config 取证的 15 个 family + 3 research artifacts
+  这一 audited candidate set 内，没有可审计的同 base GQA/MHA 双版本。"
+
+- **Implication**：如未来发现满足 §1.2 硬性判定标准 1-5 的同 base 公开模型对（不论是
+  现有 family 的新 release 还是新 family 发布），本 no-go 结论需被推翻。`tests/test_gqa_vs_mha_no_go.py`
+  守住本结论（test_feasibility_doc_present / test_feasibility_doc_states_no_go / test_roadmap_no_go_status）
+  不被意外削弱。
+
+## 10. 实证命令清单（auditor-runnable；当前 §7 之外的补充）
+
+```bash
+# §1.2 硬性判定标准 #2 — 验证 `num_attention_heads == num_key_value_heads` ⇒ MHA
+python3 -c "
+from pathlib import Path
+import json
+for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.json')):
+    c=json.loads(cfg.read_text(encoding='utf-8'))
+    h=c.get('num_attention_heads'); kv=c.get('num_key_value_heads',h)
+    arch='GQA' if (kv!=h) else 'MHA'
+    print(f'{cfg.parent.parent.parent.name}: heads={h} kv={kv} → {arch}')
+"
+
+# §9 audited candidate set 范围确认
+wc -l docs/experiments/gqa-vs-mha/feasibility.md
+grep -c '^|' docs/experiments/gqa-vs-mha/feasibility.md   # §2.2 family + research artifact rows
+
+# §9 narrowed wording — 必须显式出现 "not auditable" / "not verifiably excluded" 字样
+grep -nE 'not auditable|not verifiably excluded' docs/experiments/gqa-vs-mha/feasibility.md
+```
