@@ -75,7 +75,34 @@
 - ✅ **verified** = the row's evidence comes from a directly inspectable source (config.json / model card / paper §X / HF docs page) that the auditor can independently retrieve; the claim about this family's attention pattern can be reproduced by another auditor following the URL.
 - ⚠ **not verifiably excluded** = the row's exclusion is by *absence* of evidence (e.g. "all model cards have no GQA declaration" is not the same as "we verified each model card says MHA-only"); such rows are still informative but the claim is weaker than ✅ rows.
 
-Currently §2.2 has **5 ✅ verified rows** (Mixtral mirror config at pinned commit, SmolLM P5-04 hf_expected_revision SHAs, Ainslie 2023 / fpcsong/mha2gqa / shreyansh26 — arxiv id + GitHub commit history) and **14 ⚠ not verifiably excluded rows** (rows where only `master` + paper / model card declaration / absence claim is cited without a specific pinned SHA — i.e. another auditor could reproduce the row but cannot point to a specific immutable commit). The ⚠ rows are still informative but their claims are weaker than ✅ rows; §9 "Not auditable / not verifiably excluded" lists the categories of evidence that are not pinned at all.
+Currently §2.2 has **5 ✅ fully independently verified rows** (Mixtral mirror config at pinned commit, SmolLM P5-04 hf_expected_revision SHAs, Ainslie 2023 / fpcsong/mha2gqa / shreyansh26 — arxiv id + GitHub commit history) and **14 ⚠ feasibility-lead rows** (rows where only `master` + paper / model card declaration / absence claim is cited without a specific pinned SHA).
+
+**Classification of the 14 ⚠ rows**: these are **feasibility leads**, NOT fully independently verified exclusions. The distinction matters because:
+- ✅ verified rows: another auditor can reproduce the row by pointing to a specific pinned SHA / arxiv id / GitHub commit. The exclusion is durable and independently re-verifiable.
+- ⚠ feasibility leads: the row contains a plausible-looking argument for exclusion (no same-base pair observed), but the evidence chain relies on absence claims or unpinned source revisions. A more thorough search (e.g. downloading each repo at its pinned commit, parsing each config.json, comparing dimensions row-by-row) might reveal a same-base pair. **Treat these rows as "needs more work" rather than "verified no-go"**.
+
+The ⚠ rows are still informative for the narrowed no-go scope (audited candidate set), but the no-go conclusion explicitly excludes fully verified closure on these 14 rows. §9 "Not auditable / not verifiably excluded" lists the categories of evidence that are not pinned at all (closed-source, unpublicized, private org-internal, non-English platforms, paper-only ablations).
+
+
+
+**Per-row classification of the 14 ⚠ feasibility-lead rows (auditor round 15)**: for each row, the specific reason it is classified as a feasibility lead rather than fully verified:
+
+1. **LLaMA-1/2/3** — mirror config.json content reproducible but no specific commit SHA for mirror; gated repo at `main` (auditor cannot verify mirror at a specific immutable revision).
+2. **Mistral-7B** — gated repo + HF transformers docs page lacks a specific commit hash cited in the row.
+3. **Qwen / Qwen2 / Qwen2.5** — `master` only in row; P5-04 hf_expected_revision SHAs exist in `artifacts/owt-real-eval/results/*/metadata.json` but are not cited inline in the row.
+4. **Phi-1 / 1.5 / 2 / 3 / 4** — `master` + absence claim ("all model cards have no GQA declaration") is not pinned config.json evidence.
+5. **Gemma / Gemma2 / Gemma3** — HF transformers docs page lacks a specific commit hash cited in the row.
+6. **DeepSeek-V2 / V3** — `master` + model card declaration only; no pinned config.json SHA cited.
+7. **OPT** — `master` + paper §3 reference (canonical) but no specific SHA or §anchor cited inline.
+8. **BLOOM** — `master` + paper §2.1 reference; no specific SHA cited.
+9. **GPT-NeoX** — `master` + EleutherAI declaration (no §anchor); no specific SHA cited.
+10. **Falcon** — `master` + Falcon 180B paper §3 MQA reference; no specific SHA cited.
+11. **Yi / Yi-Llama** — `master` + Yi paper reference; no specific SHA cited.
+12. **Baichuan / Baichuan2** — `master` + Baichuan2 paper reference; no specific SHA cited.
+13. **BEE-spoke-data smol_llama** — `master` + HF model card declaration; no specific SHA cited.
+14. **SmolLM3 blog nanotron ablation** — HF blog no pinned commit SHA; row explicitly notes "no checkpoint released" — exclusion is by absence.
+
+For each ⚠ row, an auditor could close the gap by (a) downloading the repo at a specific pinned commit and parsing its `config.json` to confirm attention pattern, OR (b) reading the cited paper §X to extract the explicit attention type claim, OR (c) finding the original HF model card from a versioned snapshot. The current row text does not include any of these specific verification steps.
 
 **Note on revision pinning**: For gated repos (LLaMA-2, Mixtral, Mistral), the
 exact commit SHA at `main` is not directly accessible without an HF token

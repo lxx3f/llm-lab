@@ -110,18 +110,25 @@ def test_reviewer_evidence_check_count_declared() -> None:
 
 
 def test_head_at_review_equals_head_parent() -> None:
-    """reviewer-evidence.md's `head_at_review` must be `HEAD` or an ancestor.
+    """reviewer-evidence.md's `head_at_review` must equal the parent of the
+    commit that most recently modified reviewer-evidence.md.
 
-    The reviewer-evidence.md file is a reviewer-runs-trail artifact that may
-    be rewritten by the reviewer run it documents (self-referential). The
-    invariant is therefore relaxed to: `head_at_review == HEAD` OR
-    `head_at_review` is an ancestor of HEAD. The ancestor case is checked
-    with `git merge-base --is-ancestor`; the equality case is checked by
-    direct SHA comparison.
+    This is the **durable invariant** for a reviewer-runs-trail artifact.
+    The reviewer subagent runs against commit X, writes reviewer-evidence.md,
+    and the executor commits the rewritten file as a follow-up commit Y.
+    In commit Y, the file content still says `head_at_review = X` (the SHA
+    the reviewer ran on), but the file is in commit Y. The invariant
+    `file.head_at_review == Y^` (parent of file's containing commit) holds.
 
-    When the artifact-under-test is reviewer-evidence.md itself, the
-    reviewer subagent rewrites the file with `head_at_review = git rev-parse HEAD`,
-    so the equality case naturally holds post-reviewer-run.
+    Why not "ancestor of HEAD"? Because "ancestor of HEAD" only proves
+    reachability, not that the reviewer actually reviewed the commit right
+    before the file's containing commit. The parent-of-containing-commit
+    invariant is what auditor round 15 demanded.
+
+    Why not "== HEAD"? Because the file lives in commit Y (the follow-up
+    commit that adds the reviewer transcript), and Y necessarily advances
+    HEAD past the reviewer's reviewed commit X. The only honest claim is
+    `head_at_review == X == Y^` — the SHA the reviewer ran on.
     """
     if not REVIEWER_EVIDENCE.exists():
         pytest.skip("reviewer-evidence.md missing")
@@ -129,19 +136,16 @@ def test_head_at_review_equals_head_parent() -> None:
     m = re.search(r"`head_at_review`:\s*([0-9a-f]{40})", re_text)
     assert m, "reviewer-evidence.md missing head_at_review 40-hex SHA"
     claimed = m.group(1)
-    head = _git("rev-parse", "HEAD")
-    if claimed == head:
-        # Equality case: artifact-under-test self-references current HEAD.
-        return
-    proc = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", claimed, "HEAD"],
-        cwd=ROOT,
-        capture_output=True,
+    file_commit = _git(
+        "log", "-1", "--format=%H", "--",
+        str(REVIEWER_EVIDENCE.relative_to(ROOT)),
     )
-    assert proc.returncode == 0, (
-        f"head_at_review {claimed} is neither HEAD ({head}) nor an ancestor of HEAD "
-        f"(merge-base --is-ancestor returned {proc.returncode}); "
-        f"stderr: {proc.stderr.decode(errors='replace')!r}"
+    assert file_commit, "could not find latest commit modifying reviewer-evidence.md"
+    expected = _git("rev-parse", f"{file_commit}^")
+    assert claimed == expected, (
+        f"head_at_review {claimed} must equal the parent of the commit "
+        f"most recently modifying reviewer-evidence.md ({file_commit}); "
+        f"expected parent = {expected}; got {claimed}"
     )
 
 

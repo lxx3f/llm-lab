@@ -82,7 +82,7 @@ The artifact contains its own provenance metadata (so the report's "current revi
 - `review_timestamp_utc` — UTC wall-clock when the reviewer ran
 - `reviewer_model` — `minimax-cn/MiniMax-M3` per `docs/plans/review-process.md`
 - `working_tree` — output of `git status --short --untracked-files=all`
-- 8 bounded checks A–H with status + evidence quote
+- 10 bounded checks A–J with status + evidence quote (the current canonical structure; the legacy "A–H" / 8-check structure was the round-8 reviewer format that was upgraded to A–J / 10-check structure in round 11 and has since been the canonical structure for all subsequent rounds)
 - VERDICT line at the end
 
 ### Why the artifact lives outside this stage review
@@ -117,10 +117,10 @@ state reviewer saw); the next commit's HEAD advances by one. Auditor runs
 - F. **§2.2 family URLs + access dates (no regression)** — feasibility.md §2.2 contains ≥ 18 URLs and ≥ 5 access-date markers; every row has URL + access date + evidence.
 - G. **Selftest no regression** — `python -m pytest tests/test_gqa_vs_mha_no_go.py -v` → 7 passed / 0 skipped / 0 failed.
 - H. **P5-04 E selftest no regression** — `python3 scripts/eval_owt_real.py --selftest` → `[selftest] all tests PASSED`, PASS count ≥ 95 (97 expected), FAIL = 0.
-- I. **Reviewer-evidence.md metadata preserved (not regenerated mid-cycle)** — `head_at_review` field equals `git rev-parse HEAD` (the current tree) OR is an ancestor of it (per the audit-consistency test's `git merge-base --is-ancestor` invariant — see `tests/test_gqa_vs_mha_audit_consistency.py::test_head_at_review_equals_head_parent`); the field is updated each round when a fresh reviewer runs against the current tree; previous reviewer run audit-trail references (e.g. `c5c4522` from prior rounds) preserved for transparency.
+- I. **Reviewer-evidence.md metadata preserved (not regenerated mid-cycle)** — `head_at_review` field equals the parent of the commit that most recently modified `docs/experiments/gqa-vs-mha/reviewer-evidence.md` (the durable invariant enforced by `tests/test_gqa_vs_mha_audit_consistency.py::test_head_at_review_equals_head_parent`); the field is updated each round when a fresh reviewer runs and the executor commits the rewritten reviewer-evidence.md file as a follow-up commit; previous reviewer run audit-trail references preserved for transparency.
 - J. **Consistency §2.2 row-54 ↔ §3 row-107** — feasibility.md LLaMA-2 dense + no MoE + no expert parallelism + size confounding is consistent between §2.2 row-54 (LLaMA-2 row) and §3 row-107 (failure-analysis table).
 
-fresh-context reviewer (`reviewer` subagent) VERDICT: **10/10 PASS** — 见 `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Verbatim reviewer output (timestamp 2026-08-30T09:24:59Z)" §"VERDICT"。auditor runs `cat docs/experiments/gqa-vs-mha/reviewer-evidence.md` (HEAD-agnostic) 拿最新 reviewer evidence；file.metadata `head_at_review = a58c17c987c3052e4b7be0c39c14872bfc16dd87` = `git rev-parse HEAD` (the artifact-under-test is self-referential for this round — the file was rewritten by the same reviewer run it documents; the audit-consistency test `test_head_at_review_equals_head_parent` uses `git merge-base --is-ancestor` which holds trivially when `head_at_review == HEAD`). 10 bounded checks A-J 完整 verbatim 列在 reviewer-evidence.md, reviewer_timestamp_utc=2026-08-30T09:24:59Z (round 14 fix verifier run after auditor round 14 disapprove).
+fresh-context reviewer (`reviewer` subagent) VERDICT: **10/10 PASS** — 见 `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Verbatim reviewer output (timestamp 2026-08-30T09:24:59Z)" §"VERDICT"。auditor runs `cat docs/experiments/gqa-vs-mha/reviewer-evidence.md` (HEAD-agnostic) 拿最新 reviewer evidence；file.metadata `head_at_review = a58c17c987c3052e4b7be0c39c14872bfc16dd87` = the commit the reviewer subagent ran on (at timestamp 2026-08-30T09:24:59Z). `git rev-parse HEAD` continues to advance past `head_at_review` whenever the repo receives new commits; the durable invariant is `head_at_review == (parent of the commit that last modified reviewer-evidence.md)`, which the audit-consistency test enforces via `git rev-parse $(git log -1 --format=%H -- docs/experiments/gqa-vs-mha/reviewer-evidence.md)^`. 10 bounded checks A-J 完整 verbatim 列在 reviewer-evidence.md.
 
 #
 
