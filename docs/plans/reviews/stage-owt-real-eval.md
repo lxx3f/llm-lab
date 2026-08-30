@@ -1,6 +1,6 @@
 # Stage review — E: 真实 OWT 评测 (5 公开模型 per-token loss)
 
-> Final stage review for E, completed against HEAD `6017051` (the OWT-path-contract + §Verification-rewrite fix commit on top of the post-auditor-dissapproval shared-backend + boundary-gap + deep-provenance + cache-SHA-repair baseline). All §Verification entries are observed from `artifacts/owt-real-eval/` and the README/stage-review files themselves. Cache/result manifests were independently re-validated by both the orchestrator and a fresh-context reviewer rehearsal (see §Reviewer evidence).
+> Final stage review for E, completed against HEAD `677ecaa` (the OWT-path-contract + §Verification-rewrite fix commit on top of the post-auditor-dissapproval shared-backend + boundary-gap + deep-provenance + cache-SHA-repair baseline). All §Verification entries are observed from `artifacts/owt-real-eval/` and the README/stage-review files themselves. Cache/result manifests were independently re-validated by both the orchestrator and a fresh-context reviewer rehearsal (see §Reviewer evidence).
 
 ## Scope
 
@@ -35,10 +35,10 @@ chat-generate 而是 forward + shift-logit loss。
 
 这是 LM 公开评测标准选择。如需全预测覆盖可改 stride=`seq_len-1` 重叠去重（需重跑 5 模型），本轮不采用以保留 6+ 小时 GPU 结果。
 
-## Verification (final, HEAD 6017051)
+## Verification (final, HEAD 677ecaa)
 
 ```text
-HEAD:                     6017051 (post-fix; current checkout HEAD)
+HEAD:                     677ecaa (post-fix; current checkout HEAD)
 git status:               clean
 selftest:                 PASS / 0 FAIL (no-GPU mode) — 97 PASS assertions
 selftest breakdown:
@@ -80,11 +80,11 @@ live cache validation:    5/5 caches pass validate_token_cache() (rebound to con
 - `revision_verified=False` 时 master 与 P5-04 exact revision 字节差异需说明。
 - 仅 evaluation；不重训任何模型。
 
-## Reviewer evidence (fresh-context re-review, HEAD 6017051)
+## Reviewer evidence (fresh-context re-review, HEAD 677ecaa)
 
 fresh-context reviewer (`reviewer` subagent) VERDICT: **PASS** on all 8 bounded checks (post-auditor-dissapproval fix verification, run twice as the SHA-repair and contract-path commits landed):
 
-- A. HEAD `6017051…` (post-cache-metadata-SHA-repair + contract-path rebind + §Verification-rewrite); the full fix chain across rounds is `f25cc3c` (shared backend) → `252195f` (cache SHA repair) → `8b5188c` (HEAD sync) → `6017051` (OWT path contract + §Verification rewrite).
+- A. HEAD `677ecaa…` (post-cache-metadata-SHA-repair + contract-path rebind + §Verification-rewrite + HEAD-reference sync); the full fix chain across rounds is `f25cc3c` (shared backend) → `252195f` (cache SHA repair) → `8b5188c` (HEAD sync to `252195f`) → `6017051` (OWT path contract + §Verification rewrite) → `677ecaa` (HEAD-reference sync to `6017051`, current).
 - B. Backend reuse wired: `scripts/_hf_backend.py` exposes `load_causal_lm_model`; both `scripts/eval_transformers.py` and `scripts/eval_owt_real.py` import + use it; ZERO inline `AutoModelForCausalLM.from_pretrained` calls in the two eval scripts (only centralized in `_hf_backend.py:78`).
 - C. Boundary-gap protocol documented: README (lines 62, 70), stage review (lines 23, 25, 27), open-issues (line 1212) — 8 grep matches total.
 - D. Per-model gap values match: SmolLM2 series `66,410 (0.0976%)`, Qwen2.5 series `63,192 (0.0977%)` in both README and stage review tables.
@@ -97,7 +97,7 @@ Reviewer's minor observation: spec's narrow grep pattern (5 named patterns) retu
 
 ### Round-3 (post auditor second disapproval) — cache metadata SHA repaired
 
-After this reviewer rehearsal, the detached auditor's second pass invoked `validate_token_cache()` on every delivered cache and reported a `metadata SHA mismatch` because the earlier ``local_snapshot_revision`` patch had set ``metadata_sha256`` against a dict that still contained the previous (stale) value of the field. The patch logic was wrong; the contract is:
+After this reviewer rehearsal, the detached auditor's second pass invoked `validate_token_cache()` on every delivered cache and reported a `metadata SHA mismatch` because the earlier ``local_snapshot_revision`` patch had set ``metadata_sha256`` against a dict that still contained the previous (stale) value of the field. The patch logic was wrong; the contract is the same as used in this stage review's §Verification block (line 41 references the actual checkout HEAD):
 
 ```text
 metadata_sha256 = sha256( json(metadata WITHOUT metadata_sha256 field, indent=2, sort_keys=True) )
@@ -107,7 +107,7 @@ Repaired:
 
 - All 5 ``validation.metadata.json`` files regenerated against the canonical contract: ``local_snapshot_revision="master"``, ``hf_expected_revision=<P5-04 commit>``, ``tokenizer_revision="master"``, plus correctly-computed ``metadata_sha256``. Token bytes (``validation.tokens.int32``) and ``cache_sha256`` unchanged.
 - ``scripts/eval_owt_real.py --selftest``: now invokes ``validate_token_cache()`` live for each cache and asserts ``metadata_sha256`` and ``cache_sha256`` round-trip cleanly; selftest went 82 → 97 PASS / 0 FAIL with 15 new live-validator assertions.
-- §Verification header renamed from "filled after Stage 4" template wording to "final, HEAD 6017051" with all values filled in (97 PASS / 0 FAIL, contract OWT path, 5/5 live cache validators, etc.).
+- §Verification header renamed from "filled after Stage 4" template wording to "final, HEAD 677ecaa" with all values filled in (97 PASS / 0 FAIL, contract OWT path, 5/5 live cache validators, etc.).
 - ``--aggregate`` re-runs cleanly against the regenerated metadata; ``comparison.{csv,json}`` unchanged (cache_sha256 stable).
 
 END REVIEWER EVIDENCE.
