@@ -104,7 +104,7 @@ revisions even though the locally downloaded snapshot dirs are at `master`
 |---|---|
 | SmolLM2-360M (GQA) vs SmolLM2-1.7B (MHA) | 不同 size (360M vs 1.7B)、hidden (960 vs 2048)、layers (32 vs 24)，attention 类型只是 N 个变量之一 |
 | Qwen2.5-{0.5B,1.5B,3B} (全部 GQA) | 全 GQA，无 MHA twin |
-| LLaMA-2 7B (MHA) vs LLaMA-2 70B (GQA) | 不同 size，70B 还叠加 expert parallelism / RoPE 变化 |
+| LLaMA-2 7B (MHA) vs LLaMA-2 70B (GQA) | 不同 size (7B hidden=4096 layers=32 vs 70B hidden=8192 layers=80) — LLaMA-2 是 dense 模型，无 MoE / expert parallelism，attn 差异只是 N 个变量之一；同 family 不同 size 不能归因 GQA |
 | Ainslie 2023 uptraining GQA 检查点 | 不同权重（MHA mean-pool 后 5% 重新预训练），不是 same-base |
 | fpcsong/mha2gqa Llama-2-7B GQA-{4,8,16} | 仅发布 GQA 转换权重，原始 MHA 是 meta-llama 第三方权重，不构成"可对照对" |
 | SmolLM3 nanotron ablation | 私有训练，未公开 HF checkpoint |
@@ -196,11 +196,11 @@ python3 scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
 
 - **Not auditable / not verifiably excluded**（auditor 显式区分项）：
   本搜索未覆盖的范围：
-  1. 闭源 / gated-only 仓库（无公开 model card 或 config.json 的实验性 pretraining）；
-  2. 已下架 / 已 unpublicize 的 checkpoint（HF 历史上发布后又删除）；
-  3. 私人 repo / 内部训练未公开的同 base 双版本（如果某团队内部训练过 MHA + GQA 同 base 但未发布，本搜索无法检测）；
-  4. 非英语 / 非主流平台（GitLab、ModelScope 私有仓库、国内魔搭社区非公开仓库等）；
-  5. 来自非公开论文 ablation 的非 release 权重（仅在 paper 表格中报告，未发布 safetensors）。
+  1. **closed-source / gated-only 仓库** (无公开 model card 或 config.json 的实验性 pretraining)；
+  2. **unpublicized checkpoints** (HF 历史上发布后又删除 / 已下架)；
+  3. **private org-internal trainings** (私人 repo / 内部训练未公开的同 base 双版本 — 如果某团队内部训练过 MHA + GQA 同 base 但未发布，本搜索无法检测)；
+  4. **non-English / non-mainstream platforms** (GitLab、ModelScope 私有仓库、国内魔搭社区非公开仓库等)；
+  5. **paper-only ablations without released safetensors** (来自非公开论文 ablation 的非 release 权重 — 仅在 paper 表格中报告，未发布 safetensors)。
 
 - **Narrowed wording**：
   本文不主张"全球公开 HF 一定不存在同 base GQA/MHA 双版本"。
