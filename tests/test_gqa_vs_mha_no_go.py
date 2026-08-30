@@ -23,9 +23,20 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 FEASIBILITY_DOC = ROOT / "docs" / "experiments" / "gqa-vs-mha" / "feasibility.md"
 STAGE_REVIEW = ROOT / "docs" / "plans" / "reviews" / "stage-gqa-vs-mha-no-go.md"
-MODEL_CONFIG_GLOB = (
-    ROOT / "artifacts" / "owt-real-eval" / "models" / "models" / "*" / "snapshots" / "master" / "config.json"
-)
+MODELS_ROOT = ROOT / "artifacts" / "owt-real-eval" / "models" / "models"
+
+
+def discover_model_configs():
+    """Discover HF cache configs under any snapshot subdir.
+
+    HF cache layout can be ``snapshots/<commit-sha>/config.json`` (P5-04
+    default with exact revision) or ``snapshots/master/config.json`` (when
+    only the master branch was fetched). Use ``rglob`` so both layouts are
+    covered portably across Linux/Windows.
+    """
+    if not MODELS_ROOT.exists():
+        return []
+    return sorted(MODELS_ROOT.rglob("config.json"))
 
 
 @pytest.fixture(scope="module")
@@ -57,25 +68,41 @@ def test_feasibility_doc_cites_ainslie_uptraining(feasibility_text: str) -> None
 
 
 def test_p5_04_models_have_both_attention_types() -> None:
-    """P5-04 5 个公开 model 中必须既有 GQA 也有 MHA，证明 backend 能处理两种路径。"""
-    configs = list(MODEL_CONFIG_GLOB.parent.parent.glob("*/snapshots/master/config.json"))
-    if not configs:
-        pytest.skip("no P5-04 models downloaded; skip attention-type sanity check")
+    """P5-04 5 个公开 model 中必须既有 GQA 也有 MHA，证明 backend 能处理两种路径。
+
+    Portably discovers config.json under either ``snapshots/master/`` or
+    ``snapshots/<commit-sha>/`` layouts via ``rglob``.
+    """
+    configs = discover_model_configs()
+    assert configs, "no P5-04 models discovered under artifacts/owt-real-eval/models/models/"
     gqa_models = []
     mha_models = []
+    seen = set()
     for cfg in configs:
+        # Deduplicate: one canonical config per repo (the snapshot dir may
+        # contain multiple ``snapshots/<sha>/`` symlinks pointing to the same
+        # blob; they share the underlying config.json).
+        try:
+            if cfg.resolve() in seen:
+                continue
+            seen.add(cfg.resolve())
+        except OSError:
+            seen.add(cfg)
         c = json.loads(cfg.read_text(encoding="utf-8"))
         h = c.get("num_attention_heads")
         kv = c.get("num_key_value_heads", h)
         if h is None or kv is None:
             continue
+        # Per-repo short name: ``HuggingFaceTB--SmolLM2-360M-Instruct``
+        # = ``<owner>--<repo>``. Use the directory two levels above
+        # ``config.json`` (snapshots/<sha>/config.json → repo dir).
         short = cfg.parent.parent.parent.name
         if kv == h:
             mha_models.append(short)
         else:
             gqa_models.append(short)
-    assert gqa_models, "no GQA model found in P5-04 set"
-    assert mha_models, "no MHA model found in P5-04 set"
+    assert gqa_models, f"no GQA model found in P5-04 set: {gqa_models=} {mha_models=}"
+    assert mha_models, f"no MHA model found in P5-04 set: {gqa_models=} {mha_models=}"
 
 
 def test_same_base_rule_documented(feasibility_text: str) -> None:
