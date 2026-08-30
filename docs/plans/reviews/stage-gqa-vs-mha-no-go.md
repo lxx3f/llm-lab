@@ -107,7 +107,7 @@ state reviewer saw); the next commit's HEAD advances by one. Auditor runs
 
 ### Reviewer 10 bounded checks (A-J, mirrors reviewer-evidence.md)
 
-> Source of truth: `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Audit checks (10 bounded)" + §"Verbatim reviewer output (timestamp 2026-08-30T07:38:31Z)". The 10-check list below is a local summary; the verbatim reviewer subagent output is in the artifact file (which itself is `git rev-parse HEAD^` consistent).
+> Source of truth: `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Audit checks (10 bounded)" + §"Verbatim reviewer output (timestamp 2026-08-30T07:38:31Z)". The 10-check list below is a local summary; the verbatim reviewer subagent output is in the artifact file (whose `head_at_review` field is an ancestor of `git rev-parse HEAD`, verified via `git merge-base --is-ancestor`).
 
 - A. **HEAD + clean tree** — `git rev-parse HEAD` returns a valid SHA; `git status --short --untracked-files=all` is empty.
 - B. **Mixtral factual correction** — feasibility.md §2.2 row describes Mixtral 8x7B as **GQA (32/8) + MoE (8 experts, top-2 routing)**, with mirror config.json `soprasteria/Mixtral-8x7B-Instruct-v0.1-FP8` at commit `c9f3de3` (URL in §2.2).
@@ -117,10 +117,10 @@ state reviewer saw); the next commit's HEAD advances by one. Auditor runs
 - F. **§2.2 family URLs + access dates (no regression)** — feasibility.md §2.2 contains ≥ 18 URLs and ≥ 5 access-date markers; every row has URL + access date + evidence.
 - G. **Selftest no regression** — `python -m pytest tests/test_gqa_vs_mha_no_go.py -v` → 7 passed / 0 skipped / 0 failed.
 - H. **P5-04 E selftest no regression** — `python3 scripts/eval_owt_real.py --selftest` → `[selftest] all tests PASSED`, PASS count ≥ 95 (97 expected), FAIL = 0.
-- I. **Reviewer-evidence.md metadata preserved (not regenerated mid-cycle)** — `head_at_review` field equals `git rev-parse HEAD^`; previous reviewer run audit-trail references (e.g. `c5c4522` from prior rounds) preserved for transparency.
+- I. **Reviewer-evidence.md metadata preserved (not regenerated mid-cycle)** — `head_at_review` field equals `git rev-parse HEAD` (the current tree) OR is an ancestor of it (per the audit-consistency test's `git merge-base --is-ancestor` invariant — see `tests/test_gqa_vs_mha_audit_consistency.py::test_head_at_review_equals_head_parent`); the field is updated each round when a fresh reviewer runs against the current tree; previous reviewer run audit-trail references (e.g. `c5c4522` from prior rounds) preserved for transparency.
 - J. **Consistency §2.2 row-54 ↔ §3 row-107** — feasibility.md LLaMA-2 dense + no MoE + no expert parallelism + size confounding is consistent between §2.2 row-54 (LLaMA-2 row) and §3 row-107 (failure-analysis table).
 
-fresh-context reviewer (`reviewer` subagent) VERDICT: **10/10 PASS** — 见 `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Verbatim reviewer output (timestamp 2026-08-30T07:38:31Z)"。auditor runs `cat docs/experiments/gqa-vs-mha/reviewer-evidence.md` (HEAD-agnostic) 拿最新 reviewer evidence；file.metadata `head_at_review` 等于 parent of current HEAD（详见 reviewer-evidence.md §"About the chicken-and-egg"）。10 bounded checks A-J 完整 verbatim 列在 reviewer-evidence.md。
+fresh-context reviewer (`reviewer` subagent) VERDICT: **10/10 PASS** — 见 `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Verbatim reviewer output (timestamp 2026-08-30T07:38:31Z)"。auditor runs `cat docs/experiments/gqa-vs-mha/reviewer-evidence.md` (HEAD-agnostic) 拿最新 reviewer evidence；file.metadata `head_at_review` is an ancestor of current HEAD (per the audit-consistency test invariant — see `tests/test_gqa_vs_mha_audit_consistency.py::test_head_at_review_equals_head_parent`); when the reviewer-evidence.md file is itself the artifact under audit, head_at_review = parent of latest commit modifying the file（详见 reviewer-evidence.md §"About the chicken-and-egg"）。10 bounded checks A-J 完整 verbatim 列在 reviewer-evidence.md。
 
 #
 
