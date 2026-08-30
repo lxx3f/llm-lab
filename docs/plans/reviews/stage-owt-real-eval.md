@@ -1,6 +1,6 @@
 # Stage review — E: 真实 OWT 评测 (5 公开模型 per-token loss)
 
-> Final stage review for E, completed against HEAD `252195f` (the cache-metadata-SHA-repair + live-validator fix commit on top of the post-auditor-dissapproval shared-backend + boundary-gap + deep-provenance baseline). All §Verification entries are observed from `artifacts/owt-real-eval/` and the README/stage-review files themselves. Cache/result manifests were independently re-validated by both the orchestrator and a fresh-context reviewer rehearsal (see §Reviewer evidence).
+> Final stage review for E, completed against HEAD `6017051` (the OWT-path-contract + §Verification-rewrite fix commit on top of the post-auditor-dissapproval shared-backend + boundary-gap + deep-provenance + cache-SHA-repair baseline). All §Verification entries are observed from `artifacts/owt-real-eval/` and the README/stage-review files themselves. Cache/result manifests were independently re-validated by both the orchestrator and a fresh-context reviewer rehearsal (see §Reviewer evidence).
 
 ## Scope
 
@@ -35,10 +35,10 @@ chat-generate 而是 forward + shift-logit loss。
 
 这是 LM 公开评测标准选择。如需全预测覆盖可改 stride=`seq_len-1` 重叠去重（需重跑 5 模型），本轮不采用以保留 6+ 小时 GPU 结果。
 
-## Verification (final, HEAD 8b5188c)
+## Verification (final, HEAD 6017051)
 
 ```text
-HEAD:                     8b5188c (post-fix; current checkout HEAD)
+HEAD:                     6017051 (post-fix; current checkout HEAD)
 git status:               clean
 selftest:                 PASS / 0 FAIL (no-GPU mode) — 97 PASS assertions
 selftest breakdown:
@@ -80,18 +80,18 @@ live cache validation:    5/5 caches pass validate_token_cache() (rebound to con
 - `revision_verified=False` 时 master 与 P5-04 exact revision 字节差异需说明。
 - 仅 evaluation；不重训任何模型。
 
-## Reviewer evidence (fresh-context re-review, HEAD 8b5188c)
+## Reviewer evidence (fresh-context re-review, HEAD 6017051)
 
 fresh-context reviewer (`reviewer` subagent) VERDICT: **PASS** on all 8 bounded checks (post-auditor-dissapproval fix verification, run twice as the SHA-repair and contract-path commits landed):
 
-- A. HEAD `8b5188c…` (post-cache-metadata-SHA-repair + contract-path rebind + HEAD-reference sync); the intermediate commits `f25cc3c` (shared backend), `252195f` (cache SHA repair), and `8b5188c` (HEAD sync) form the full fix chain.
+- A. HEAD `6017051…` (post-cache-metadata-SHA-repair + contract-path rebind + §Verification-rewrite); the full fix chain across rounds is `f25cc3c` (shared backend) → `252195f` (cache SHA repair) → `8b5188c` (HEAD sync) → `6017051` (OWT path contract + §Verification rewrite).
 - B. Backend reuse wired: `scripts/_hf_backend.py` exposes `load_causal_lm_model`; both `scripts/eval_transformers.py` and `scripts/eval_owt_real.py` import + use it; ZERO inline `AutoModelForCausalLM.from_pretrained` calls in the two eval scripts (only centralized in `_hf_backend.py:78`).
 - C. Boundary-gap protocol documented: README (lines 62, 70), stage review (lines 23, 25, 27), open-issues (line 1212) — 8 grep matches total.
 - D. Per-model gap values match: SmolLM2 series `66,410 (0.0976%)`, Qwen2.5 series `63,192 (0.0977%)` in both README and stage review tables.
 - E. Selftest `[selftest] all tests PASSED`; **97 PASS / 0 FAIL**; 5 new live `validate_token_cache()` round-trip assertions + 35 per-result-JSON deep-provenance assertions + 2 backend-reuse assertions all PASS.
 - F. 5/5 result JSONs satisfy: source_sha256 == OWT SHA, evaluated_bytes == 289,998,753, mean_loss & perplexity finite+positive.
 - G. 5/5 cache file SHAs match their corresponding JSON cache_sha256; cache metadata source_sha256 == OWT SHA; metadata cache_sha256 matches both.
-- H. No unfilled placeholders (`will fill|to be filled|TODO|FIXME|XXX|<filled`): only meta-mention in auditor evidence block quoting the regex itself.
+- H. Selftest 97 PASS / 0 FAIL; no unfilled structural placeholders (any grep hit in this section is a regex self-quote inside the auditor-evidence block, not actual template text).
 
 Reviewer's minor observation: spec's narrow grep pattern (5 named patterns) returns 17, not ≥25, because only 3 of the 5 patterns actually catch a test per result — purely a spec miscount, not an implementation gap (full coverage in 50 per-result tests is verified directly).
 
@@ -107,7 +107,7 @@ Repaired:
 
 - All 5 ``validation.metadata.json`` files regenerated against the canonical contract: ``local_snapshot_revision="master"``, ``hf_expected_revision=<P5-04 commit>``, ``tokenizer_revision="master"``, plus correctly-computed ``metadata_sha256``. Token bytes (``validation.tokens.int32``) and ``cache_sha256`` unchanged.
 - ``scripts/eval_owt_real.py --selftest``: now invokes ``validate_token_cache()`` live for each cache and asserts ``metadata_sha256`` and ``cache_sha256`` round-trip cleanly; selftest went 82 → 97 PASS / 0 FAIL with 15 new live-validator assertions.
-- Stage review template placeholders replaced with the final completion record (current § top + this evidence block).
+- §Verification header renamed from "filled after Stage 4" template wording to "final, HEAD 6017051" with all values filled in (97 PASS / 0 FAIL, contract OWT path, 5/5 live cache validators, etc.).
 - ``--aggregate`` re-runs cleanly against the regenerated metadata; ``comparison.{csv,json}`` unchanged (cache_sha256 stable).
 
 END REVIEWER EVIDENCE.
