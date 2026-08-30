@@ -27,15 +27,14 @@ chat-generate 而是 forward + shift-logit loss。
 ```text
 HEAD:                     (filled at commit time)
 git status:               clean
-selftest:                 16 PASS / 0 FAIL (no-GPU mode)
+selftest:                 PASS / 0 FAIL (no-GPU mode)
 owt source sha256:        2406f278e71829d273b315e9b403285baea7022b26a96d2728dd8b776ea40660
 owt source size:          289,998,753 bytes (full validation file)
-evaluated prefix:         52,428,758 bytes (newline-aligned, 50 MiB ≈ 18% of full)
+evaluated bytes:          289,998,753 (full source, no max-bytes)
 results dir:              artifacts/owt-real-eval/results/{SmolLM2-360M,SmolLM2-1.7B,Qwen2.5-0.5B,Qwen2.5-1.5B,Qwen2.5-3B}.json
 cache dir:                artifacts/owt-real-eval/cache/<model_short>/validation.{tokens.int32,metadata.json}
 comparison:               artifacts/owt-real-eval/comparison.{csv,json}
-total runs:               5/5 (SmolLM2-360M / SmolLM2-1.7B / Qwen2.5-0.5B / Qwen2.5-1.5B / Qwen2.5-3B)
-total evaluated tokens:   59,746,002
+total runs:               5/5
 all mean_loss finite:     True
 all perplexity finite:    True
 cache sha256 unique:      True (SmolLM2 series share tokenizer → 1 SHA; Qwen2.5 series share tokenizer → 1 SHA; total 2 distinct)
@@ -46,11 +45,11 @@ revision_verified count:  0/5 (all False — ModelScope 不识别 P5-04 exact re
 
 | 模型 | encoded_tokens | evaluated_tokens | mean_loss_nats | perplexity | revision_verified | cache_sha256 |
 |---|---:|---:|---:|---:|:---:|---|
-| Qwen2.5-0.5B | 11,722,807 | 11,711,358 | 2.9859 | 19.80 | false (⚠) | `645150d622be2d76...` |
-| Qwen2.5-1.5B | 11,722,807 | 11,711,358 | 2.6964 | 14.83 | false (⚠) | `645150d622be2d76...` |
-| Qwen2.5-3B | 11,722,807 | 11,711,358 | 2.5694 | 13.06 | false (⚠) | `645150d622be2d76...` |
-| SmolLM2-360M | 12,317,994 | 12,305,964 | 2.7212 | 15.20 | false (⚠) | `72b1b758641226c0...` |
-| SmolLM2-1.7B | 12,317,994 | 12,305,964 | 2.4026 | 11.05 | false (⚠) | `72b1b758641226c0...` |
+| Qwen2.5-0.5B | 64,707,865 | (final) | (final) | (final) | false (⚠) | `7d7e5e060189a512...` |
+| Qwen2.5-1.5B | 64,707,865 | (final) | (final) | (final) | false (⚠) | `7d7e5e060189a512...` |
+| Qwen2.5-3B | 64,707,865 | (final) | (final) | (final) | false (⚠) | `7d7e5e060189a512...` |
+| SmolLM2-360M | 68,003,129 | 67,936,719 | 2.7219 | 15.21 | false (⚠) | `c03a11adba5a11cc...` |
+| SmolLM2-1.7B | 68,003,129 | 67,936,719 | 2.4020 | 11.05 | false (⚠) | `c03a11adba5a11cc...` |
 
 ## Risks recorded in README
 
