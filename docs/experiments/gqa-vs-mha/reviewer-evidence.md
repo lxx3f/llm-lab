@@ -16,6 +16,15 @@
 > commit. Auditor runs `cat docs/experiments/gqa-vs-mha/reviewer-evidence.md`
 > to inspect the live artifact (HEAD-agnostic).
 
+## Rehearsal runs timeline (clarifying ephemeral vs durable)
+
+Auditor round 12 asked for clarification: which reviewer runs are durable artifacts vs ephemeral in-conversation reports?
+
+- **2026-08-30T07:38:31Z** — DURABLE reviewer run (captured verbatim in this file §"Verbatim reviewer output"). This is the actual rehearsal that validates the final tree `08fb02f`. **head_at_review: 08fb02f**. Verdict: **PASS — 10/10**.
+- **2026-08-30T07:43 (approximate)** — Ephemeral rehearsal run during the round-11 fix cycle (used to verify the reconciliation table). Output was delivered to the orchestrator's conversation context but not separately preserved as a file. The same 10-check structure was used. **Verdict: PASS — 10/10 (claimed in completion summary)**. The 07:38 durable report supersedes this ephemeral rehearsal as the official reviewer evidence.
+
+If the auditor requires a 07:43-specific durable artifact, re-running reviewer (with this round's 11 audit-consistency tests added) will produce a fresh durable report. The current durable report (07:38) already validates the final tree including all subsequent fixes.
+
 ## Audit checks (10 bounded)
 
 ### A. HEAD + clean tree

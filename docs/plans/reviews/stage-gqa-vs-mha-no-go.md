@@ -105,16 +105,20 @@ state reviewer saw); the next commit's HEAD advances by one. Auditor runs
 `git log --oneline -3` to confirm the artifact commit follows the
 `head_at_review` parent.
 
-### Reviewer 8 bounded checks (本轮自评)
+### Reviewer 10 bounded checks (A-J, mirrors reviewer-evidence.md)
 
-- A. `docs/experiments/gqa-vs-mha/feasibility.md` 存在且含 §1 硬性判定标准 5 项
-- B. 候选扫描覆盖 ≥10 个主要 LLM 家族（实测 13+）
-- C. research artifacts 至少 2 类（Ainslie 2023 + fpcsong 2025 + SmolLM3 blog = 3 类）
-- D. 每个候选均有显式否决理由（表格 §3）+ URL + access date + evidence
-- E. `tests/test_gqa_vs_mha_no_go.py` 7 断言 PASS
-- F. `docs/plans/roadmap.md` 候选 1 行追加状态更新段
-- G. `docs/plans/open-issues.md` 暂不处理段追加本结论链接
-- H. `scripts/eval_owt_real.py --selftest` 仍 97 PASS / 0 FAIL（无 regression）
+> Source of truth: `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Audit checks (10 bounded)" + §"Verbatim reviewer output (timestamp 2026-08-30T07:38:31Z)". The 10-check list below is a local summary; the verbatim reviewer subagent output is in the artifact file (which itself is `git rev-parse HEAD^` consistent).
+
+- A. **HEAD + clean tree** — `git rev-parse HEAD` returns a valid SHA; `git status --short --untracked-files=all` is empty.
+- B. **Mixtral factual correction** — feasibility.md §2.2 row describes Mixtral 8x7B as **GQA (32/8) + MoE (8 experts, top-2 routing)**, with mirror config.json `soprasteria/Mixtral-8x7B-Instruct-v0.1-FP8` at commit `c9f3de3` (URL in §2.2).
+- C. **LLaMA-2 factual correction** — feasibility.md §2.2 row-54 + §3 row-107 both state LLaMA-2 is **dense (no MoE / no expert parallelism)**, with explicit `7B/13B MHA vs 70B GQA` size confounding (hidden=4096/5120/8192, layers=32/40/80).
+- D. **Reviewer-evidence.md auditor-run commands** — every audit check uses `auditor-run:` commands (no concrete file-size / line-count claims baked in); ≥ 8 hits confirmed.
+- E. **§9 narrowed claim + §10 audit commands** — feasibility.md has §9 (narrowed claim, 5 not-auditable categories with bilingual EN+CN keywords: closed-source / unpublicized / private org-internal / non-English / paper-only ablations) + §10 (audit commands).
+- F. **§2.2 family URLs + access dates (no regression)** — feasibility.md §2.2 contains ≥ 18 URLs and ≥ 5 access-date markers; every row has URL + access date + evidence.
+- G. **Selftest no regression** — `python -m pytest tests/test_gqa_vs_mha_no_go.py -v` → 7 passed / 0 skipped / 0 failed.
+- H. **P5-04 E selftest no regression** — `python3 scripts/eval_owt_real.py --selftest` → `[selftest] all tests PASSED`, PASS count ≥ 95 (97 expected), FAIL = 0.
+- I. **Reviewer-evidence.md metadata preserved (not regenerated mid-cycle)** — `head_at_review` field equals `git rev-parse HEAD^`; previous reviewer run audit-trail references (e.g. `c5c4522` from prior rounds) preserved for transparency.
+- J. **Consistency §2.2 row-54 ↔ §3 row-107** — feasibility.md LLaMA-2 dense + no MoE + no expert parallelism + size confounding is consistent between §2.2 row-54 (LLaMA-2 row) and §3 row-107 (failure-analysis table).
 
 fresh-context reviewer (`reviewer` subagent) VERDICT: **10/10 PASS** — 见 `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Verbatim reviewer output (timestamp 2026-08-30T07:38:31Z)"。auditor runs `cat docs/experiments/gqa-vs-mha/reviewer-evidence.md` (HEAD-agnostic) 拿最新 reviewer evidence；file.metadata `head_at_review` 等于 parent of current HEAD（详见 reviewer-evidence.md §"About the chicken-and-egg"）。10 bounded checks A-J 完整 verbatim 列在 reviewer-evidence.md。
 
