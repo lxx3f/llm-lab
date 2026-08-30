@@ -18,6 +18,8 @@ from torch import Tensor
 
 from architecture_lab.data import TokenStreamBatcher, load_token_cache
 from architecture_lab.models.dense_transformer import DenseTransformer, TransformerConfig
+from architecture_lab.models.gqa_transformer import GQAConfig, GQATransformer
+from architecture_lab.models.mla_transformer import MLAConfig, MLATransformer
 from architecture_lab.tokenization import BPETokenizer
 from architecture_lab.training.results import build_training_result
 
@@ -78,7 +80,8 @@ def build_model_config(settings: dict[str, Any], vocab_size: int) -> Transformer
         raise ValueError(
             f"config vocab_size {configured_vocab} does not match tokenizer vocab_size {vocab_size}"
         )
-    return TransformerConfig(
+    architecture = model.get("architecture", "DenseTransformer")
+    common_kwargs = dict(
         vocab_size=vocab_size,
         max_seq_len=int(model["max_seq_len"]),
         d_model=int(model["d_model"]),
@@ -88,6 +91,29 @@ def build_model_config(settings: dict[str, Any], vocab_size: int) -> Transformer
         dropout=float(model.get("dropout", 0.0)),
         rope_base=float(model.get("rope_base", 10000.0)),
     )
+    if architecture == "DenseTransformer":
+        return TransformerConfig(**common_kwargs)
+    if architecture == "GQATransformer":
+        num_kv_heads = int(model.get("num_kv_heads", model["n_heads"]))
+        return GQAConfig(**common_kwargs, num_kv_heads=num_kv_heads)
+    if architecture == "MLATransformer":
+        latent_dim = int(model.get("latent_dim", 64))
+        return MLAConfig(**common_kwargs, latent_dim=latent_dim)
+    raise ValueError(
+        f"unsupported architecture {architecture!r}; "
+        "expected DenseTransformer | GQATransformer | MLATransformer"
+    )
+
+
+def build_model(config: TransformerConfig) -> nn.Module:
+    """Instantiate the model class matching ``config`` (Dense/GQA/MLA)."""
+    if isinstance(config, MLAConfig):
+        return MLATransformer(config)
+    if isinstance(config, GQAConfig):
+        return GQATransformer(config)
+    if isinstance(config, TransformerConfig):
+        return DenseTransformer(config)
+    raise ValueError(f"unsupported config type {type(config).__name__}")
 
 
 def _metadata_hash(path: Path) -> str:
@@ -404,7 +430,7 @@ def train(settings: dict[str, Any], *, resume: str | Path | None = None) -> dict
         sequence_length=sequence_length,
         seed=int(training.get("seed", 42)) + 1,
     )
-    model = DenseTransformer(model_config).to(device=device, dtype=dtype)
+    model = build_model(model_config).to(device=device, dtype=dtype)
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=float(training["learning_rate"]),

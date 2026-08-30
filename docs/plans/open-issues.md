@@ -1211,6 +1211,11 @@ vLLM 适配不在范围内（暂缓阶段）。
 - 完整工业级 MLA；
 - 多模态数据；- **E 真实 OWT 评测 · overlap-1 chunked CE**：当前 5 模型结果采用 non-overlapping chunked CE，每个 seq_len 输入窗口丢 1 个边界预测（总丢数 < 0.1%）；如未来需要全预测覆盖，可改 stride = seq_len-1 重叠 1 token 并去重，需重跑 5 模型（约 6–8h）；本轮以保留 6+ 小时 GPU 结果为准，留作未来优化备选。
 - **GQA vs MHA 公开模型对比**（list item F，2026-08-30）：可行性搜索结论 **narrowed verified-scope no-go + incomplete feasibility review**。**Verified sub-scope (5 rows)**：Mixtral mirror (pinned c9f3de3)、SmolLM P5-04 snapshot SHAs、Ainslie 2023 (arxiv 2305.13245)、fpcsong/mha2gqa (arxiv 2412.20677 + GitHub)、shreyansh26 (GitHub commit history) — 公开权重层面无可审计的同 base MHA/GQA 双版本（durable）。**Feasibility-lead sub-scope (14 rows)**：扫描 LLaMA 1/2/3、Qwen 1/2/2.5、Mistral、Mixtral、Phi-1..4、Gemma 1/2/3、DeepSeek-V2/V3、OPT、BLOOM、GPT-NeoX、Falcon、Yi、Baichuan、SmolLM 1/2/3、BEE-spoke smol_llama + SmolLM3 blog nanotron ablation — 这些 rows 基于 absence claims / unpinned master，是 needs-more-work leads，**不是 verified exclusions**，full audit closure incomplete。后续若继续需自训练或 uptraining，均超出当前 lab 算力预算（需 8×H100 + 数天 GPU）。详见 `docs/experiments/gqa-vs-mha/feasibility.md` 与 `docs/plans/reviews/stage-gqa-vs-mha-no-go.md`。
+- **N13 GQA + MLA 自研实现与三方对比**（2026-08-30）：**已交付**简化版 GQA（`num_kv_heads` 可配置，`repeat_interleave` 到 n_heads）+ 简化版 MLA（`latent_dim` 压缩 K/V 到 latent cache），与 N4 Dense MHA baseline 在完全同 OWT 正式 cache + 同训练超参 + 同 seed 下三方对比，val_min: Dense 7.058 / GQA 7.106 / MLA 7.122（差距 ≤0.07 nats 在 2.10M 规模属训练噪声）。详见 `docs/experiments/n13-gqa-vs-mla-vs-mha/`。**follow-up 选项**（如未来有 GPU 时间）：
+  1. GQA `num_kv_heads` sweep（1 / 2 / n_heads），看 GQA 分组数对 val_loss 与 KV cache 的 trade-off 曲线；
+  2. MLA `latent_dim` sweep（16 / 32 / 64 / 128），看压缩比 vs val_loss 的 trade-off；
+  3. 推理 latency benchmark（decode throughput, prefill latency, peak memory）在三种架构间对比；
+  4. 多种 num_kv_heads × 多种 latent_dim 联合 sweep 并画 Pareto front（val_loss vs cache_size vs FLOPs）。
 - 复杂联网 Agent；
 - 大规模数据采集；
 - 复杂 LLM Judge；

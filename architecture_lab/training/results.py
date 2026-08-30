@@ -79,7 +79,7 @@ def build_training_result(
         "status": "completed",
         "model": {
             "name": settings["model"]["name"],
-            "architecture": "DenseTransformer",
+            "architecture": settings["model"].get("architecture", "DenseTransformer"),
             "config": settings["model"],
             "parameter_count": count_parameters(model),
         },

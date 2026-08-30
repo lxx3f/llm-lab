@@ -44,7 +44,8 @@
 2. 确定工具调用数据 schema 和评测结果 schema。
 3. 实现最小评测器与统一推理接口。
 4. 实现 MoE Top-1 MVP。
-5. 再逐步扩展数据管线、SFT/GRPO 和 vLLM benchmark。
+5. 实现 GQA（`num_kv_heads` 可配置）+ 简化 MLA（KV 压缩到 `latent_dim`），与 N4 Dense MHA 在同 OWT cache 同 5000 步下三方对比（**已交付 N13，2026-08-30**）。
+6. 再逐步扩展数据管线、SFT/GRPO 和 vLLM benchmark。
 
 ## 检查与记录
 

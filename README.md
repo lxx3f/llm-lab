@@ -609,14 +609,17 @@ class InferenceBackend:
 - [x] 实现 MoE Top-1 MVP；
 - [x] 实现 N2 Dense/MoE 公平对比协议（A/B）；
 - [x] 实现 N3 统一 benchmark/result 元数据；
+- [x] 实现 N13 自研 GQA（`num_kv_heads` 可配置）+ 简化 MLA（`latent_dim` 压缩 KV cache），与 N4 Dense MHA 在同 OWT cache 同 5000 步下三方对比：Dense val_min 7.058 / GQA 7.106 / MLA 7.122（三者差距 ≤0.07 nats，属训练噪声）；GQA 与 MLA 的 KV cache 仅为 Dense MHA 的 1/4；
 - [x] 完成 D1 模板版与 D1.1 LLM 生成版工具调用数据管线（manifest、source provenance、MockExecutor 校验）；
 - [x] 完成 P1-02 mock 工具执行器（历史阶段文件名为 P1-01）及 P1-05 八级失败分类器；
 - [x] 完成 P1-03 多 seed 评测协议与 eval 聚合器；
 - [x] 完成 SFT 工具调用训练 MVP（Dense + MoE，含诚实负结果）；
-- [ ] 实现 Transformers/vLLM 统一推理接口；
+- [ ] 实现 Transformers/vLLM 统一推理接口（已完成 P5-02 / P5-03 / P5-04 三个后端接入阶段，本项特指统一抽象层；评估中是否需要抽象）；
 - [x] 实现最小数据管线；
 - [x] 实现最小评测器与八级失败分类；
 - [x] 完成第一组端到端实验（D1/D1.1 + Dense/MoE SFT）；
+- [x] 完成 E 真实 OWT 评测（5 个公开 instruction-tuned 模型 × 277MB held-out，per-token loss + PPL）
+- [x] 完成 P5-04 双后端基准对比（5 模型 × Transformers/vLLM × 2 batch × 90 样本，4 轴对比表）
 
 第一版 Dense 训练数据：使用 Stanford CS336 OWT sample，详见 `docs/data/owt-sample.md`。OWT 原始文件位于 `data/raw/owt-sample/`，不会提交到 Git。
 

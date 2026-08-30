@@ -32,7 +32,7 @@
       "required": ["name", "architecture", "config", "parameter_count"],
       "properties": {
         "name": {"type": "string", "minLength": 1},
-        "architecture": {"const": "DenseTransformer"},
+        "architecture": {"enum": ["DenseTransformer", "GQATransformer", "MLATransformer"]},
         "config": {"type": "object", "additionalProperties": true},
         "parameter_count": {"type": "integer", "minimum": 1}
       }

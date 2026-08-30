@@ -104,6 +104,8 @@ P5 阶段（P5-01/P5-02/P5-03/P5-04）已完成当前 roadmap 规定的公开模
 
 **动机**：自研模型架构上限为 12M；MLA（DeepSeek-V2 风格）是 P0-04 阶段规划但**未交付**的扩展方向。本轮 roadmap 中 MLA 仍属"暂缓"列表（见下）；如启动简化版（latent dim 缩减 + 单层 share），可在自研模型规模内验证 MLA 收益。
 
+**状态更新（N13，2026-08-30）**：✅ **已交付**。简化 MLA 实现于 `architecture_lab/models/mla_transformer.py`：K/V 联合压缩到 `latent_dim=64`，up-project 到 per-head K/V；KV cache 存压缩 latent（不是 full K/V）。与 N4 Dense MHA baseline + N13 GQA (`num_kv_heads=1`) 在**完全相同 OWT 正式 cache + 训练超参**（同 tokenizer / 同 seed=42 / 同 5000 步 / 同 bf16 / 同 2.10M 规模）下三方对比：Dense val_min 7.058 / GQA 7.106 / MLA 7.122（三者差距 ≤0.07 nats，属训练噪声）；GQA 与 MLA 的 KV cache 仅为 Dense MHA 的 1/4（`256 bytes` vs `1024 bytes`，单 batch 单 token float32 per layer）。详见 `docs/experiments/n13-gqa-vs-mla-vs-mha/{README,protocol,result}.md` 与 `docs/plans/reviews/stage-n13-gqa-vs-mla-vs-mha.md`。
+
 **范围**（候选，**未启动**）：
 - 实现 MLA 简化版：`architecture_lab/models/mla_dense.py`，latent dim = d_model / 4；KV 共享单层；
 - 与 Dense baseline（n4）+ Dense dropout 0.1（n6） + Dense RoPE 50k（n7）做 4-way 对比；
