@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | 1 | **N13** 自研 GQA + MLA 与 Dense MHA 5000 步 OWT 对比 | val_min | Dense 7.058 / GQA 7.106 / MLA 7.122 (差距 ≤0.07 nats) | [`docs/experiments/n13-gqa-vs-mla-vs-mha/`](experiments/n13-gqa-vs-mla-vs-mha/) |
 | 2 | **E** 5 个公开 instruction-tuned 模型真实 OWT 评测（277MB held-out） | mean_loss_nats / PPL | SmolLM2-1.7B **PPL 11.05** 最优 / Qwen2.5-3B PPL 13.04 | [`docs/experiments/owt-real-eval/`](experiments/owt-real-eval/) |
-| 3 | **P5-04** Transformers vs vLLM 双后端 × 5 模型 × 2 batch × 90 样本 | 4 轴 (latency / throughput / reward_binary / reward_layered) | 20 组合 0 generation failure；Transformers 在 360M-1.5B 段更快 | [`docs/experiments/p5-04-backend-comparison/`](experiments/p5-04-backend-comparison/) |
+| 3 | **P5-04** Transformers vs vLLM 双后端 × 5 模型 × 2 batch × 90 样本 | 4 轴 (latency / throughput / reward_binary / reward_layered) | **vLLM b=4 全部 Top-5 领先**；最快 = Qwen2.5-0.5B vLLM b=4 (8.18 samples/s, 122.3ms)；诚实负结果 reward_binary 全为 0；reward_layered 0.36-0.42 | [`docs/experiments/p5-04-backend-comparison/`](experiments/p5-04-backend-comparison/) |
 | 4 | **MoE Top-1** 5000 步 OWT 训练曲线（2.10M total / 1.51M active） | train_loss / val_min | 117.90 → 6.79；val_min **7.22 @ step 4600** | [`docs/experiments/moe-owt-formal-curve/`](experiments/moe-owt-formal-curve/) |
 | 5 | **N2** Dense vs MoE 公平对比协议（同 total params / 同 active params） | benchmark schema + aux_loss | 4 配置 smoke PASS；protocol 双维度严格区分 active vs total | [`docs/experiments/n2-dense-moe-fairness/`](experiments/n2-dense-moe-fairness/) |
 | 6 | **N4-N9** 5 个 Dense ablation sweep（scale / dropout / rope_base / n_heads / d_ff） | val_min overlay | 5 张 overlay PNG，每 sweep 3-4 点 | [`docs/experiments/n4-dense-formal-curve/`](experiments/n4-dense-formal-curve/) + N5/N6/N7/N8/N9 |
@@ -31,7 +31,7 @@
 
 ### Bullet C — 推理后端工程对比（最有工程实用性）
 
-> **在 5 模型 × 2 后端 (Transformers vs vLLM) × 2 batch size = 20 组合 × 90 样本固定 benchmark 上做 4 轴（latency / throughput / reward_binary / reward_layered）对比；commit-level binding + manifest-driven 加载 + section-aware README 同步守护（含 4 个 NEGATIVE test）保证 comparison.csv 与 README 数字严格一致；实测 0 个 generation failure。**
+> **在 5 模型 (SmolLM2-360M/1.7B、Qwen2.5-0.5B/1.5B/3B) × 2 后端 (Transformers vs vLLM) × 2 batch size (1/4) = 20 组合 × 90 样本固定 benchmark 上做 4 轴（latency / throughput / reward_binary / reward_layered）对比，commit-level binding + manifest-driven 加载 + section-aware README 同步守护（含 4 个 NEGATIVE test）保证 comparison.csv 与 README 数字严格一致。实测 vLLM 在 b=4 时全 5 模型 throughput 提升 +55%~+90%（最快 = Qwen2.5-0.5B vLLM b=4 = 8.18 samples/s, 122.3ms），reward_layered 0.36-0.42 与 P5-02 历史表一致；诚实记录 reward_binary 全为 0（公开模型无 gold answer 提示）。**
 
 ### Bullet D — MoE + Dense 训练实证（最有全栈完整性）
 
@@ -92,7 +92,77 @@
 
 ---
 
-## 7. 关联文档
+## 7. 关键代码片段（示意，不完整）
+
+### GQA 注意力（仅 18 行核心逻辑）
+
+```python
+class GQACausalSelfAttention(nn.Module):
+    def __init__(self, config: GQAConfig):
+        # Q 投影 d_model；K/V 仅 num_kv_heads * head_dim (远小于 d_model)
+        self.q_proj = nn.Linear(d_model, d_model, bias=False)
+        self.k_proj = nn.Linear(d_model, num_kv_heads * head_dim, bias=False)
+        self.v_proj = nn.Linear(d_model, num_kv_heads * head_dim, bias=False)
+        # ... RoPE + out_proj
+
+    def forward(self, x, start_pos=0, kv_cache=None):
+        q = self.q_proj(x).view(B, L, n_heads, head_dim).transpose(1, 2)
+        k = self.k_proj(x).view(B, L, num_kv_heads, head_dim).transpose(1, 2)
+        v = self.v_proj(x).view(B, L, num_kv_heads, head_dim).transpose(1, 2)
+        q, k = self.rope(q, k, start_pos=start_pos)
+        # KV cache 只存 num_kv_heads (节省 K/V cache (1 - 1/n_heads)%)
+        if kv_cache: kv_cache["k"] = k.detach(); kv_cache["v"] = v.detach()
+        # broadcast: each KV head serves n_heads/num_kv_heads Q heads
+        if self.q_per_kv > 1:
+            k = k.repeat_interleave(self.q_per_kv, dim=1)
+            v = v.repeat_interleave(self.q_per_kv, dim=1)
+        return self.out_proj(F.scaled_dot_product_attention(q, k, v, attn_mask=causal))
+```
+
+### MLA 压缩 KV cache（仅核心）
+
+```python
+class MLACausalSelfAttention(nn.Module):
+    def __init__(self, config: MLAConfig):
+        # 联合 K/V 压缩：d_model -> latent_dim
+        self.W_DKV = nn.Linear(d_model, latent_dim, bias=False)  # 压缩
+        self.W_UK = nn.Linear(latent_dim, d_model, bias=False)   # K up-project
+        self.W_UV = nn.Linear(latent_dim, d_model, bias=False)   # V up-project
+        # Q 不压缩（简化版）
+        self.W_Q = nn.Linear(d_model, d_model, bias=False)
+
+    def forward(self, x, start_pos=0, kv_cache=None):
+        c_kv = self.W_DKV(x)  # (B, L, latent_dim) — cache 只存这个
+        if kv_cache:
+            if kv_cache.get("c_kv") is not None:
+                c_kv = torch.cat((kv_cache["c_kv"], c_kv), dim=1)
+            kv_cache["c_kv"] = c_kv.detach()
+        # 从 latent cache 重建 full K/V (每步重建)
+        k = self.W_UK(c_kv).view(B, c_kv.size(1), n_heads, head_dim).transpose(1, 2)
+        v = self.W_UV(c_kv).view(B, c_kv.size(1), n_heads, head_dim).transpose(1, 2)
+        q = self.W_Q(x).view(...).transpose(1, 2)
+        q, k = self.rope(q, k, start_pos=start_pos)
+        return self.W_O(F.scaled_dot_product_attention(q, k, v, attn_mask=causal))
+```
+
+完整实现见 [`architecture_lab/models/gqa_transformer.py`](../architecture_lab/models/gqa_transformer.py) (8158B) + [`architecture_lab/models/mla_transformer.py`](../architecture_lab/models/mla_transformer.py) (9088B)。
+
+---
+
+## 8. 诚实记录的限制（避免简历过度宣传）
+
+| 限制 | 实情 | 影响 |
+|---|---|---|
+| **自研模型规模上限 12M** | 不能直接对标百亿参数模型 | 在大模型场景下的结论不适用 |
+| **MLA 是简化版（非 DeepSeek-V2 完整 decoupled RoPE）** | 省略 decoupled RoPE，K/V 重建时 RoPE 需每步重算 | 极端大 latent_dim 下数值误差会增大；本项目 latent_dim=64 × head_dim=32 误差可忽略 |
+| **GQA num_kv_heads=1 (MQA 极端)** | 没有 sweep 多种 num_kv_heads (1/2/n_heads) | 无法判断 GQA 分组数 vs val_loss 的 Pareto 曲线 |
+| **P5-04 公开模型在 tool calling 任务上 reward_binary 全 0** | 公开 instruction-tuned 模型没有 gold answer 提示 | 这是诚实负结果；说明模型不能在 tool calling benchmark 上达到 SOTA（已知事实），不代表 P5-04 实验失败 |
+| **F (GQA vs MHA 公开模型) 无同 base 双版本对** | 公开模型没发布同 base GQA/MHA 双版本 | 只交付了 incomplete feasibility review；自训练双版本不在本项目算力预算内 |
+| **真实 OWT 评测只覆盖 5 模型 × 完整 277MB held-out** | 没有跑 PPL vs n_steps 的 Pareto | 可信区间大；建议在简历中标注"per-token cross-entropy on full held-out" |
+
+---
+
+## 9. 关联文档
 
 - 项目总体：`README.md` + `AGENTS.md`
 - 项目路线图：`docs/plans/roadmap.md` + `docs/plans/open-issues.md`
