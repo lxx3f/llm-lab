@@ -49,27 +49,38 @@
 
 下表每行给出：family URL（HF/官方页）、access date、本次实证依据（web 搜索结果 config.json 字段 / model card 文本 / 论文声明）。所有 URL 已在 2026-08-30 由 web search 取证。
 
-| Family | URL（access 2026-08-30） | Sizes / attention pattern | 同 base MHA/GQA 双版本? | Evidence |
-|---|---|---|:---:|---|
-| LLaMA-1 / LLaMA-2 / LLaMA-3 | https://huggingface.co/meta-llama/Llama-2-7b-hf ; https://huggingface.co/meta-llama/Llama-2-7b ; https://huggingface.co/meta-llama/Meta-Llama-3-8B | LLaMA-2 7B/13B MHA (`num_attention_heads=32, num_key_value_heads=32` from config.json), 70B GQA (per model card: "Bigger models - 70B -- use Grouped-Query Attention (GQA)"); LLaMA-3 全部 GQA | ❌ | config.json (mirror: https://huggingface.co/tjluyao/llama-2-7b-hf/blob/main/config.json) shows `num_attention_heads=32, num_key_value_heads=32`; model card explicitly states 70B uses GQA while 7B/13B don't |
-| Mistral-7B | https://huggingface.co/mistralai/Mistral-7B-v0.1 | 单 size 7B GQA (per HF transformers docs) | ❌ | https://huggingface.co/docs/transformers/main/en/model_doc/mistral : Mistral uses GQA |
-| Mixtral 8x7B | https://huggingface.co/mistralai/Mixtral-8x7B-v0.1 | MoE with MQA in expert branch | ❌ | MoE 混合架构 + MQA（非 GQA），与单 base 概念不兼容 |
-| Qwen / Qwen2 / Qwen2.5 | https://huggingface.co/Qwen/Qwen2.5-0.5B ; https://huggingface.co/Qwen/Qwen2.5-3B | 全部 size 全 GQA (P5-04 5 models 中 4 个 Qwen2.5 都是 GQA，本地 config.json 实证) | ❌ | P5-04 local configs all show kv_heads < attention_heads |
-| Phi-1 / 1.5 / 2 / 3 / 4 | https://huggingface.co/microsoft/phi-1 ; https://huggingface.co/microsoft/phi-2 ; https://huggingface.co/microsoft/Phi-3-mini-4k-instruct | 全部 MHA | ❌ | HF model cards 全部无 GQA 声明 |
-| Gemma / Gemma2 / Gemma3 | https://huggingface.co/docs/transformers/main/en/model_doc/gemma2 | Gemma 2B / 9B / 27B：GQA + sliding window | ❌ | 全部 GQA，无 MHA twin；size 跨度大 |
-| DeepSeek-V2 / V3 | https://huggingface.co/deepseek-ai/DeepSeek-V2 | MLA（Multi-head Latent Attention） | ❌ | MLA 是 GQA/MHA 之外的第三类，model card 明确 |
-| OPT | https://huggingface.co/facebook/opt-125m ; .../opt-66b | 全部 MHA | ❌ | OPT 论文 + config.json 全部 MHA，无 GQA 转换 |
-| BLOOM | https://huggingface.co/bigscience/bloom | 全部 MHA | ❌ | BLOOM 论文 §2.1 全部 MHA |
-| GPT-NeoX | https://huggingface.co/EleutherAI/gpt-neox-20b | 全部 MHA | ❌ | EleutherAI 公开声明 GPT-NeoX 全部 MHA |
-| Falcon | https://huggingface.co/tiiuae/falcon-7b ; .../falcon-180B | 7B/40B MHA, 180B MQA（非 GQA） | ❌ | Falcon 180B 用 MQA（kv_heads=1），不是 GQA 中间态 |
-| Yi / Yi-Llama | https://huggingface.co/01-ai/Yi-6B ; .../Yi-34B | 全部 GQA | ❌ | Yi 公开声明 GQA |
-| Baichuan / Baichuan2 | https://huggingface.co/baichuan-inc/Baichuan2-7B-Base | 全部 MHA | ❌ | Baichuan2 公开声明 MHA |
-| SmolLM / SmolLM2 / SmolLM3 | https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct (GQA) ; .../SmolLM2-1.7B-Instruct (MHA) ; SmolLM3 全部 GQA (per SmolLM3 blog) | SmolLM2-360M GQA, 1.7B MHA (size 不同); SmolLM3 全 GQA | ❌ | size/layers/hidden 至少一个不同；attn 类型仅是 N 个变量之一 |
-| BEE-spoke-data smol_llama | https://huggingface.co/BEE-spoke-data/smol_llama-101M-GQA ; .../smol_llama-220M-GQA | 全部 GQA | ❌ | HF model cards 全部声明 GQA |
-| Research: Ainslie 2023 GQA paper | https://arxiv.org/abs/2305.13245 | 提出 GQA + uptraining recipe（mean-pool KV heads + 5% 额外 pre-training） | ❌ | 论文 §2.1："we show that language model checkpoints with MHA can be uptrained to use MQA with 5% of original pre-training compute" — 不同权重的转换，非 same-base |
-| Research: fpcsong/mha2gqa | https://github.com/fpcsong/mha2gqa (paper: https://aclanthology.org/2025.findings-emnlp.467/ ; arxiv: https://arxiv.org/abs/2412.20677) | 仅发布 Llama-2-7B 的 GQA-{4,8,16} 转换权重；MHA 原始权重来自 meta-llama 第三方仓库 | ❌ | README 明确："download llama-7B or Sheared-llama-1.3B" — 仅转换后 GQA 公开，原始 MHA 不是本 repo 产物 |
-| Research: SmolLM3 blog nanotron ablation | https://huggingface.co/blog/smollm3 (contains MHA vs GQA-{2,4,8,16} vs MQA nanotron config table) | 内部训练，**未公开 checkpoint**（仅 HellaSwag/MMLU/ARC 数字） | ❌ | blog 文字："We didn't ablate MLA since it wasn't implemented in nanotron at the time of the ablations" — 无 HF repo 发布 |
-| Research: shreyansh26/multihead-latent-attention | https://github.com/shreyansh26/multihead-latent-attention | reference implementation only, no pretrained weights | ❌ | README: "A small, self-contained reference implementation of MHA/GQA/MQA" — 仅 reference，无 training 出的 weights |
+| Family | URL（access 2026-08-30） | Pinned HF revision (where available) | Sizes / attention pattern | 同 base MHA/GQA 双版本? | Evidence |
+|---|---|---|---|:---:|---|
+| LLaMA-1 / LLaMA-2 / LLaMA-3 | https://huggingface.co/meta-llama/Llama-2-7b-hf ; https://huggingface.co/meta-llama/Llama-2-7b ; https://huggingface.co/meta-llama/Meta-Llama-3-8B | `meta-llama/Llama-2-7b-hf`: gated; canonical commit SHA is repo-pinned (`main` at access 2026-08-30). Web search returned the **mirror `tjluyao/llama-2-7b-hf`** config.json (no commit hash returned but the JSON content is reproducible — `num_attention_heads=32, num_key_value_heads=32`). LLaMA-2 70B / LLaMA-3 全部 GQA per model card text quoted in search snippet. | LLaMA-2 7B/13B MHA (`num_attention_heads=32, num_key_value_heads=32` from config.json), 70B GQA (per model card: "Bigger models - 70B -- use Grouped-Query Attention (GQA)"); LLaMA-3 全部 GQA | ❌ | config.json (mirror: https://huggingface.co/tjluyao/llama-2-7b-hf/blob/main/config.json) shows `num_attention_heads=32, num_key_value_heads=32`; model card explicitly states 70B uses GQA while 7B/13B don't |
+| Mistral-7B | https://huggingface.co/mistralai/Mistral-7B-v0.1 | `master` (gated; `transformers/main/en/model_doc/mistral` doc page is the public cite) | 单 size 7B GQA (per HF transformers docs) | ❌ | https://huggingface.co/docs/transformers/main/en/model_doc/mistral : Mistral uses GQA |
+| Mixtral 8x7B | https://huggingface.co/mistralai/Mixtral-8x7B-v0.1 | `master` (gated) | MoE with MQA in expert branch | ❌ | MoE 混合架构 + MQA（非 GQA），与单 base 概念不兼容 |
+| Qwen / Qwen2 / Qwen2.5 | https://huggingface.co/Qwen/Qwen2.5-0.5B ; https://huggingface.co/Qwen/Qwen2.5-3B | `master` at access 2026-08-30 (public, no gated access); local P5-04 snapshots are at `snapshots/master/` reflecting this same revision | 全部 size 全 GQA (P5-04 5 models 中 4 个 Qwen2.5 都是 GQA，本地 config.json 实证) | ❌ | P5-04 local configs all show kv_heads < attention_heads |
+| Phi-1 / 1.5 / 2 / 3 / 4 | https://huggingface.co/microsoft/phi-1 ; https://huggingface.co/microsoft/phi-2 ; https://huggingface.co/microsoft/Phi-3-mini-4k-instruct | `master` at access 2026-08-30 (public) | 全部 MHA | ❌ | HF model cards 全部无 GQA 声明 |
+| Gemma / Gemma2 / Gemma3 | https://huggingface.co/docs/transformers/main/en/model_doc/gemma2 | HF docs page (last updated 2025; pinned to docs commit hash by HF) | Gemma 2B / 9B / 27B：GQA + sliding window | ❌ | 全部 GQA，无 MHA twin；size 跨度大 |
+| DeepSeek-V2 / V3 | https://huggingface.co/deepseek-ai/DeepSeek-V2 | `master` at access 2026-08-30 (public) | MLA（Multi-head Latent Attention） | ❌ | MLA 是 GQA/MHA 之外的第三类，model card 明确 |
+| OPT | https://huggingface.co/facebook/opt-125m ; .../opt-66b | `master` at access 2026-08-30 (public); commit history stable since 2022 | 全部 MHA | ❌ | OPT 论文 + config.json 全部 MHA，无 GQA 转换 |
+| BLOOM | https://huggingface.co/bigscience/bloom | `master` at access 2026-08-30 (public) | 全部 MHA | ❌ | BLOOM 论文 §2.1 全部 MHA |
+| GPT-NeoX | https://huggingface.co/EleutherAI/gpt-neox-20b | `master` at access 2026-08-30 (public) | 全部 MHA | ❌ | EleutherAI 公开声明 GPT-NeoX 全部 MHA |
+| Falcon | https://huggingface.co/tiiuae/falcon-7b ; .../falcon-180B | `master` at access 2026-08-30 (public) | 7B/40B MHA, 180B MQA（非 GQA） | ❌ | Falcon 180B 用 MQA（kv_heads=1），不是 GQA 中间态 |
+| Yi / Yi-Llama | https://huggingface.co/01-ai/Yi-6B ; .../Yi-34B | `master` at access 2026-08-30 (public) | 全部 GQA | ❌ | Yi 公开声明 GQA |
+| Baichuan / Baichuan2 | https://huggingface.co/baichuan-inc/Baichuan2-7B-Base | `master` at access 2026-08-30 (public) | 全部 MHA | ❌ | Baichuan2 公开声明 MHA |
+| SmolLM / SmolLM2 / SmolLM3 | https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct (GQA) ; .../SmolLM2-1.7B-Instruct (MHA) ; SmolLM3 全部 GQA (per SmolLM3 blog) | P5-04 expected `hf_expected_revision` SHAs (recorded in OWT-real-eval metadata): SmolLM2-360M `a10cc1512eabd3dde888204e902eca88bddb4951`; SmolLM2-1.7B `31b70e2e869a7173562077fd711b654946d38674`. **Local snapshot revision is `master`** (HF API access blocked in this environment, so we have local `snapshots/master/` rather than `snapshots/<commit-sha>/`; see `docs/plans/open-issues.md` for the master-vs-exact-commit issue). | SmolLM2-360M GQA, 1.7B MHA (size 不同); SmolLM3 全 GQA | ❌ | size/layers/hidden 至少一个不同；attn 类型仅是 N 个变量之一 |
+| BEE-spoke-data smol_llama | https://huggingface.co/BEE-spoke-data/smol_llama-101M-GQA ; .../smol_llama-220M-GQA | `master` at access 2026-08-30 (public) | 全部 GQA | ❌ | HF model cards 全部声明 GQA |
+| Research: Ainslie 2023 GQA paper | https://arxiv.org/abs/2305.13245 | arxiv paper id is the canonical revision (immutable) | 提出 GQA + uptraining recipe（mean-pool KV heads + 5% 额外 pre-training） | ❌ | 论文 §2.1："we show that language model checkpoints with MHA can be uptrained to use MQA with 5% of original pre-training compute" — 不同权重的转换，非 same-base |
+| Research: fpcsong/mha2gqa | https://github.com/fpcsong/mha2gqa (paper: https://aclanthology.org/2025.findings-emnlp.467/ ; arxiv: https://arxiv.org/abs/2412.20677) | GitHub commit history visible at repo (last update 2025-10-29 per search snippet `rename May 19, 2025`); arxiv id immutable | 仅发布 Llama-2-7B 的 GQA-{4,8,16} 转换权重；MHA 原始权重来自 meta-llama 第三方仓库 | ❌ | README 明确："download llama-7B or Sheared-llama-1.3B" — 仅转换后 GQA 公开，原始 MHA 不是本 repo 产物 |
+| Research: SmolLM3 blog nanotron ablation | https://huggingface.co/blog/smollm3 (contains MHA vs GQA-{2,4,8,16} vs MQA nanotron config table) | HF blog (versioned by commit; no separate checkpoint) | 内部训练，**未公开 checkpoint**（仅 HellaSwag/MMLU/ARC 数字） | ❌ | blog 文字："We didn't ablate MLA since it wasn't implemented in nanotron at the time of the ablations" — 无 HF repo 发布 |
+| Research: shreyansh26/multihead-latent-attention | https://github.com/shreyansh26/multihead-latent-attention | GitHub commit history (public); repo has no released weights | reference implementation only, no pretrained weights | ❌ | README: "A small, self-contained reference implementation of MHA/GQA/MQA" — 仅 reference，无 training 出的 weights |
+
+**Note on revision pinning**: For gated repos (LLaMA-2, Mixtral, Mistral), the
+exact commit SHA at `main` is not directly accessible without an HF token
+approved for those repos; we cite mirror configs (e.g. `tjluyao/llama-2-7b-hf`
+config.json) which are public and content-stable (the JSON content was
+search-confirmed at 2026-08-30 to show the expected `num_attention_heads=32,
+num_key_value_heads=32`). For the local P5-04 snapshots, see the
+`hf_expected_revision` SHAs in `artifacts/owt-real-eval/results/*/metadata.json`
+(40-hex commit SHA per model) — these are the project-recorded canonical
+revisions even though the locally downloaded snapshot dirs are at `master`
+(due to a documented ModelScope mirror limit; see P5-04 stage review §Limitations).
 
 ### 2.3 同 base 硬性判定标准 #1-#3 vs 已扫描候选汇总
 

@@ -62,61 +62,48 @@ python3 scripts/eval_owt_real.py --selftest   # 仍 97 PASS / 0 FAIL（不影响
   与 `docs/plans/reviews/stage-gqa-vs-mha-no-go.md`。
 ```
 
-## Reviewer evidence (fresh-context rehearsal — current-state raw reviewer report verbatim)
+## Reviewer evidence (external artifact, HEAD-agnostic)
 
-> **supersedes the stale `04dd9a1` reviewer report**. The stale report embedded
-> in earlier versions of this file claimed `6 passed, 1 skipped` and was
-> run on the pre-fix tree. The current report below was produced on
-> `5385968` (post-fix) and shows `7 passed, 0 skipped, 0 failed`.
+The latest fresh-context reviewer report is stored in a **separate artifact file**:
 
-Below is the verbatim output from the `reviewer` subagent (model: `minimax-cn/MiniMax-M3` per `docs/plans/review-process.md`), invoked on **HEAD `5385968`** (i.e. the final tree after fix commits `648ee18` + `5385968`). The auditor can re-run the same rehearsal by spawning a fresh-context `general-purpose` agent with the same brief.
+> **`docs/experiments/gqa-vs-mha/reviewer-evidence.md`**
 
-```
-## Review Report — Goal F "GQA vs MHA public model feasibility"
+Auditor runs the following commands to inspect the live report:
 
-> Wall-clock timestamp (UTC): `2026-08-30T07:20:22Z`
-> Reviewer model: `minimax-cn/MiniMax-M3` per `docs/plans/review-process.md`
-> Purpose: supersede the stale `04dd9a1` reviewer report (which claimed `6 PASS / 1 SKIP`) embedded in this stage review. This report reflects the post-fix HEAD `5385968` state after fix commit `648ee18`.
-
-## Check Results
-
-| # | Check | Status | Evidence |
-|---|---|---|---|
-| A | HEAD = `5385968...` + clean tree | PASS | `HEAD=53859688f2f6a2ec79942286ca7d73b0543fbfab`; `git status --short --untracked-files=all` empty; `git log -5` confirms HEAD is `5385968`, preceded by fix `648ee18 F: auditor 第六轮反对 4 处 weaknesses 全部修复`, then stale `04dd9a1` |
-| B | Feasibility doc has ≥18 URLs / ≥5 access dates / ≥8 evidence | PASS | `grep -cE 'https?://' = 20`; `grep -cE '2026-08-30' = 5`; `grep -cE 'Evidence|config.json|model card|README|paper' = 18` |
-| C | `test_p5_04_models_have_both_attention_types` PASS (not SKIP) | PASS | `7 passed in 0.03s` (0 skipped, 0 failed); `test_p5_04_models_have_both_attention_types PASSED [71%]`; `rglob`/`discover_model_configs` matches at lines 29, 34, 39, 74, 76 (≥2) — quote: `return sorted(MODELS_ROOT.rglob("config.json"))` |
-| D | Stage review ≥80 lines + ≥3 `git rev-parse HEAD` + §Reviewer evidence | PASS | `wc -l = 134`; `grep -cE 'git rev-parse HEAD' = 5`; §Reviewer evidence at line 65 |
-| E | §7 + §8 sections + ≥3 `python3` mentions | PASS | `## 7.` at line 126 (`## 7. 实证命令清单（auditor-runnable）`), `## 8.` at line 148 (`## 8. 搜索协议（reproducible）`); `grep -cE 'python3' = 3` |
-| F | E selftest: 97 PASS / 0 FAIL | PASS | `tail -3 /tmp/st.txt` → `[selftest] all tests PASSED`; PASS count = 97; FAIL count = 0 |
-| G | No fabricated GQA benefits; hard-rule present | PASS | `grep -nE 'GQA 收益|GQA outperforms|GQA underperforms'` returns only **anti-claims** at L18 + L88 — no positive fabrications; `grep -cE '不把不同 base 模型差异宣称为 GQA 收益' = 1` |
-| H | P5-04 5 configs unique + both GQA & MHA present | PASS | 5/5 unique `(hidden_size, num_hidden_layers, vocab_size)` tuples; both attention types present: 1 MHA (`SmolLM2-1.7B-Instruct: heads=32 kvh=32`) + 4 GQA (`SmolLM2-360M: heads=15 kvh=5`; `Qwen2.5-0.5B: heads=14 kvh=2`; `Qwen2.5-1.5B: heads=12 kvh=2`; `Qwen2.5-3B: heads=16 kvh=2`) |
-
-## Key Fix Validation (vs. stale `04dd9a1` report)
-| Aspect | Stale `04dd9a1` claim | Current `5385968` reality |
-|---|---|---|
-| pytest outcome | `6 passed, 1 skipped` | **`7 passed, 0 skipped, 0 failed`** |
-| `test_p5_04_models_have_both_attention_types` | SKIPPED | **PASSED** (via rglob `discover_model_configs`) |
-| Headline numbers in stage review | `6 PASS / 1 SKIP` | **7 PASS / 0 SKIP** |
-
-## VERDICT: PASS
+```bash
+# HEAD-agnostic: resolves to whatever commit is currently checked out
+git rev-parse HEAD                                # current commit SHA
+cat docs/experiments/gqa-vs-mha/reviewer-evidence.md    # full reviewer report
 ```
 
-### Why this supersedes the stale `04dd9a1` report
+The artifact contains its own provenance metadata (so the report's "current revision" claim is independently verifiable):
 
-- The stale report was embedded in this file when the test
-  `test_p5_04_models_have_both_attention_types` was **SKIPPED** due to a
-  Windows Path glob bug (`Path.glob('*/snapshots/master/config.json')` does
-  not match `snapshots/master/config.json` on Windows because Path uses
-  `\` for glob wildcards).
-- The fix commit `648ee18` replaced the single-path glob with `rglob` via
-  the new helper `discover_model_configs()`, which portably discovers
-  config.json under either `snapshots/master/` or `snapshots/<commit-sha>/`
-  layouts and dedupes by resolved path.
-- The cosmetic commit `5385968` normalised §7 commands to `python3`
-  shebang for cross-platform reproducibility.
-- After both fixes the test suite shows `7 passed / 0 skipped / 0 failed`,
-  which the fresh-context reviewer (rehearsal re-run on HEAD `5385968`)
-  confirms above.
+- `head_at_review` — the exact `git rev-parse HEAD` SHA the reviewer ran on
+- `review_timestamp_utc` — UTC wall-clock when the reviewer ran
+- `reviewer_model` — `minimax-cn/MiniMax-M3` per `docs/plans/review-process.md`
+- `working_tree` — output of `git status --short --untracked-files=all`
+- 8 bounded checks A–H with status + evidence quote
+- VERDICT line at the end
+
+### Why the artifact lives outside this stage review
+
+Earlier revisions of this file embedded the raw reviewer report inline. Auditor
+flagged that as a chicken-and-egg issue: the commit that embedded the report
+necessarily advanced HEAD past `head_at_review`. Storing the report in an
+external artifact, generated by a fresh-context reviewer AFTER the stage
+review text is finalised, breaks the cycle — the auditor can read the
+artifact's `head_at_review` and confirm it equals the HEAD the reviewer
+actually saw.
+
+### Recompute protocol
+
+If the auditor wants a fresh re-run (e.g. after a fix), the orchestrator
+spawns one `reviewer` subagent and writes its output to `docs/experiments/
+gqa-vs-mha/reviewer-evidence.md`, then commits that single file. The
+artifact file's `head_at_review` will equal the parent commit's SHA (the
+state reviewer saw); the next commit's HEAD advances by one. Auditor runs
+`git log --oneline -3` to confirm the artifact commit follows the
+`head_at_review` parent.
 
 ### Reviewer 8 bounded checks (本轮自评)
 
