@@ -47,14 +47,15 @@ JSON_OUT = AUDIT_DIR / "doc-artifact-reconciliation.json"
 
 # Active documentation scope: every .md file under docs/, except:
 #   - docs/licenses/   (third-party license text, not project docs)
-#   - docs/reports/final-audit.md   (this report references itself)
+#   - docs/archive/    (closed / non-active records; may reference
+#     removed artifacts as part of the change record)
 #   - docs/plans/reviews/*   (historical stage reviews; may reference
 #     removed artifacts as part of the change record. These are not
 #     active contracts. The reconciliation report records this scope
 #     decision in its methodology field.)
 EXCLUDE_PATH_PATTERNS = (
     "docs/licenses/",
-    "docs/reports/final-audit.md",
+    "docs/archive/",
     "docs/plans/reviews/",
 )
 
@@ -288,7 +289,7 @@ def main() -> int:
     print("=== Doc <-> artifact reconciliation ===", flush=True)
     print(f"Total active documentation files: {total_docs}", flush=True)
     print(
-        "Excluded: docs/licenses/, docs/reports/final-audit.md, "
+        "Excluded: docs/licenses/, docs/archive/, "
         "docs/plans/reviews/*",
         flush=True,
     )
@@ -396,7 +397,7 @@ def main() -> int:
         "audit_date": "2026-08-29",
         "methodology": (
             "Scan every active documentation file under docs/ (excluding "
-            "docs/licenses/, docs/reports/final-audit.md, and "
+            "docs/licenses/, docs/archive/, and "
             "docs/plans/reviews/* which are historical stage reviews "
             "that may reference removed artifacts as part of the change "
             "record). Extract artifacts/... references using a regex that "

@@ -32,11 +32,17 @@ SWEEP_DOCS: list[tuple[str, list[str]]] = [
      ["docs/experiments/n5-dense-scale-sweep/README.md",
       "docs/experiments/n7-dense-rope-sweep/README.md",
       "docs/experiments/n8-dense-heads-sweep/README.md",
-      "docs/experiments/n9-dense-dff-sweep/README.md"]),
+      "docs/experiments/n9-dense-dff-sweep/README.md",
+      "docs/archive/sweep-experiments/n5-dense-scale-sweep/README.md",
+      "docs/archive/sweep-experiments/n7-dense-rope-sweep/README.md",
+      "docs/archive/sweep-experiments/n8-dense-heads-sweep/README.md",
+      "docs/archive/sweep-experiments/n9-dense-dff-sweep/README.md"]),
     ("artifacts/dense-owt-formal-curve-medium-dff-256-result.json",
-     ["docs/experiments/n9-dense-dff-sweep/README.md"]),
+     ["docs/experiments/n9-dense-dff-sweep/README.md",
+      "docs/archive/sweep-experiments/n9-dense-dff-sweep/README.md"]),
     ("artifacts/dense-owt-formal-curve-medium-dff-1024-result.json",
-     ["docs/experiments/n9-dense-dff-sweep/README.md"]),
+     ["docs/experiments/n9-dense-dff-sweep/README.md",
+      "docs/archive/sweep-experiments/n9-dense-dff-sweep/README.md"]),
 ]
 
 

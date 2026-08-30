@@ -98,3 +98,4 @@ artifacts/owt-real-eval/
 # Project-local pi subagent files (cross-check reviewers etc.)
 .pi/agents/
 docs/experiments/p5-04-backend-comparison/audit-artifacts/*.round11-backup
+docs/archive/personal-backup/

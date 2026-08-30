@@ -37,8 +37,17 @@ class SweepDocConsistencyTests(unittest.TestCase):
         self.assertEqual(summary["val_loss_min_step"], 3200)
         self.assertNotEqual(summary["delta_val_loss"], 0.0)
 
-        readme = (ROOT / "docs/experiments/n9-dense-dff-sweep/README.md").read_text(encoding="utf-8")
-        # Find the d_ff=256 row in the curve summary table.
+        # N9 README may live under docs/experiments/ or docs/archive/sweep-experiments/
+        for rel in (
+            "docs/experiments/n9-dense-dff-sweep/README.md",
+            "docs/archive/sweep-experiments/n9-dense-dff-sweep/README.md",
+        ):
+            path = ROOT / rel
+            if path.exists():
+                readme = path.read_text(encoding="utf-8")
+                break
+        else:
+            self.fail("N9 README not found in docs/experiments/ or docs/archive/sweep-experiments/")
         dff_256_row = next(
             (line for line in readme.splitlines() if line.startswith("| **256**")),
             None,
@@ -54,8 +63,17 @@ class SweepDocConsistencyTests(unittest.TestCase):
             (ROOT / "artifacts/dense-owt-formal-curve-medium-dff-256-result.json").read_text(encoding="utf-8")
         )
         summary = artifact["metrics"]["curve_summary"]
-        review = (ROOT / "docs/plans/reviews/stage-n9-dense-dff-sweep.md").read_text(encoding="utf-8")
-        # The summary table must contain the actual val_min and step.
+        # N9 stage review may live under docs/plans/reviews/ or docs/plans/reviews/archive/
+        for rel in (
+            "docs/plans/reviews/stage-n9-dense-dff-sweep.md",
+            "docs/plans/reviews/archive/stage-n9-dense-dff-sweep.md",
+        ):
+            path = ROOT / rel
+            if path.exists():
+                review = path.read_text(encoding="utf-8")
+                break
+        else:
+            self.fail("N9 stage review not found in active or archive")
         self.assertIn(f"{summary['val_loss_min']:.4f}", review)
         self.assertRegex(review, r"7\.5573\b\**\s*@\s*\**\s*3200\b")
         self.assertRegex(review, r"step\s+3200")

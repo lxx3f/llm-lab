@@ -320,14 +320,17 @@ def test_cross_document_candidate_set_count() -> None:
     )
 
     # 2. Every doc that references the candidate set must say "15" + "4 research".
+    # After archival of the F list item, only the archived no-go materials are
+    # required to carry the "15 + 4 research artifacts" wording. Live roadmap
+    # and open-issues no longer reference the candidate set after archiving;
+    # the sample JSON is still required to retain schema-conformant size=19
+    # and the "15 + 4 research" wording inside its config.scope field.
     docs_must_say = [
         ("docs/archive/gqa-vs-mha-no-go/feasibility.md", FEASIBILITY_DOC),
         ("docs/archive/gqa-vs-mha-no-go/protocol.md", ROOT / "docs" / "archive" / "gqa-vs-mha-no-go" / "protocol.md"),
         ("docs/archive/gqa-vs-mha-no-go/README.md", ROOT / "docs" / "archive" / "gqa-vs-mha-no-go" / "README.md"),
         ("docs/plans/reviews/archive/stage-gqa-vs-mha-no-go.md", STAGE_REVIEW),
-        ("docs/plans/roadmap.md", Path(ROOT / "docs" / "plans" / "roadmap.md")),
-        ("docs/plans/open-issues.md", Path(ROOT / "docs" / "plans" / "open-issues.md")),
-        ("examples/evaluation_results/sample-no-go-result.json", Path(ROOT / "examples" / "evaluation_results" / "sample-no-go-result.json")),
+        ("examples/evaluation_results/sample-no-go-result.json", ROOT / "examples" / "evaluation_results" / "sample-no-go-result.json"),
     ]
 
     problems = []
