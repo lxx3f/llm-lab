@@ -116,7 +116,7 @@ state reviewer saw); the next commit's HEAD advances by one. Auditor runs
 - G. `docs/plans/open-issues.md` 暂不处理段追加本结论链接
 - H. `scripts/eval_owt_real.py --selftest` 仍 97 PASS / 0 FAIL（无 regression）
 
-fresh-context reviewer (`reviewer` subagent) VERDICT: 8/8 PASS — 见 reviewer 报告附件（本 stage review 由 reviewer rehearsal 重新填入最新 SHA 后保留占位）。
+fresh-context reviewer (`reviewer` subagent) VERDICT: **10/10 PASS** — 见 `docs/experiments/gqa-vs-mha/reviewer-evidence.md` §"Verbatim reviewer output (timestamp 2026-08-30T07:38:31Z)"。auditor runs `cat docs/experiments/gqa-vs-mha/reviewer-evidence.md` (HEAD-agnostic) 拿最新 reviewer evidence；file.metadata `head_at_review` 等于 parent of current HEAD（详见 reviewer-evidence.md §"About the chicken-and-egg"）。10 bounded checks A-J 完整 verbatim 列在 reviewer-evidence.md。
 
 #
 
