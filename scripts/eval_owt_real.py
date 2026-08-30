@@ -1334,6 +1334,36 @@ def _run_selftests(args: argparse.Namespace) -> int:
                     cm.get("encoded_tokens") == rj.get("encoded_tokens"),
                     hint=f"meta={cm.get('encoded_tokens')} vs json={rj.get('encoded_tokens')}",
                 )
+                # Live validate_token_cache() round-trip: cache file SHA,
+                # metadata SHA, OWT SHA, encoded_tokens all match the
+                # canonical hash-bound contract. The previous metadata
+                # patch (local_snapshot_revision + hf_expected_revision)
+                # requires regenerating ``metadata_sha256`` against the
+                # dict WITHOUT that field; this assertion catches any
+                # future regression where the hash falls out of sync.
+                try:
+                    info = validate_token_cache(cache_meta_path, cache_path)
+                except Exception as exc:
+                    _expect(
+                        f"test_result_{tag}_validate_token_cache_passes",
+                        False,
+                        hint=f"{exc!r}",
+                    )
+                else:
+                    _expect(
+                        f"test_result_{tag}_validate_token_cache_passes",
+                        True,
+                    )
+                    _expect(
+                        f"test_result_{tag}_validate_metadata_sha_matches_json",
+                        info.metadata_sha256 == cm.get("metadata_sha256"),
+                        hint=f"info={info.metadata_sha256[:16]} vs file={cm.get('metadata_sha256', '')[:16]}",
+                    )
+                    _expect(
+                        f"test_result_{tag}_validate_cache_sha_matches_json",
+                        info.cache_sha256 == rj.get("cache_sha256"),
+                        hint=f"info={info.cache_sha256[:16]} vs json={rj.get('cache_sha256', '')[:16]}",
+                    )
 
     print("[selftest] all tests PASSED", flush=True)
     return 0
