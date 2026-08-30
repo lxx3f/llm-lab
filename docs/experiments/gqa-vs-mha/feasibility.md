@@ -128,7 +128,7 @@
 ```bash
 # §2.1 P5-04 本地 5 model config 实证（portably rglob 兼容 hash snapshot 与 master）
 cd C:/Users/23236/repositories/llm-lab
-python -c "
+python3 -c "
 from pathlib import Path
 import json
 for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.json')):
@@ -139,10 +139,10 @@ for cfg in sorted(Path('artifacts/owt-real-eval/models/models').rglob('config.js
 "
 
 # §7 selftest guard (7 断言全 PASS)
-python -m pytest tests/test_gqa_vs_mha_no_go.py -v
+python3 -m pytest tests/test_gqa_vs_mha_no_go.py -v
 
 # §7 P5-04 E 评测无 regression
-python scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
+python3 scripts/eval_owt_real.py --selftest  # 97 PASS / 0 FAIL
 ```
 
 ## 8. 搜索协议（reproducible）
