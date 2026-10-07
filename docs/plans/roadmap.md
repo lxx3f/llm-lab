@@ -49,11 +49,6 @@
 
 阶段审查通过率 100%（`stage-n13-...` 等关键 stage 由独立 reviewer 通过）。
 
-## 已关闭的候选（archived）
-
-### 候选 1: 公开模型 GQA vs MHA 横向对比（no-go / incomplete feasibility）
-
-详细可行性搜索在 `docs/archive/gqa-vs-mha-no-go/`：覆盖 15 个主流 LLM 家族 + 4 个 research artifacts，其中 5 个被独立验证不可行（no-go），14 个是 needs-more-work leads，full audit closure incomplete。最终结论为 narrowed verified-scope no-go；由于公开同 base GQA/MHA 双模型对不可得，**该候选标记为 no-go / 不可行 / infeasible**，未在主线启动。
 
 ## 当前状态
 
